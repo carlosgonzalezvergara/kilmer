@@ -1,548 +1,1938 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kilmer - Syntactic Tree Diagrams</title>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
-
-  <style>
-    :root {
-      --color-bg: #faf9f7;
-      --color-surface: #ffffff;
-      --color-text: #1a1a1a;
-      --color-text-muted: #6b6b6b;
-      --color-accent: #1a472a;
-      --color-border: #e0ddd8;
-      --color-select: #2563eb; 
-      --font-display: 'Crimson Pro', Georgia, serif;
-      --font-body: 'Source Sans 3', system-ui, sans-serif;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: var(--font-body); background-color: var(--color-bg); color: var(--color-text); min-height: 100vh; overflow-x: hidden; }
-    .container { max-width: 1300px; margin: 0 auto; padding: 40px 24px; }
-
-    .header { text-align: center; margin-bottom: 40px; }
-    .header-logo { max-width: 320px; height: auto; margin-bottom: 12px; }
-    
-    .toolbar {
-      background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;
-      padding: 16px 24px; margin-bottom: 32px; display: flex; gap: 10px; flex-wrap: wrap;
-      align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); position: sticky; top: 20px; z-index: 100;
-    }
-
-    .btn {
-      font-family: var(--font-body); padding: 8px 16px; border: 1px solid var(--color-border);
-      border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
-      background: var(--color-surface); transition: all 0.2s;
-    }
-    .btn:hover:not(:disabled) { border-color: var(--color-text); transform: translateY(-1px); }
-    .btn-primary { background: var(--color-accent); color: white; border-color: var(--color-accent); }
-    .btn.active-mode { background: var(--color-select); color: white; border-color: var(--color-select); }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    
-    .tree-canvas {
-      background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;
-      min-height: 600px; padding: 80px 40px; display: flex; justify-content: center;
-      position: relative; overflow: visible;
-    }
-
-    .tree-node { display: flex; flex-direction: column; align-items: center; position: relative; }
-    .node-wrapper { position: relative; padding-bottom: 15px; }
-    .node-label { font-family: var(--font-display); font-size: 20px; min-height: 1.5em; display: flex; align-items: center; justify-content: center; position: relative; z-index: 10; }
-    
-    .node-display { padding: 4px 10px; border-radius: 4px; border: 2px solid transparent; cursor: pointer; }
-    .node-display:hover { background: rgba(0,0,0,0.05); }
-    .node-display.is-source { border-color: var(--color-select); background: rgba(37, 99, 235, 0.05); }
-    .node-display.move-active { cursor: crosshair; }
-    
-    .node-display i { font-style: italic; }
-    .node-display sub { font-size: 0.7em; vertical-align: sub; line-height: 0; }
-    .node-display .overline { text-decoration: overline; }
-
-    .node-label input { font-family: var(--font-display); font-size: 18px; text-align: center; outline: none; border: 2px solid var(--color-accent); border-radius: 4px; width: auto; min-width: 30px; }
-
-    .node-actions {
-      position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
-      margin-top: -5px; display: flex; gap: 3px; opacity: 0; pointer-events: none;
-      transition: opacity 0.2s; background: white; padding: 4px; border-radius: 6px;
-      border: 1px solid var(--color-border); box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 50;
-    }
-    .node-label:hover .node-actions, .node-actions:hover { opacity: 1; pointer-events: auto; }
-
-    .action-btn { width: 28px; height: 28px; border: 1px solid var(--color-border); border-radius: 4px; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-    .action-btn:hover { background: var(--color-accent); color: white; }
-    .action-btn.danger:hover { background: #dc2626; border-color: #dc2626; color: white; }
-
-    .node-children { display: flex; justify-content: center; gap: 40px; padding-top: 40px; position: relative; }
-    .triangle-container { display: flex; flex-direction: column; align-items: center; margin-top: -15px; }
-    .triangle-svg { overflow: visible; margin-bottom: 5px; }
-
-    .arrow-delete-btn { cursor: pointer; pointer-events: auto; }
-    .arrow-delete-btn rect { fill: white; stroke: var(--color-border); rx: 4; }
-    .arrow-delete-btn:hover rect { fill: #dc2626; stroke: #dc2626; }
-    .arrow-delete-btn:hover text { fill: white; font-weight: bold; }
-
-    /* Redesigned Instructions */
-    .instructions-panel {
-      margin-top: 48px;
-      background: linear-gradient(135deg, #fdfcfb 0%, #f7f6f3 100%);
-      border: 1px solid var(--color-border);
-      border-radius: 16px;
-      overflow: hidden;
-    }
-
-    .instructions-header {
-      background: var(--color-accent);
-      color: white;
-      padding: 16px 24px;
-      font-family: var(--font-display);
-      font-size: 1.25rem;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-    }
-
-    .instructions-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 1px;
-      background: var(--color-border);
-    }
-
-    .instruction-card {
-      background: white;
-      padding: 20px 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .instruction-card h4 {
-      font-family: var(--font-display);
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--color-accent);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .instruction-card h4 .icon {
-      width: 24px;
-      height: 24px;
-      background: var(--color-accent);
-      color: white;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      font-family: var(--font-body);
-    }
-
-    .instruction-card p {
-      font-size: 14px;
-      line-height: 1.6;
-      color: var(--color-text-muted);
-    }
-
-    .instruction-card code {
-      display: inline-block;
-      background: #f5f4f0;
-      padding: 1px 6px;
-      border-radius: 4px;
-      font-family: 'SF Mono', Consolas, monospace;
-      font-size: 13px;
-      color: var(--color-text);
-      border: 1px solid #e8e6e1;
-    }
-
-    .instruction-card .example {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 4px;
-    }
-
-    .instruction-card .example .arrow {
-      color: var(--color-accent);
-      font-size: 12px;
-    }
-
-    .instruction-card .example .result {
-      font-family: var(--font-display);
-      font-size: 15px;
-    }
-
-    .instruction-card .example .result i { font-style: italic; }
-    .instruction-card .example .result sub { font-size: 0.7em; vertical-align: sub; }
-    .instruction-card .example .result .overline { text-decoration: overline; }
-
-    .keyboard-hint {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .key {
-      display: inline-block;
-      background: linear-gradient(180deg, #fafafa 0%, #e8e8e8 100%);
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      padding: 2px 8px;
-      font-size: 12px;
-      font-family: var(--font-body);
-      font-weight: 600;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    }
-  </style>
-</head>
-
-<body>
-  <div id="root"></div>
-
-  <script type="text/babel">
-    const { useState, useRef, useCallback, useEffect, useLayoutEffect } = React;
-
-    const LOGO_URL = "kilmer_logo.png";
-    const generateId = () => Math.random().toString(36).substring(2, 11);
-
-    const formatLabel = (text) => {
-      if (!text) return '';
-      return text
-        .replace(/\*(.*?)\*/g, '<i>$1</i>')
-        .replace(/_(.*?)(\s|$)/g, '<sub>$1</sub>$2')
-        .replace(/#(.*?)#/g, '<span class="overline">$1</span>');
-    };
-
-    // Helper to measure text width for dynamic triangle sizing
-    const measureText = (text, font = "20px 'Crimson Pro', Georgia, serif") => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      ctx.font = font;
-      // Strip formatting markers for measurement
-      const plainText = text.replace(/\*(.*?)\*/g, '$1').replace(/_(.*?)(\s|$)/g, '$1$2').replace(/#(.*?)#/g, '$1');
-      return ctx.measureText(plainText).width;
-    };
-
-    const TreeNode = ({ node, isRoot, updateNode, addNode, toggleTri, delNode, isMoveMode, sourceId, onNodeClick }) => {
-      const [editLabel, setEditLabel] = useState(false);
-      const [editTri, setEditTri] = useState(false);
-      const [val, setVal] = useState(node.label);
-      const [tVal, setTVal] = useState(node.triangleText || '');
-
-      useEffect(() => { setVal(node.label); setTVal(node.triangleText || ''); }, [node]);
-
-      const handleLabelClick = () => {
-        if (isMoveMode) onNodeClick(node.id);
-        else setEditLabel(true);
-      };
-
-      const handleTriClick = () => {
-        if (isMoveMode) onNodeClick(node.id);
-        else setEditTri(true);
-      };
-
-      // Calculate dynamic triangle width based on text
-      const triangleWidth = node.triangleText !== null 
-        ? Math.max(80, measureText(node.triangleText || '...') + 40) 
-        : 80;
-
-      return (
-        <div className="tree-node" data-node-id={node.id}>
-          <div className="node-wrapper">
-            <div className={`node-label ${isMoveMode ? 'move-mode' : ''}`}>
-              {editLabel ? (
-                <input 
-                  autoFocus 
-                  value={val} 
-                  onChange={e => setVal(e.target.value)} 
-                  size={val.length || 1} 
-                  onBlur={() => { updateNode(node.id, {label: val}); setEditLabel(false); }}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') e.currentTarget.blur();
-                    if (e.key === 'Escape') { setVal(node.label); setEditLabel(false); }
-                  }} 
-                />
-              ) : (
-                <div className={`node-display ${isMoveMode ? 'move-active' : ''} ${sourceId === node.id ? 'is-source' : ''}`}
-                     onClick={handleLabelClick} dangerouslySetInnerHTML={{ __html: formatLabel(val) || '...' }} />
-              )}
-              {!isMoveMode && (
-                <div className="node-actions">
-                  {!node.children && !node.triangleText && (
-                    <><button className="action-btn" onClick={() => addNode(node.id, 1)}>↓</button>
-                      <button className="action-btn" onClick={() => addNode(node.id, 2)}>⑂</button></>
-                  )}
-                  <button className="action-btn" onClick={() => toggleTri(node.id)}>△</button>
-                  <button className="action-btn danger" onClick={() => delNode(node.id)} title="Delete node or descendants">✕</button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {node.triangleText !== null && (
-            <div className="triangle-container">
-              <svg className="triangle-svg" width={triangleWidth} height="50" style={{overflow: 'visible'}}>
-                <polygon points={`${triangleWidth/2},0 0,50 ${triangleWidth},50`} fill="none" stroke="black" strokeWidth="1.2" />
-              </svg>
-              <div className="node-label">
-                {editTri ? (
-                  <input 
-                    autoFocus 
-                    value={tVal} 
-                    onChange={e => setTVal(e.target.value)} 
-                    size={tVal.length || 1}
-                    onBlur={() => { updateNode(node.id, {triangleText: tVal}); setEditTri(false); }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') e.currentTarget.blur();
-                      if (e.key === 'Escape') { setTVal(node.triangleText || ''); setEditTri(false); }
-                    }} 
-                  />
-                ) : (
-                  <div className="node-display" onClick={handleTriClick} dangerouslySetInnerHTML={{ __html: formatLabel(tVal) || '...' }} />
-                )}
-              </div>
-            </div>
-          )}
-
-          {node.children && (
-            <div className="node-children">
-              {node.children.map(c => <TreeNode key={c.id} node={c} isRoot={false} {...{updateNode, addNode, toggleTri, delNode, isMoveMode, sourceId, onNodeClick}} />)}
-            </div>
-          )}
-        </div>
-      );
-    };
-
-    const KilmerApp = () => {
-      const [tree, setTree] = useState(null);
-      const [moves, setMoves] = useState([]);
-      const [isMoveMode, setIsMoveMode] = useState(false);
-      const [sourceId, setSourceId] = useState(null);
-      const [svgLines, setSvgLines] = useState(null);
-      const canvasRef = useRef(null);
-      const fileRef = useRef(null);
-
-      const findAndUpdate = (n, id, update) => {
-        if (!n) return null;
-        if (n.id === id) return { ...n, ...update };
-        return { ...n, children: n.children ? n.children.map(c => findAndUpdate(c, id, update)) : null };
-      };
-
-      const findAndRemove = (n, id) => {
-        if (!n || !n.children) return n;
-        if (n.children.some(c => c.id === id)) {
-          return { ...n, children: n.children.filter(c => c.id !== id).length > 0 ? n.children.filter(c => c.id !== id) : null };
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ENT - Asistente para el análisis sintáctico</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        /* ===========================================
+           VARIABLES Y RESET
+           =========================================== */
+        :root {
+            --btn-primary-bg: #374151;
+            --btn-primary-bg-hover: #1f2937;
+            --btn-primary-text: #ffffff;
+            --btn-outline-bg: #ffffff;
+            --btn-outline-border: #d1d5db;
+            --btn-outline-border-hover: #cbd5e1;
+            --btn-outline-text: #374151;
+            --btn-exercise-border: #a78bfa;
+            --btn-exercise-text: #5b21b6;
+            --btn-exercise-bg-hover: #f5f3ff;
+            --btn-success-bg: #047857;
+            --btn-success-bg-hover: #065f46;
         }
-        return { ...n, children: n.children.map(c => findAndRemove(c, id)) };
-      };
 
-      const updateNode = (id, up) => setTree(prev => findAndUpdate(prev, id, up));
-      const addNode = (id, count) => setTree(prev => findAndUpdate(prev, id, { children: Array.from({length: count}, () => ({id: generateId(), label: '', children: null, triangleText: null})) }));
-      
-      const delNode = (id) => {
-        if (tree.id === id) {
-          setTree(prev => ({...prev, children: null, triangleText: null}));
-        } else {
-          setTree(prev => findAndRemove(prev, id));
-        }
-        setMoves(prev => prev.filter(m => m.from !== id && m.to !== id));
-      };
-
-      const toggleTri = (id) => {
-        const rec = (n) => {
-          if (!n) return null;
-          if (n.id === id) return n.triangleText !== null ? { ...n, triangleText: null } : { ...n, triangleText: '', children: null };
-          return { ...n, children: n.children ? n.children.map(rec) : null };
-        };
-        setTree(prev => rec(prev));
-      };
-
-      const draw = useCallback(() => {
-        if (!canvasRef.current || !tree) return;
-        const canvas = canvasRef.current;
-        const rect = canvas.getBoundingClientRect();
+        * { box-sizing: border-box; }
         
-        const getPos = (id) => {
-          const el = canvas.querySelector(`[data-node-id="${id}"] > .node-wrapper .node-display`);
-          if (!el) return null;
-          const r = el.getBoundingClientRect();
-          return { x: r.left + r.width/2 - rect.left + canvas.scrollLeft, y: r.top - rect.top + canvas.scrollTop, r };
-        };
+        body { 
+            margin: 0; 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background-color: #f3f4f6; 
+            min-height: 100vh; 
+            color: #374151; 
+        }
 
-        const lines = [];
-        const allNodes = canvas.querySelectorAll('[data-node-id]');
-        allNodes.forEach(nodeEl => {
-          const id = nodeEl.getAttribute('data-node-id');
-          const pPos = getPos(id);
-          if (!pPos) return;
-          const childCont = nodeEl.querySelector(':scope > .node-children');
-          if (childCont) {
-            childCont.querySelectorAll(':scope > .tree-node').forEach(childEl => {
-              const cId = childEl.getAttribute('data-node-id');
-              const cPos = getPos(cId);
-              if (cPos) {
-                lines.push(<line key={`${id}-${cId}`} x1={pPos.x} y1={pPos.r.bottom - rect.top} x2={cPos.x} y2={cPos.r.top - rect.top} stroke="black" strokeWidth="1.2" />);
-              }
+        /* ===========================================
+           LAYOUT PRINCIPAL
+           =========================================== */
+        .container { 
+            max-width: 1400px; 
+            margin: 0 auto; 
+            padding: 20px 24px 32px; 
+        }
+
+        .header-logo-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .header-logo {
+            max-width: 500px;
+            width: 100%;
+            height: auto;
+        }
+
+        .input-section { 
+            background: white; 
+            border-radius: 8px; 
+            padding: 24px; 
+            margin-bottom: 24px; 
+            border: 1px solid #e5e7eb; 
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05); 
+        }
+
+        .input-row { 
+            display: flex; 
+            gap: 12px; 
+            align-items: center; 
+            flex-wrap: wrap; 
+        }
+
+        .input-row input[type="text"] { 
+            flex: 1; 
+            padding: 12px 16px; 
+            border: 1px solid #d1d5db; 
+            border-radius: 6px; 
+            font-size: 15px; 
+            min-width: 200px; 
+        }
+
+        /* ===========================================
+           BOTONES
+           =========================================== */
+        .btn {
+            padding: 10px 20px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            line-height: 1;
+            user-select: none;
+        }
+
+        .btn:active { transform: translateY(1px); }
+        .btn:focus-visible { outline: 3px solid rgba(59,130,246,.35); outline-offset: 2px; }
+
+        .btn-primary {
+            background-color: var(--btn-primary-bg);
+            color: var(--btn-primary-text);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+        }
+        .btn-primary:hover { 
+            background-color: #111827; 
+            box-shadow: 0 6px 16px rgba(17, 24, 39, 0.35);
+            transform: translateY(-2px);
+        }
+
+        .btn-outline {
+            background-color: var(--btn-outline-bg);
+            border-color: var(--btn-outline-border);
+            color: var(--btn-outline-text);
+        }
+        .btn-outline:hover {
+            background-color: #e5e7eb;
+            border-color: #6b7280;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            transform: translateY(-2px);
+        }
+
+        .btn-exercise {
+            background-color: #ffffff;
+            border-color: var(--btn-exercise-border);
+            color: var(--btn-exercise-text);
+        }
+        .btn-exercise:hover {
+            background-color: #ddd6fe;
+            border-color: #7c3aed;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background-color: var(--btn-success-bg);
+            color: white;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+        }
+        .btn-success:hover { 
+            background-color: #065f46; 
+            box-shadow: 0 6px 16px rgba(4, 120, 87, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn-danger-soft { 
+            background-color: #fff1f2; 
+            color: #991b1b; 
+            border: 1px solid #fee2e2; 
+            padding: 4px 10px; 
+            font-size: 11px; 
+            cursor: pointer; 
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        .btn-danger-soft:hover {
+            background-color: #fecaca;
+            border-color: #f87171;
+            box-shadow: 0 3px 10px rgba(239, 68, 68, 0.25);
+        }
+
+        /* ===========================================
+           ÁRBOL SINTÁCTICO
+           =========================================== */
+        .tree-container { 
+            background: white; 
+            border-radius: 8px; 
+            padding: 40px; 
+            border: 1px solid #e5e7eb; 
+            overflow-x: auto; 
+            min-height: 450px; 
+        }
+
+        .tree-wrapper { 
+            display: flex; 
+            justify-content: flex-start; 
+            padding: 20px 0; 
+            position: relative; 
+            width: fit-content; 
+            min-width: 100%; 
+            margin: 0 auto; 
+        }
+
+        .children-container { 
+            display: flex; 
+            justify-content: center; 
+            align-items: flex-start; 
+            position: relative; 
+        }
+
+        .child-branch { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            position: relative; 
+            padding-top: 24px; 
+        }
+
+        .child-branch::before, 
+        .child-branch::after { 
+            content: ""; 
+            position: absolute; 
+            top: 0; 
+            width: 50%; 
+            height: 24px; 
+            border-top: 1.5px solid #6b7280; 
+        }
+        .child-branch::before { right: 50%; }
+        .child-branch::after { left: 50%; }
+        .child-branch:first-child::before { border-top: none; }
+        .child-branch:last-child::after { border-top: none; }
+
+        .v-line-stem { 
+            width: 1.5px; 
+            height: 24px; 
+            background-color: #6b7280; 
+            position: absolute; 
+            top: 0; 
+            left: 50%; 
+            transform: translateX(-50%); 
+        }
+
+        /* Modo técnico (arbóreo) */
+        .technical-mode .child-branch::before, 
+        .technical-mode .child-branch::after { display: none !important; }
+        .technical-mode .child-branch { padding-top: 60px; }
+
+        /* ===========================================
+           NODOS
+           =========================================== */
+        .node-container { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            position: relative; 
+            z-index: 2; 
+            margin: 0 10px; 
+            width: fit-content; 
+        }
+
+        .connector-v { 
+            width: 1.5px; 
+            background-color: #6b7280; 
+            margin: 0 auto; 
+        }
+
+        .node-box { 
+            padding: 12px 24px; 
+            border: 1.5px solid #4b5563; 
+            border-radius: 4px; 
+            background-color: white; 
+            font-size: 16px; 
+            color: #111827; 
+            min-width: 100px; 
+            text-align: center; 
+            position: relative; 
+        }
+
+        .node-box.can-divide { 
+            border-color: #1e3a8a; 
+            background-color: #f0f7ff; 
+            cursor: pointer; 
+        }
+
+        .nucleus-node > .label-input, 
+        .nucleus-node > .node-box, 
+        .nucleus-node > div > .label-input { font-weight: bold; }
+
+        /* ===========================================
+           ETIQUETAS (LABELS)
+           =========================================== */
+        .label-input { 
+            width: 95px; 
+            text-align: center; 
+            border: 1px dashed #d1d5db; 
+            border-radius: 4px; 
+            padding: 4px; 
+            font-size: 11px; 
+            background: transparent; 
+            color: #4b5563; 
+            font-family: Arial, sans-serif; 
+        }
+
+        .label-input.has-value-top, 
+        .label-input.has-value-bottom { 
+            background-color: #f1f5f9; 
+            border: 1px solid #cbd5e1; 
+            color: #334155; 
+        }
+
+        .label-input.label-top { text-transform: uppercase; }
+
+        .label-wrap {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .split-toggle-btn {
+            position: absolute;
+            right: -14px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            border: 1px solid #d1d5db;
+            background: #ffffff;
+            color: #6b7280;
+            font-size: 11px;
+            line-height: 14px;
+            padding: 0;
+            cursor: pointer;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .label-wrap:hover .split-toggle-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .split-toggle-btn:hover {
+            color: #1e3a8a;
+            border-color: #93c5fd;
+        }
+
+        /* ===========================================
+           BOTONES DE ACCIÓN EN NODOS
+           =========================================== */
+        .clear-text-btn { 
+            position: absolute; 
+            top: -10px; 
+            right: -10px; 
+            background: #ef4444; 
+            color: white; 
+            border: none; 
+            border-radius: 50%; 
+            width: 18px; 
+            height: 18px; 
+            font-size: 10px; 
+            cursor: pointer; 
+            display: none; 
+            align-items: center; 
+            justify-content: center; 
+        }
+        .node-box:hover .clear-text-btn { display: flex; }
+
+        .add-node-btn {
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 12px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .node-box:hover .add-node-btn { display: flex; }
+
+        /* ===========================================
+           ACCIONES INFERIORES E INSTRUCCIONES
+           =========================================== */
+        .bottom-actions { 
+            display: flex; 
+            justify-content: center; 
+            gap: 16px; 
+            margin-top: 24px; 
+            padding: 20px; 
+            background: #f9fafb; 
+            border-radius: 8px; 
+            border: 1px solid #e5e7eb; 
+            flex-wrap: wrap; 
+        }
+
+        .instructions { 
+            margin-top: 32px; 
+            padding: 24px; 
+            background: white; 
+            border-left: 4px solid #1e3a8a; 
+            border-radius: 4px; 
+            font-size: 13px; 
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05); 
+        }
+
+        .help-list { 
+            margin: 10px 0 0; 
+            line-height: 1.45; 
+            padding-left: 18px; 
+        }
+        .help-list li { margin-bottom: 8px; }
+
+        .help-details { margin-top: 12px; }
+        .help-details > summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: #1e3a8a;
+            list-style: none;
+        }
+        .help-details > summary::-webkit-details-marker { display: none; }
+        .help-details > summary::before { 
+            content: "▶"; 
+            display: inline-block; 
+            margin-right: 8px; 
+            font-size: 12px; 
+        }
+        .help-details[open] > summary::before { content: "▼"; }
+
+        /* ===========================================
+           MODO EJERCITACIÓN
+           =========================================== */
+        .exercise-banner {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-left: 6px solid #8b5cf6;
+            color: #111827;
+            padding: 16px 24px;
+            border-radius: 10px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .exercise-banner-text {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .exercise-banner-icon { font-size: 20px; }
+        .exercise-banner h3 { margin: 0; font-size: 16px; color: #111827; }
+        .exercise-banner p { margin: 4px 0 0; font-size: 13px; color: #6b7280; }
+
+        .exercise-banner {
+            display: flex;
+            flex-direction: column; /* Apila el título arriba y los botones abajo */
+            align-items: center;    /* Centra todo horizontalmente */
+            text-align: center;     /* Asegura que el texto interno esté centrado */
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-top: 4px solid #8b5cf6;
+            border-bottom: 4px solid #8b5cf6;
+            padding: 24px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            gap: 20px;
+        }
+
+        /* ===========================================
+           COMPARACIÓN DE RESULTADOS
+           =========================================== */
+        .comparison-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-top: 24px;
+        }
+
+        .comparison-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            border: 2px solid #e5e7eb;
+            overflow-x: auto;
+        }
+        .comparison-panel.student { border-color: #3b82f6; }
+        .comparison-panel.model { border-color: #10b981; }
+
+        .comparison-panel h3 {
+            margin: 0 0 16px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .comparison-panel.student h3 { color: #3b82f6; }
+        .comparison-panel.model h3 { color: #10b981; }
+
+        .comparison-tree { overflow-x: auto; }
+
+        /* Resaltado de diferencias */
+        .node-correct .node-box {
+            border-color: #10b981 !important;
+            background-color: #ecfdf5 !important;
+        }
+        .node-incorrect .node-box {
+            border-color: #ef4444 !important;
+            background-color: #fef2f2 !important;
+        }
+        .label-correct {
+            background-color: #d1fae5 !important;
+            border-color: #10b981 !important;
+            color: #065f46 !important;
+        }
+        .label-incorrect {
+            background-color: #fee2e2 !important;
+            border-color: #ef4444 !important;
+            color: #991b1b !important;
+        }
+
+        /* Resumen de resultados */
+        .results-summary {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid #e5e7eb;
+        }
+        .results-summary h3 { margin: 0 0 16px; color: #374151; }
+
+        .results-stats {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .stat-dot.correct { background-color: #10b981; }
+        .stat-dot.incorrect { background-color: #ef4444; }
+        .stat-dot.partial { background-color: #f59e0b; }
+
+        /* ===========================================
+           MODAL SELECTOR DE POSICIÓN
+           =========================================== */
+        .pos-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(17,24,39,.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .pos-modal {
+            width: min(520px, calc(100vw - 32px));
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,.18);
+            padding: 18px 18px 14px;
+        }
+
+        .pos-title {
+            font-weight: 700;
+            color: #111827;
+            margin: 0 0 6px;
+        }
+
+        .pos-sub {
+            margin: 0 0 12px;
+            color: #6b7280;
+            font-size: 13px;
+            line-height: 1.35;
+        }
+
+        .pos-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .pos-select {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #fff;
+            color: #111827;
+        }
+
+        .pos-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        /* ===========================================
+           PIE DE PÁGINA
+           =========================================== */
+        .footer {
+            margin-top: 40px;
+            padding: 20px 0;
+            text-align: center;
+            border-top: 1px solid #e5e7eb;
+            color: #6b7280;
+            font-size: 14px;
+        }
+        .footer strong { color: #374151; }
+        .footer a { color: #1e3a8a; text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
+        .footer img { 
+            opacity: 0.8; 
+            transition: opacity 0.2s;
+            display: block;
+            margin: 10px auto 0;
+            height: 31px; 
+            width: auto;
+        }
+        .footer img:hover { opacity: 1; }
+
+        /* ===========================================
+           RESPONSIVE - TABLETS Y MÓVILES
+           =========================================== */
+        @media (max-width: 768px) {
+            .container { padding: 12px 16px 24px; }
+            
+            .header-logo { max-width: 300px; }
+            
+            .input-section { padding: 16px; }
+            
+            .input-row { 
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .input-row input[type="text"] {
+                min-width: 100%;
+            }
+            
+            .btn {
+                padding: 12px 16px;
+                justify-content: center;
+            }
+            
+            .tree-display-container {
+                padding: 16px;
+            }
+            
+            .node-label-container {
+                min-width: 80px;
+            }
+            
+            .node-actions button {
+                padding: 4px;
+                font-size: 11px;
+            }
+            
+            .comparison-panels {
+                flex-direction: column;
+            }
+            
+            .results-stats {
+                flex-direction: column;
+                gap: 12px;
+            }
+            
+            .pos-modal {
+                padding: 14px;
+            }
+            
+            .pos-row {
+                flex-direction: column;
+            }
+            
+            .pos-select {
+                width: 100%;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header-logo { max-width: 220px; }
+            
+            .btn {
+                font-size: 13px;
+                padding: 10px 12px;
+            }
+            
+            .node-label-container {
+                min-width: 60px;
+                font-size: 10px;
+            }
+            
+            .node-actions {
+                gap: 2px;
+            }
+            
+            .node-actions button {
+                padding: 3px;
+                font-size: 10px;
+            }
+            
+            .results-summary {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useRef } = React;
+
+        const SyntaxTreeBuilder = () => {
+            // ===========================================
+            // ESTADO
+            // ===========================================
+            const [sentence, setSentence] = useState('');
+            const [tree, setTree] = useState(null);
+            const [divisionMode, setDivisionMode] = useState(null);
+            const [selectedCuts, setSelectedCuts] = useState([]);
+            const [posPicker, setPosPicker] = useState(null);
+
+            // Modo ejercicio
+            const [exerciseMode, setExerciseMode] = useState(false);
+            const [modelTree, setModelTree] = useState(null);
+            const [showComparison, setShowComparison] = useState(false);
+            const [comparisonResults, setComparisonResults] = useState(null);
+
+            // Referencias
+            const fileInputRef = useRef(null);
+            const exerciseInputRef = useRef(null);
+
+            // ===========================================
+            // UTILIDADES
+            // ===========================================
+            const getFileName = (extension) => {
+                const words = sentence.trim().split(/\s+/).slice(0, 5).join('_');
+                return `${words}.${extension}`;
+            };
+
+            const normalizeSentence = (text) => {
+                return text.trim()
+                    .replace(/\bdel\b/gi, 'de el')
+                    .replace(/\bal\b/gi, 'a el')
+                    .replace(/\bconmigo\b/gi, 'con migo')
+                    .replace(/\bcontigo\b/gi, 'con tigo')
+                    .replace(/\bconsigo\b/gi, 'con sigo');
+            };
+
+            const createEmptyTree = (text) => ({
+                id: 'root',
+                text: normalizeSentence(text),
+                labelTop: '',
+                labelBottom: '',
+                children: null,
+                isNucleus: false
             });
-          }
-        });
 
-        const arrows = moves.map(m => {
-          const s = getPos(m.from); const e = getPos(m.to);
-          if (!s || !e) return null;
-          const midX = (s.x + e.x) / 2;
-          const curve = Math.max(70, Math.abs(e.x - s.x)/2.2);
-          const ctrlY = Math.max(s.r.bottom, e.r.bottom) - rect.top + curve;
-          const sy = s.r.bottom - rect.top; const ey = e.r.bottom - rect.top;
-          const path = `M ${s.x} ${sy} Q ${midX} ${ctrlY} ${e.x} ${ey}`;
-          const t = 0.5;
-          const bx = (1-t)**2 * s.x + 2*(1-t)*t*midX + t**2 * e.x;
-          const by = (1-t)**2 * sy + 2*(1-t)*t*ctrlY + t**2 * ey;
-          return (
-            <g key={m.id}>
-              <path d={path} fill="none" stroke="black" strokeWidth="1.5" markerEnd="url(#head)" opacity="0.8" />
-              <g className="arrow-delete-btn" onClick={() => setMoves(prev => prev.filter(x => x.id !== m.id))} transform={`translate(${bx-10},${by-10})`}>
-                <rect width="20" height="20" fill="white" stroke="#e0ddd8" /><text x="10" y="15" textAnchor="middle" fontSize="14" fill="#dc2626">×</text>
-              </g>
-            </g>
-          );
-        });
-        setSvgLines(<><defs><marker id="head" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" /></marker></defs>{lines}{arrows}</>);
-      }, [tree, moves]);
+            const makeNewNode = (text = '∅') => ({
+                id: `added-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+                text,
+                labelTop: '',
+                labelBottom: '',
+                children: null,
+                isNucleus: false,
+                isInserted: true
+            });
 
-      useLayoutEffect(() => { draw(); }, [tree, moves, draw]);
-      useEffect(() => { window.addEventListener('resize', draw); return () => window.removeEventListener('resize', draw); }, [draw]);
+            const updateNode = (node, id, updates) => {
+                if (node.id === id) return { ...node, ...updates };
+                if (node.children) {
+                    return { ...node, children: node.children.map(c => updateNode(c, id, updates)) };
+                }
+                return node;
+            };
 
-      const load = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          try {
-            const data = JSON.parse(ev.target.result);
-            setTree(data.tree || data);
-            setMoves(data.moves || []);
-          } catch(err) { alert("Invalid JSON file"); }
+            const findNodeById = (n, id) => {
+                if (!n) return null;
+                if (n.id === id) return n;
+                if (n.children) {
+                    for (const c of n.children) {
+                        const r = findNodeById(c, id);
+                        if (r) return r;
+                    }
+                }
+                return null;
+            };
+
+            const shorten = (s, n = 18) => {
+                const t = (s || '').trim();
+                if (!t) return '∅';
+                return t.length > n ? t.slice(0, n - 1) + '…' : t;
+            };
+
+            const buildPosLabel = (i, siblings) => {
+                const n = siblings.length;
+                if (i === 1) return 'Al inicio';
+                if (i === n + 1) return 'Al final';
+                const left = shorten(siblings[i - 2]);
+                const right = shorten(siblings[i - 1]);
+                return `Entre "${left}" y "${right}"`;
+            };
+
+            // ===========================================
+            // ACCIONES PRINCIPALES
+            // ===========================================
+            const startAnalysis = () => {
+                if (sentence.trim()) {
+                    setTree(createEmptyTree(sentence));
+                    setDivisionMode(null);
+                    setSelectedCuts([]);
+                    setExerciseMode(false);
+                    setModelTree(null);
+                    setShowComparison(false);
+                }
+            };
+
+            const handleDivide = () => {
+                const node = findNodeById(tree, divisionMode);
+                const words = node.text.split(/\s+/);
+                const segments = [];
+                let start = 0;
+                
+                [...selectedCuts, words.length - 1].forEach(cut => {
+                    segments.push(words.slice(start, cut + 1).join(' '));
+                    start = cut + 1;
+                });
+                
+                const children = segments.filter(s => s.trim()).map((s, i) => ({
+                    id: `${divisionMode}-${i}-${Date.now()}`,
+                    text: s,
+                    labelTop: '',
+                    labelBottom: '',
+                    children: null,
+                    isNucleus: false
+                }));
+                
+                setTree(prev => updateNode(prev, divisionMode, { children }));
+                setDivisionMode(null);
+                setSelectedCuts([]);
+            };
+
+            const addChildNode = (parentId) => {
+                const txt = window.prompt('Texto del nuevo nodo (por ej.: Ø, SUJ. DES.):', 'Ø');
+                if (txt === null) return;
+
+                const parent = findNodeById(tree, parentId);
+                const existing = parent?.children ? [...parent.children] : [];
+                const siblings = existing.map(c => (c.text || '').trim() || '∅');
+
+                setPosPicker({
+                    parentId,
+                    txt: (txt || '').trim() || '∅',
+                    siblings,
+                    pos: siblings.length + 1
+                });
+            };
+
+            const confirmInsertAtPosition = () => {
+                if (!posPicker) return;
+                const { parentId, txt, pos } = posPicker;
+
+                setTree(prev => {
+                    const parent = findNodeById(prev, parentId);
+                    const existing = parent?.children ? [...parent.children] : [];
+                    const n = existing.length;
+                    let p = parseInt(pos, 10);
+                    if (Number.isNaN(p)) p = n + 1;
+                    p = Math.max(1, Math.min(n + 1, p));
+
+                    const newNode = makeNewNode(txt);
+                    existing.splice(p - 1, 0, newNode);
+                    return updateNode(prev, parentId, { children: existing });
+                });
+
+                setPosPicker(null);
+            };
+
+            // ===========================================
+            // GUARDAR / CARGAR
+            // ===========================================
+            const handleSaveJSON = () => {
+                if (!tree) return;
+                const blob = new Blob([JSON.stringify({ sentence, tree }, null, 2)], { type: 'application/json' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = getFileName('json');
+                a.click();
+            };
+
+            const handleLoadJSON = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const imported = JSON.parse(e.target.result);
+                        if (!imported.tree || !imported.sentence) {
+                            alert('Error: El archivo no tiene el formato esperado.\n\nEl archivo JSON debe contener las propiedades "sentence" y "tree".');
+                            return;
+                        }
+                        setSentence(imported.sentence || '');
+                        setTree(imported.tree);
+                        setExerciseMode(false);
+                        setModelTree(null);
+                        setShowComparison(false);
+                    } catch (error) {
+                        alert('Error al leer el archivo.\n\nEl archivo no es un JSON válido o está corrupto.\n\nDetalle: ' + error.message);
+                    }
+                };
+                reader.onerror = () => {
+                    alert('Error al leer el archivo. Por favor, inténtelo de nuevo.');
+                };
+                reader.readAsText(file);
+                event.target.value = '';
+            };
+
+            const handleLoadExercise = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const imported = JSON.parse(e.target.result);
+                        if (!imported.tree || !imported.sentence) {
+                            alert('Error: El archivo no tiene el formato esperado.\n\nEl archivo de ejercicio debe contener las propiedades "sentence" y "tree".');
+                            return;
+                        }
+                        const originalSentence = imported.sentence || '';
+                        setSentence(originalSentence);
+                        setModelTree(imported.tree);
+                        setTree(createEmptyTree(originalSentence));
+                        setDivisionMode(null);
+                        setSelectedCuts([]);
+                        setExerciseMode(true);
+                        setShowComparison(false);
+                        setComparisonResults(null);
+                    } catch (error) {
+                        alert('Error al leer el archivo de ejercicio.\n\nEl archivo no es un JSON válido o está corrupto.\n\nDetalle: ' + error.message);
+                    }
+                };
+                reader.onerror = () => {
+                    alert('Error al leer el archivo. Por favor, inténtelo de nuevo.');
+                };
+                reader.readAsText(file);
+                event.target.value = '';
+            };
+
+            // ===========================================
+            // MODO EJERCITACIÓN
+            // ===========================================
+            const compareTrees = (studentTree, modelTree) => {
+                const results = {
+                    totalNodes: 0,
+                    correctStructure: 0,
+                    correctLabelTop: 0,
+                    correctLabelBottom: 0,
+                    incorrectStructure: 0,
+                    incorrectLabelTop: 0,
+                    incorrectLabelBottom: 0,
+                    totalLabelTopExpected: 0,
+                    totalLabelBottomExpected: 0,
+                    correctLabelTopExpected: 0,
+                    correctLabelBottomExpected: 0,
+                    totalElements: 0,
+                    correctElements: 0,
+                    errorElements: 0,
+                    accuracy: 0,
+                    nodeComparisons: new Map()
+                };
+
+                const normalizeText = (text) => (text || '').trim().toLowerCase();
+                const normalizeLabel = (label) => (label || '').trim().toLowerCase().replace(/\s+/g, '');
+
+                const compareNodes = (student, model, path = 'root') => {
+                    if (!model) return;
+                    
+                    results.totalNodes++;
+                    
+                    const comparison = {
+                        path,
+                        textMatch: normalizeText(student?.text) === normalizeText(model.text),
+                        labelTopMatch: normalizeLabel(student?.labelTop) === normalizeLabel(model.labelTop),
+                        labelBottomMatch: normalizeLabel(student?.labelBottom) === normalizeLabel(model.labelBottom),
+                        structureMatch: true,
+                        studentNode: student,
+                        modelNode: model
+                    };
+
+                    const modelChildren = model.children || [];
+                    const studentChildren = student?.children || [];
+
+                    if (!student || studentChildren.length !== modelChildren.length) {
+                        comparison.structureMatch = false;
+                        results.incorrectStructure++;
+                    } else {
+                        results.correctStructure++;
+                    }
+
+                    const modelTop = (model.labelTop || '').trim();
+                    const modelBottom = (model.labelBottom || '').trim();
+
+                    if (comparison.labelTopMatch) results.correctLabelTop++;
+                    if (modelTop) {
+                        results.totalLabelTopExpected++;
+                        if (comparison.labelTopMatch) {
+                            results.correctLabelTopExpected++;
+                        } else {
+                            results.incorrectLabelTop++;
+                        }
+                    }
+
+                    if (comparison.labelBottomMatch) results.correctLabelBottom++;
+                    if (modelBottom) {
+                        results.totalLabelBottomExpected++;
+                        if (comparison.labelBottomMatch) {
+                            results.correctLabelBottomExpected++;
+                        } else {
+                            results.incorrectLabelBottom++;
+                        }
+                    }
+
+                    results.nodeComparisons.set(path, comparison);
+
+                    if (modelChildren.length > 0 && studentChildren.length > 0) {
+                        const pairedChildren = [];
+                        const usedStudentIndices = new Set();
+
+                        modelChildren.forEach((modelChild, mi) => {
+                            let bestMatch = -1;
+                            let bestScore = -1;
+
+                            studentChildren.forEach((studentChild, si) => {
+                                if (usedStudentIndices.has(si)) return;
+                                const score = normalizeText(studentChild.text) === normalizeText(modelChild.text) ? 1 : 0;
+                                if (score > bestScore) {
+                                    bestScore = score;
+                                    bestMatch = si;
+                                }
+                            });
+
+                            if (bestMatch >= 0) {
+                                usedStudentIndices.add(bestMatch);
+                                pairedChildren.push({ student: studentChildren[bestMatch], model: modelChild, index: mi });
+                            } else {
+                                pairedChildren.push({ student: null, model: modelChild, index: mi });
+                            }
+                        });
+
+                        pairedChildren.forEach(pair => {
+                            compareNodes(pair.student, pair.model, `${path}-${pair.index}`);
+                        });
+                    } else if (modelChildren.length > 0) {
+                        modelChildren.forEach((modelChild, mi) => {
+                            compareNodes(null, modelChild, `${path}-${mi}`);
+                        });
+                    }
+                };
+
+                compareNodes(studentTree, modelTree);
+
+                results.totalElements = results.totalNodes + results.totalLabelTopExpected + results.totalLabelBottomExpected;
+                results.correctElements = results.correctStructure + results.correctLabelTopExpected + results.correctLabelBottomExpected;
+                results.errorElements = results.totalElements - results.correctElements;
+                results.accuracy = results.totalElements ? (results.correctElements / results.totalElements) : 1;
+
+                return results;
+            };
+
+            const handleFinishExercise = () => {
+                if (!tree || !modelTree) return;
+                const results = compareTrees(tree, modelTree);
+                setComparisonResults(results);
+                setShowComparison(true);
+            };
+
+            const resetExercise = () => {
+                setExerciseMode(false);
+                setModelTree(null);
+                setShowComparison(false);
+                setComparisonResults(null);
+                setTree(null);
+                setSentence('');
+            };
+
+            const newExercise = () => {
+                setExerciseMode(true);
+                setModelTree(null);
+                setShowComparison(false);
+                setComparisonResults(null);
+                setTree(null);
+                setSentence('');
+                setDivisionMode(null);
+                setSelectedCuts([]);
+            };
+
+            // ===========================================
+            // EXPORTACIÓN
+            // ===========================================
+            const handleExport = async (isTechnical = false) => {
+                const treeWrapper = document.querySelector('.tree-wrapper');
+                if (!treeWrapper) return;
+
+                const treeContainer = document.querySelector('.tree-container');
+                const originalOverflow = treeContainer.style.overflow;
+                const originalWidth = treeContainer.style.width;
+                const originalMaxWidth = treeContainer.style.maxWidth;
+                treeContainer.style.overflow = 'visible';
+                treeContainer.style.width = 'fit-content';
+                treeContainer.style.maxWidth = 'none';
+
+                if (isTechnical) treeWrapper.classList.add('technical-mode');
+
+                // Ocultar botones de edición
+                const undoBtns = treeWrapper.querySelectorAll('.btn-danger-soft');
+                const clearBtns = treeWrapper.querySelectorAll('.clear-text-btn');
+                const addBtns = treeWrapper.querySelectorAll('.add-node-btn');
+                const splitBtns = treeWrapper.querySelectorAll('.split-toggle-btn');
+
+                undoBtns.forEach(b => b.style.visibility = 'hidden');
+                clearBtns.forEach(b => b.style.display = 'none');
+                addBtns.forEach(b => b.style.display = 'none');
+                splitBtns.forEach(b => b.style.display = 'none');
+
+                let svg = null;
+                const connectors = treeWrapper.querySelectorAll('.connector-v, .v-line-stem');
+                const nodeBoxes = treeWrapper.querySelectorAll('.node-box');
+                const inputData = [];
+
+                const originalInlineStyles = {
+                    connectors: Array.from(connectors).map(el => ({ el, cssText: el.style.cssText })),
+                    nodeBoxes: Array.from(nodeBoxes).map(el => ({ el, cssText: el.style.cssText })),
+                    treeWrapperPos: treeWrapper.style.position
+                };
+
+                const nodeContainers = treeWrapper.querySelectorAll('.node-container');
+                
+                nodeContainers.forEach(container => {
+                    const topInputs = container.querySelectorAll(':scope > .label-wrap > .label-input.label-top, :scope > div > .label-input.label-top, :scope > .label-input.label-top');
+                    const bottomInputs = container.querySelectorAll(':scope > .label-wrap > .label-input:not(.label-top), :scope > div > .label-input:not(.label-top), :scope > .label-input:not(.label-top)');
+                    const nodeBox = container.querySelector(':scope > .node-box');
+                    const hasChildren = container.querySelector(':scope > div > .children-container') !== null;
+                    const isNucleus = container.classList.contains('nucleus-node');
+                    const isRootNode = container.parentElement && container.parentElement.classList.contains('tree-wrapper');
+
+                    const topVal = Array.from(topInputs).map(inp => inp.value.trim()).filter(v => v).join(' • ');
+                    const botVal = Array.from(bottomInputs).map(inp => inp.value.trim()).filter(v => v).join(' • ');
+
+                    const slashSeparators = container.querySelectorAll(':scope > div > .slash-separator, :scope > .label-wrap > .slash-separator');
+                    slashSeparators.forEach(s => s.style.display = 'none');
+
+                    if (isTechnical && hasChildren) {
+                        if (nodeBox) nodeBox.style.display = 'none';
+                        let combinedText = '';
+                        if (topVal && botVal) combinedText = `${topVal} • ${botVal}`;
+                        else if (topVal) combinedText = `${topVal}`;
+                        else if (botVal) combinedText = `${botVal}`;
+                        
+                        const mergedSpan = document.createElement('span');
+                        mergedSpan.textContent = combinedText.toUpperCase();
+                        mergedSpan.className = 'exp-merged';
+                        mergedSpan.style.cssText = `display: inline-block; text-align: center; font-size: 16px; color: #111827; font-weight: ${isNucleus ? 'bold' : 'normal'}; padding: 4px; text-transform: uppercase;`;
+                        
+                        topInputs.forEach(inp => inp.style.display = 'none');
+                        bottomInputs.forEach(inp => inp.style.display = 'none');
+                        
+                        const labelContainers = container.querySelectorAll(':scope > div[style*="display: flex"]');
+                        labelContainers.forEach(lc => {
+                            if (!lc.querySelector('.children-container')) lc.style.display = 'none';
+                        });
+
+                        inputData.push({ type: 'merged', topInputs, bottomInputs, box: nodeBox, span: mergedSpan, parent: container, slashSeparators, labelContainers });
+                        container.insertBefore(mergedSpan, container.firstChild);
+                    } else {
+                        const processInputs = (inputs, isTop, combinedVal) => {
+                            const span = document.createElement('span');
+                            
+                            if (!combinedVal) {
+                                span.style.display = 'none';
+                                const allConnectors = container.querySelectorAll(':scope > .connector-v');
+
+                                if (isTop) {
+                                    if (allConnectors.length >= 1) {
+                                        if (!isTechnical && isRootNode) {
+                                            allConnectors[0].style.display = 'none';
+                                            inputData.push({ type: 'connector-hidden', connector: allConnectors[0] });
+                                        } else {
+                                            const currentHeight = parseInt(window.getComputedStyle(allConnectors[0]).height) || 12;
+                                            const extraHeight = 23;
+                                            allConnectors[0].dataset.originalHeight = currentHeight;
+                                            allConnectors[0].style.height = (currentHeight + extraHeight) + 'px';
+                                            inputData.push({ type: 'connector-extended', connector: allConnectors[0] });
+                                        }
+                                    }
+                                } else {
+                                    if (allConnectors.length >= 2) {
+                                        allConnectors[1].style.display = 'none';
+                                        inputData.push({ type: 'connector-hidden', connector: allConnectors[1] });
+                                    }
+                                }
+                            } else {
+                                let val = combinedVal;
+                                if (isTechnical) val = `[${val}]`;
+                                span.textContent = val;
+                                
+                                span.className = isTop ? 'exp-top' : 'exp-bottom';
+                                const style = inputs[0] ? window.getComputedStyle(inputs[0]) : {};
+                                const textColor = isTechnical ? '#6b7280' : (style.color || '#334155');
+                                const transform = isTop ? 'uppercase' : 'none';
+                                let marginStyle = isTechnical ? (isTop ? 'margin-bottom: -8px;' : 'margin-top: -8px;') : '';
+                                const borderStyle = isTechnical ? 'none' : '1px solid #cbd5e1';
+                                const bgStyle = isTechnical ? 'transparent' : '#f1f5f9';
+
+                                span.style.cssText = `${marginStyle} display: inline-block; min-width: 95px; text-align: center; font-size: ${style.fontSize || '11px'}; font-family: ${style.fontFamily || 'Arial, sans-serif'}; padding: 4px; border: ${borderStyle}; border-radius: 4px; background-color: ${bgStyle}; color: ${textColor}; font-weight: ${container.classList.contains('nucleus-node') ? 'bold' : 'normal'}; text-transform: ${transform};`;
+                            }
+                            
+                            inputs.forEach(inp => inp.style.display = 'none');
+                            inputs.forEach(inp => {
+                                if (inp.parentNode !== container && inp.parentNode.style) {
+                                    inp.parentNode.style.display = 'none';
+                                }
+                            });
+
+                            inputData.push({ type: 'single', inputs, span, parent: container, isTop });
+                            
+                            if (isTop) {
+                                container.insertBefore(span, container.firstChild);
+                            } else {
+                                const childrenDiv = container.querySelector(':scope > div:last-child');
+                                if (childrenDiv && childrenDiv.querySelector('.children-container')) {
+                                    container.insertBefore(span, childrenDiv);
+                                } else {
+                                    container.appendChild(span);
+                                }
+                            }
+                        };
+                        processInputs(Array.from(topInputs), true, topVal);
+                        processInputs(Array.from(bottomInputs), false, botVal);
+                    }
+                });
+
+                if (isTechnical) {
+                    connectors.forEach(c => c.style.display = 'none');
+                    nodeBoxes.forEach(b => { 
+                        if (b && b.style.display !== 'none') { 
+                            b.style.border = 'none'; 
+                            b.style.backgroundColor = 'transparent'; 
+                        }
+                    });
+                    
+                    const rect = treeWrapper.getBoundingClientRect();
+                    svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    svg.setAttribute('width', rect.width);
+                    svg.setAttribute('height', rect.height);
+                    svg.style.cssText = `position: absolute; top: 0; left: 0; pointer-events: none; z-index: 1;`;
+                    treeWrapper.style.position = 'relative';
+                    treeWrapper.appendChild(svg);
+                    
+                    const getPos = (el) => {
+                        const r = el.getBoundingClientRect();
+                        return { x: r.left + r.width / 2 - rect.left, top: r.top - rect.top, bottom: r.bottom - rect.top };
+                    };
+                    
+                    const getTopConnectionPoint = (container) => {
+                        const merged = container.querySelector(':scope > .exp-merged');
+                        if (merged) return merged;
+                        const expTop = container.querySelector(':scope > .exp-top');
+                        if (expTop && expTop.style.display !== 'none') return expTop;
+                        const nodeBox = container.querySelector(':scope > .node-box');
+                        if (nodeBox && nodeBox.style.display !== 'none') return nodeBox;
+                        const expBottom = container.querySelector(':scope > .exp-bottom');
+                        if (expBottom && expBottom.style.display !== 'none') return expBottom;
+                        return null;
+                    };
+                    
+                    treeWrapper.querySelectorAll('.node-container').forEach(cont => {
+                        const pLabel = cont.querySelector(':scope > .exp-merged');
+                        const branches = cont.querySelector(':scope > div > .children-container');
+                        
+                        if (pLabel && branches) {
+                            const pPos = getPos(pLabel);
+                            Array.from(branches.children).forEach(branch => {
+                                const childContainer = branch.querySelector(':scope > .node-container');
+                                if (childContainer) {
+                                    const cTarget = getTopConnectionPoint(childContainer);
+                                    if (cTarget) {
+                                        const cPos = getPos(cTarget);
+                                        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                                        line.setAttribute('x1', pPos.x);
+                                        line.setAttribute('y1', pPos.bottom);
+                                        line.setAttribute('x2', cPos.x);
+                                        line.setAttribute('y2', cPos.top);
+                                        line.setAttribute('stroke', 'black');
+                                        line.setAttribute('stroke-width', '1.5');
+                                        svg.appendChild(line);
+                                    }
+                                }
+                            });
+                        }
+                    });
+                }
+
+                const canvas = await html2canvas(treeWrapper, { 
+                    backgroundColor: '#ffffff', 
+                    scale: 2,
+                    width: treeWrapper.scrollWidth,
+                    height: treeWrapper.scrollHeight
+                });
+                
+                const link = document.createElement('a');
+                link.download = getFileName('png');
+                link.href = canvas.toDataURL();
+                link.click();
+
+                // Restaurar estilos
+                treeContainer.style.overflow = originalOverflow;
+                treeContainer.style.width = originalWidth;
+                treeContainer.style.maxWidth = originalMaxWidth;
+
+                if (isTechnical) treeWrapper.classList.remove('technical-mode');
+                if (svg) svg.remove();
+                treeWrapper.style.position = originalInlineStyles.treeWrapperPos;
+                
+                inputData.forEach(d => {
+                    if (d.type === 'connector-hidden') {
+                        d.connector.style.display = '';
+                    } else if (d.type === 'connector-extended') {
+                        const originalHeight = d.connector.dataset.originalHeight || '12';
+                        d.connector.style.height = originalHeight + 'px';
+                        delete d.connector.dataset.originalHeight;
+                    } else if (d.type === 'merged') {
+                        d.span.remove();
+                        d.topInputs.forEach(inp => inp.style.display = '');
+                        d.bottomInputs.forEach(inp => inp.style.display = '');
+                        if (d.box) d.box.style.display = '';
+                        d.slashSeparators.forEach(s => s.style.display = '');
+                        d.labelContainers.forEach(lc => lc.style.display = '');
+                    } else {
+                        d.span.remove();
+                        d.inputs.forEach(inp => {
+                            inp.style.display = '';
+                            if (inp.parentNode !== d.parent && inp.parentNode.style) {
+                                inp.parentNode.style.display = '';
+                            }
+                        });
+                    }
+                });
+                
+                originalInlineStyles.connectors.forEach(({ el, cssText }) => { el.style.cssText = cssText; });
+                originalInlineStyles.nodeBoxes.forEach(({ el, cssText }) => { el.style.cssText = cssText; });
+
+                undoBtns.forEach(b => b.style.visibility = 'visible');
+                clearBtns.forEach(b => b.style.display = '');
+                addBtns.forEach(b => b.style.display = '');
+                splitBtns.forEach(b => b.style.display = '');
+            };
+
+            // ===========================================
+            // RENDERIZADO DE ETIQUETAS
+            // ===========================================
+            const renderLabelInput = (node, field, isTop) => {
+                const value = (node[field] || '');
+                const parts = value.split('/').map(p => p.trim());
+                const isSplit = parts.length > 1;
+                const hasValue = value.trim() !== '';
+                const baseClass = `label-input ${isTop ? 'label-top' : ''} ${hasValue ? (isTop ? 'has-value-top' : 'has-value-bottom') : ''}`;
+
+                const setValue = (newVal) => setTree(prev => updateNode(prev, node.id, { [field]: newVal }));
+
+                const toggleSplit = (e) => {
+                    e.stopPropagation();
+                    if (isSplit) {
+                        const left = (parts[0] || '').trim();
+                        const right = (parts.slice(1).join('/').trim() || '');
+                        setValue((left || right || '').trim());
+                    } else {
+                        const left = value.trim();
+                        setValue((left ? left : '') + ' / ');
+                    }
+                };
+
+                return (
+                    <div className="label-wrap">
+                        {isSplit ? (
+                            <>
+                                <input
+                                    type="text"
+                                    value={parts[0] || ''}
+                                    onChange={(e) => {
+                                        const left = e.target.value;
+                                        const right = parts.slice(1).join('/').trim();
+                                        setValue(left + ' / ' + right);
+                                    }}
+                                    className={baseClass}
+                                    style={{ width: '80px' }}
+                                    placeholder={isTop ? 'func.' : 'cat.'}
+                                />
+                                <span className="slash-separator" style={{ color: '#6b7280', fontWeight: 'bold', fontSize: '12px' }}>•</span>
+                                <input
+                                    type="text"
+                                    value={parts.slice(1).join('/').trim()}
+                                    onChange={(e) => {
+                                        const right = e.target.value;
+                                        const left = (parts[0] || '').trim();
+                                        setValue(left + ' / ' + right);
+                                    }}
+                                    className={baseClass}
+                                    style={{ width: '80px' }}
+                                    placeholder={isTop ? 'func.' : 'cat.'}
+                                />
+                            </>
+                        ) : (
+                            <input
+                                type="text"
+                                value={value}
+                                onChange={(e) => setValue(e.target.value)}
+                                className={baseClass}
+                                style={{ width: '95px' }}
+                                placeholder={isTop ? 'func.' : 'cat.'}
+                            />
+                        )}
+                        <button
+                            type="button"
+                            className="split-toggle-btn"
+                            title={isSplit ? 'Unir etiqueta' : 'Dividir etiqueta'}
+                            onClick={toggleSplit}
+                            aria-label={isSplit ? 'Unir etiqueta' : 'Dividir etiqueta'}
+                        >
+                            ⇄
+                        </button>
+                    </div>
+                );
+            };
+
+            // ===========================================
+            // RENDERIZADO DE NODOS
+            // ===========================================
+            const renderNode = (node) => {
+                const isDiv = divisionMode === node.id;
+                const hasC = node.children && node.children.length > 0;
+                const isEmpty = !node.text || node.text.trim() === '';
+                const words = node.text ? node.text.split(/\s+/) : [];
+                const canDivide = words.length > 1 && !node.isInserted;
+
+                return (
+                    <div
+                        className={`node-container ${node.isNucleus ? 'nucleus-node' : ''}`}
+                        key={node.id}
+                        onDoubleClick={(e) => { 
+                            e.stopPropagation(); 
+                            setTree(prev => updateNode(prev, node.id, { isNucleus: !node.isNucleus })); 
+                        }}
+                    >
+                        {renderLabelInput(node, 'labelTop', true)}
+                        
+                        {isEmpty ? (
+                            <div className="connector-v" style={{ height: '36px' }} />
+                        ) : (
+                            <>
+                                <div className="connector-v" style={{ height: '12px' }} />
+                                
+                                {isDiv ? (
+                                    <div style={{background:'#f8fafc', padding:'15px', border:'1px solid #1e3a8a', borderRadius:'4px'}}>
+                                        <div style={{display:'flex', gap:'4px', marginBottom:'10px'}}>
+                                            {words.map((w, i) => (
+                                                <React.Fragment key={i}>
+                                                    <span style={{padding:'6px 10px', background:'white', border:'1px solid #cbd5e1'}}>{w}</span>
+                                                    {i < words.length - 1 && (
+                                                        <button
+                                                            onClick={() => setSelectedCuts(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i].sort())}
+                                                            style={{width:'10px', background: selectedCuts.includes(i) ? '#1e3a8a' : '#e2e8f0', border:'none', cursor:'pointer'}}
+                                                        />
+                                                    )}
+                                                </React.Fragment>
+                                            ))}
+                                        </div>
+                                        <div style={{display:'flex', gap:'8px', justifyContent:'center'}}>
+                                            <button onClick={handleDivide} className="btn btn-primary" style={{padding:'5px 12px'}}>Dividir</button>
+                                            <button onClick={() => setDivisionMode(null)} className="btn btn-outline" style={{padding:'5px 12px'}}>Cancelar</button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div
+                                        className={`node-box ${canDivide ? 'can-divide' : ''}`}
+                                        onClick={() => !hasC && canDivide && setDivisionMode(node.id)}
+                                    >
+                                        {node.text}
+                                        {canDivide && hasC && (
+                                            <button
+                                                className="add-node-btn"
+                                                title="Agregar nodo hijo"
+                                                onClick={(e) => { e.stopPropagation(); addChildNode(node.id); }}
+                                            >
+                                                +
+                                            </button>
+                                        )}
+                                        {hasC && (
+                                            <button
+                                                className="clear-text-btn"
+                                                onClick={(e) => { e.stopPropagation(); setTree(prev => updateNode(prev, node.id, { text: '' })); }}
+                                            >
+                                                ✕
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                                
+                                <div className="connector-v" style={{ height: '12px' }} />
+                            </>
+                        )}
+
+                        {renderLabelInput(node, 'labelBottom', false)}
+                        
+                        {hasC && (
+                            <div style={{display:'flex', flexDirection:'column', alignItems:'center', width:'100%'}}>
+                                <div style={{position: 'absolute', right: '-85px', top: '120px'}}>
+                                    <button onClick={() => setTree(prev => updateNode(prev, node.id, { children: null }))} className="btn btn-danger-soft">↩ Deshacer</button>
+                                </div>
+                                <div className="connector-v" style={{height:'24px'}} />
+                                <div className="children-container">
+                                    {node.children.map((c) => (
+                                        <div className="child-branch" key={c.id}>
+                                            <div className="v-line-stem" />
+                                            {renderNode(c)}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            };
+
+            // ===========================================
+            // RENDERIZADO ESTÁTICO (COMPARACIÓN)
+            // ===========================================
+            const renderStaticNode = (node, comparisons, path = 'root', isModel = false, forceIncorrect = false) => {
+                const comparison = comparisons?.get(path);
+
+                if (!node && comparison && !isModel) {
+                    node = {
+                        id: `missing-${path}`,
+                        text: '∅',
+                        labelTop: '',
+                        labelBottom: '',
+                        children: null,
+                        isNucleus: false
+                    };
+                }
+                if (!node) return null;
+
+                const hasC = node.children && node.children.length > 0;
+                const isEmpty = !node.text || node.text.trim() === '';
+
+                let nodeClass = 'node-container';
+                if (node.isNucleus) nodeClass += ' nucleus-node';
+
+                if (!isModel) {
+                    if (forceIncorrect) {
+                        nodeClass += ' node-incorrect';
+                    } else if (comparison) {
+                        nodeClass += comparison.structureMatch ? ' node-correct' : ' node-incorrect';
+                    }
+                }
+
+                const modelTop = comparison?.modelNode?.labelTop?.trim() || '';
+                const modelBottom = comparison?.modelNode?.labelBottom?.trim() || '';
+                const studentTop = (node.labelTop || '').trim();
+                const studentBottom = (node.labelBottom || '').trim();
+
+                const shouldShowTop = isModel ? !!studentTop : (!!studentTop || !!modelTop);
+                const shouldShowBottom = isModel ? !!studentBottom : (!!studentBottom || !!modelBottom);
+
+                const labelTopClass = (!isModel && comparison && (studentTop || modelTop))
+                    ? (comparison.labelTopMatch ? 'label-correct' : 'label-incorrect')
+                    : '';
+
+                const labelBottomClass = (!isModel && comparison && (studentBottom || modelBottom))
+                    ? (comparison.labelBottomMatch ? 'label-correct' : 'label-incorrect')
+                    : '';
+
+                const renderStaticLabel = (valueToShow, isTop, extraClass) => {
+                    if (!valueToShow || !valueToShow.trim()) return null;
+                    const showAsEmpty = valueToShow.trim() === '∅';
+
+                    return (
+                        <div
+                            className={extraClass}
+                            style={{
+                                width: '95px',
+                                textAlign: 'center',
+                                padding: '4px',
+                                fontSize: '11px',
+                                borderRadius: '4px',
+                                textTransform: isTop ? 'uppercase' : 'none',
+                                fontStyle: showAsEmpty ? 'italic' : 'normal',
+                                opacity: showAsEmpty ? 0.9 : 1,
+                                backgroundColor: extraClass ? undefined : '#f1f5f9',
+                                border: extraClass ? undefined : '1px solid #cbd5e1',
+                                color: extraClass ? undefined : '#334155'
+                            }}
+                        >
+                            {valueToShow}
+                        </div>
+                    );
+                };
+
+                let childrenToRender = [];
+                if (!isModel && comparison?.modelNode?.children?.length) {
+                    const modelLen = comparison.modelNode.children.length;
+
+                    for (let i = 0; i < modelLen; i++) {
+                        const childPath = `${path}-${i}`;
+                        const childComp = comparisons?.get(childPath);
+                        childrenToRender.push({
+                            node: childComp?.studentNode ?? null,
+                            path: childPath,
+                            forceIncorrect: !childComp || !childComp.structureMatch
+                        });
+                    }
+
+                    const extra = (node.children || []).slice(modelLen);
+                    extra.forEach((extraNode, j) => {
+                        childrenToRender.push({
+                            node: extraNode,
+                            path: `${path}-extra-${j}`,
+                            forceIncorrect: true
+                        });
+                    });
+                } else {
+                    childrenToRender = (node.children || []).map((c, i) => ({ 
+                        node: c, 
+                        path: `${path}-${i}`, 
+                        forceIncorrect: false 
+                    }));
+                }
+
+                return (
+                    <div className={nodeClass} key={node.id || path}>
+                        {shouldShowTop && renderStaticLabel(
+                            isModel ? studentTop : (studentTop || (modelTop ? '∅' : '')), 
+                            true, 
+                            labelTopClass
+                        )}
+
+                        {isEmpty ? (
+                            <div className="connector-v" style={{ height: '36px' }} />
+                        ) : (
+                            <>
+                                <div className="connector-v" style={{ height: '12px' }} />
+                                <div className="node-box" style={{ cursor: 'default' }}>
+                                    {node.text}
+                                </div>
+                                <div className="connector-v" style={{ height: '12px' }} />
+                            </>
+                        )}
+
+                        {shouldShowBottom && renderStaticLabel(
+                            isModel ? studentBottom : (studentBottom || (modelBottom ? '∅' : '')), 
+                            false, 
+                            labelBottomClass
+                        )}
+
+                        {childrenToRender.length > 0 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                                <div className="connector-v" style={{ height: '24px' }} />
+                                <div className="children-container">
+                                    {childrenToRender.map((item, i) => (
+                                        <div className="child-branch" key={(item.node?.id) || item.path || i}>
+                                            <div className="v-line-stem" />
+                                            {renderStaticNode(item.node, comparisons, item.path, isModel, item.forceIncorrect)}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            };
+
+            // ===========================================
+            // COMPONENTE FOOTER
+            // ===========================================
+            const Footer = () => (
+                <footer className="footer">
+                    <p>Carlos González Vergara (<strong><a href="mailto:cgonzalv@uc.cl">cgonzalv@uc.cl</a></strong>)</p>
+                    <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" rel="noopener noreferrer">
+                        <img 
+                            src="https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by-nc-nd.svg" 
+                            alt="CC BY-NC-ND 4.0" 
+                        />
+                    </a>
+                </footer>
+            );
+
+            // ===========================================
+            // VISTA DE COMPARACIÓN
+            // ===========================================
+            if (showComparison && comparisonResults) {
+                return (
+                    <div className="container">
+                        <header className="header-logo-container">
+                            <img src="ent_logo.png" alt="ENT - Asistente para el análisis sintáctico" className="header-logo" />
+                        </header>
+
+                        <div className="exercise-banner">
+                            <div className="exercise-banner-text">
+                                
+                                <div>
+                                    <div className="exercise-badge">📚 <strong>Modo ejercitación</strong></div>
+                                    <p>Estás viendo los resultados. Puedes volver a editar o salir del modo ejercitación.</p>
+                                </div>
+                            </div>
+                            <button onClick={resetExercise} className="btn btn-outline">Salir del modo ejercitación</button>
+                        </div>
+
+                        <div className="results-summary">
+                            <h3>Resultados</h3>
+                            <div className="results-stats" style={{ marginBottom: '14px' }}>
+                                <div className="stat-item">
+                                    <span className="stat-dot correct"></span>
+                                    <strong>Aciertos:</strong>&nbsp;
+                                    {comparisonResults.correctElements} / {comparisonResults.totalElements}
+                                </div>
+                                <div className="stat-item">
+                                    <span className="stat-dot incorrect"></span>
+                                    <strong>Errores:</strong>&nbsp;
+                                    {comparisonResults.errorElements}
+                                </div>
+                                <div className="stat-item">
+                                    <span className="stat-dot partial"></span>
+                                    <strong>Porcentaje de acierto:</strong>&nbsp;
+                                    {(comparisonResults.accuracy * 100).toFixed(0)}%
+                                </div>
+                            </div>
+                            <p style={{margin: 0, fontSize: '15px', color: '#374151', lineHeight: '1.6'}}>
+                                Los nodos con borde <span style={{color: '#10b981'}}>verde</span> tienen estructura correcta; 
+                                los de borde <span style={{color: '#ef4444'}}>rojo</span> presentan diferencias estructurales. <br/>
+                                Las etiquetas en <span style={{color: '#10b981', backgroundColor: '#d1fae5', padding: '1px 4px', borderRadius: '2px'}}>verde</span> son correctas; 
+                                las de <span style={{color: '#991b1b', backgroundColor: '#fee2e2', padding: '1px 4px', borderRadius: '2px'}}>rojo</span> difieren del modelo.
+                            </p>
+                        </div>
+
+                        <div className="comparison-container">
+                            <div className="comparison-panel student">
+                                <h3>📝 Tu análisis</h3>
+                                <div className="comparison-tree">
+                                    <div className="tree-wrapper">
+                                        {renderStaticNode(tree, comparisonResults.nodeComparisons, 'root', false)}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="comparison-panel model">
+                                <h3>✓ Análisis modelo</h3>
+                                <div className="comparison-tree">
+                                    <div className="tree-wrapper">
+                                        {renderStaticNode(modelTree, null, 'root', true)}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bottom-actions">
+                            <button onClick={() => setShowComparison(false)} className="btn btn-outline">← Volver a editar</button>
+                            <button onClick={newExercise} className="btn btn-primary">Nuevo ejercicio</button>
+                        </div>
+
+                        <Footer />
+                    </div>
+                );
+            }
+
+            // ===========================================
+            // VISTA PRINCIPAL
+            // ===========================================
+            return (
+                <div className="container">
+                    <header className="header-logo-container">
+                        <img src="ent_logo.png" alt="ENT - Asistente para el análisis sintáctico" className="header-logo" />
+                    </header>
+
+                    {exerciseMode && !modelTree && (
+                        <div className="exercise-banner" style={{flexDirection: 'column', alignItems: 'center', padding: '40px'}}>
+                            <div className="exercise-banner-text">
+                                
+                                <div>
+                                    <div className="exercise-badge">📚 <strong>Modo ejercitación</strong></div>
+                                    <p>Analiza la expresión y compara tu resultado con el modelo cuando termines</p>
+                                </div>
+                            </div>
+                            <p style={{marginBottom: '24px'}}>Carga un archivo JSON con el ejercicio de análisis</p>
+                            <div style={{display: 'flex', gap: '12px'}}>
+                                <button onClick={() => exerciseInputRef.current.click()} className="btn btn-primary">Cargar archivo JSON</button>
+                                <button onClick={resetExercise} className="btn btn-outline">Salir del modo ejercitación</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {exerciseMode && modelTree && (
+                        <div className="exercise-banner">
+                            <div className="exercise-banner-text">
+                                <div>
+                                    <div className="exercise-badge">📚 <strong>Modo ejercitación</strong></div>
+                                    <p>Analiza la expresión y compara tu resultado con el modelo cuando termines</p>
+                                </div>
+                            </div>
+                            <button onClick={resetExercise} className="btn btn-outline">Salir del modo ejercitación</button>
+                        </div>
+                    )}
+
+                    <div className="input-section">
+                        <div className="input-row">
+                            {!exerciseMode ? (
+                                <>
+                                    <input 
+                                        type="text" 
+                                        value={sentence} 
+                                        onChange={(e) => setSentence(e.target.value)} 
+                                        placeholder="Escribe la expresión que quieres analizar" 
+                                        onKeyPress={(e) => e.key === 'Enter' && startAnalysis()} 
+                                    />
+                                    <button onClick={startAnalysis} className="btn btn-primary">Analizar</button>
+                                    <button onClick={() => fileInputRef.current.click()} className="btn btn-outline">Cargar archivo JSON</button>
+                                    <input type="file" ref={fileInputRef} style={{display:'none'}} accept=".json" onChange={handleLoadJSON} />
+                                    <button onClick={handleSaveJSON} className="btn btn-outline" disabled={!tree}>Guardar archivo JSON</button>
+                                    <button onClick={() => setExerciseMode(true)} className="btn btn-exercise">📚 Modo ejercitación</button>
+                                </>
+                            ) : (
+                                modelTree && (
+                                    <div style={{flex: 1, padding: '8px 16px', backgroundColor: '#f3f4f6', borderRadius: '6px', fontSize: '15px', color: '#374151'}}>
+                                        <strong>Expresión que debes analizar:</strong> {sentence}
+                                    </div>
+                                )
+                            )}
+                        </div>
+                        <input type="file" ref={exerciseInputRef} style={{display:'none'}} accept=".json" onChange={handleLoadExercise} />
+                    </div>
+
+                    {!(exerciseMode && !modelTree) && (
+                        <div className="tree-container">
+                            {tree ? (
+                                <div className="tree-wrapper">{renderNode(tree)}</div>
+                            ) : (
+                                <p style={{textAlign:'center', color:'#9ca3af', marginTop:'100px'}}>
+                                    Escribe una expresión o carga un archivo generado anteriormente por el programa
+                                </p>
+                            )}
+                        </div>
+                    )}
+
+                    {tree && (
+                        <div className="bottom-actions">
+                            {exerciseMode ? (
+                                <>
+                                    <button onClick={resetExercise} className="btn btn-outline">Cancelar ejercicio</button>
+                                    <button onClick={handleFinishExercise} className="btn btn-success">✓ Terminar análisis y comparar</button>
+                                </>
+                            ) : (
+                                <>
+                                    <button onClick={() => { setTree(null); setSentence(''); }} className="btn btn-outline">Nuevo análisis</button>
+                                    <button onClick={() => handleExport(false)} className="btn btn-primary">Exportar diagrama</button>
+                                    <button onClick={() => handleExport(true)} className="btn btn-primary">Exportar diagrama arbóreo</button>
+                                </>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="instructions">
+                        <strong>Instrucciones:</strong>
+                        <ul className="help-list">
+                            <li><strong>Para dividir una estructura sintáctica en constituyentes: </strong>haz clic en un recuadro azul.</li>
+                            <li><strong>Marcar fronteras entre constituyentes:</strong> haz clic en las barras grises entre palabras.</li>
+                            <li><strong>Etiquetas:</strong> en la superior indica función (SUJ, CD, etc.); en la inferior indica categorías (v, sust, FN, FV, etc.).</li>
+                            {!exerciseMode && (
+                                <li><strong>Modo ejercitación:</strong> practica con un análisis modelo y compara tu resultado.</li>
+                            )}
+                        </ul>
+                        <details className="help-details">
+                            <summary>Funciones avanzadas</summary>
+                            <ul className="help-list">
+                                <li><strong>Agregar un constituyente extra (+):</strong> pasa el cursor por el nodo → clic en <strong>+</strong> → escribe el texto → elige la posición.</li>
+                                <li><strong>Dividir etiquetas:</strong> pasa el cursor por la etiqueta y pulsa <strong>⇄</strong> para dividir/unir.</li>
+                                <li><strong>Borrar texto de recuadros azules:</strong> pasa el cursor por un nodo azul y pulsa ✕ para dejar solo la estructura.</li>
+                                <li><strong>Marcar núcleo:</strong> haz doble clic sobre un constituyente para destacarlo en negrita.</li>
+                            </ul>
+                        </details>
+                    </div>
+
+                    {posPicker && (
+                        <div className="pos-overlay" onClick={() => setPosPicker(null)}>
+                            <div className="pos-modal" onClick={(e) => e.stopPropagation()}>
+                                <h4 className="pos-title">¿Dónde quieres el nuevo constituyente?</h4>
+                                <p className="pos-sub">Elige la posición para insertarlo entre los constituyentes actuales.</p>
+                                <div className="pos-row">
+                                    <select
+                                        className="pos-select"
+                                        value={posPicker.pos}
+                                        onChange={(e) => setPosPicker(pp => ({ ...pp, pos: parseInt(e.target.value, 10) }))}
+                                    >
+                                        {Array.from({ length: posPicker.siblings.length + 1 }, (_, idx) => {
+                                            const i = idx + 1;
+                                            return (
+                                                <option key={i} value={i}>{buildPosLabel(i, posPicker.siblings)}</option>
+                                            );
+                                        })}
+                                    </select>
+                                </div>
+                                <div className="pos-actions">
+                                    <button className="btn btn-outline" onClick={() => setPosPicker(null)}>Cancelar</button>
+                                    <button className="btn btn-primary" onClick={confirmInsertAtPosition}>Insertar</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <Footer />
+                </div>
+            );
         };
-        reader.readAsText(file);
-        e.target.value = "";
-      };
 
-      return (
-        <div className="container">
-          <header className="header">
-            <img src={LOGO_URL} alt="Kilmer" className="header-logo" onError={e => e.target.style.display='none'} />
-            <p>Syntactic tree diagramming assistant</p>
-          </header>
-
-          <div className="toolbar">
-            <button className="btn btn-primary" onClick={() => {setTree({id: generateId(), label: '...', children: null, triangleText: null}); setMoves([]);}}>New Tree</button>
-            <div className="toolbar-divider" />
-            <button className={`btn ${isMoveMode ? 'active-mode' : ''}`} onClick={() => {setIsMoveMode(!isMoveMode); setSourceId(null);}} disabled={!tree}>
-              {isMoveMode ? (sourceId ? 'Select Target...' : 'Select Source...') : 'Move Mode'}
-            </button>
-            <div className="toolbar-divider" />
-            <button className="btn" onClick={() => fileRef.current.click()}>Load JSON</button>
-            <input type="file" ref={fileRef} style={{display:'none'}} accept=".json" onChange={load} />
-            <button className="btn" onClick={() => {
-              const a = document.createElement('a');
-              a.href = URL.createObjectURL(new Blob([JSON.stringify({tree, moves})], {type:'application/json'}));
-              a.download = 'tree.json'; a.click();
-            }} disabled={!tree}>Save JSON</button>
-            <button className="btn" onClick={() => {
-              const el = canvasRef.current;
-              const ui = el.querySelectorAll('.node-actions, .arrow-delete-btn');
-              ui.forEach(x => x.style.opacity = '0');
-              html2canvas(el, {backgroundColor: '#ffffff', scale: 2}).then(cv => {
-                const a = document.createElement('a'); a.download = 'syntax_tree.png'; a.href = cv.toDataURL(); a.click();
-                ui.forEach(x => x.style.opacity = '');
-              });
-            }} disabled={!tree}>Export PNG</button>
-          </div>
-
-          <div className="tree-canvas" ref={canvasRef}>
-            <svg width="100%" height="100%" style={{position:'absolute', top:0, left:0, pointerEvents:'none', zIndex:1, overflow:'visible'}}>{svgLines}</svg>
-            {tree ? <TreeNode node={tree} isRoot={true} {...{updateNode, addNode, toggleTri, delNode, isMoveMode, sourceId, onNodeClick: (id) => {
-              if (!sourceId) setSourceId(id);
-              else if (sourceId === id) setSourceId(null);
-              else { setMoves(p => [...p, {id: generateId(), from: sourceId, to: id}]); setSourceId(null); setIsMoveMode(false); }
-            }}} /> : <div style={{color:'#999'}}>Click <strong>New Tree</strong> to begin or <strong>Load JSON</strong> load a previously generated diagram</div>}
-          </div>
-
-          {/* Redesigned Instructions Panel */}
-          <div className="instructions-panel">
-            <div className="instructions-header">Quick Reference</div>
-            <div className="instructions-grid">
-              
-              <div className="instruction-card">
-                <h4><span className="icon">↓</span> Building the Tree</h4>
-                <p>
-                  Hover over any node to reveal action buttons. 
-                  Use <code>↓</code> for a single daughter or <code>⑂</code> for binary branching. 
-                  The <code>△</code> button creates a triangle for unanalyzed constituents.
-                </p>
-              </div>
-
-              <div className="instruction-card">
-                <h4><span className="icon">A</span> Editing Labels</h4>
-                <p>
-                  Click any label to edit. Confirm with <span className="keyboard-hint"><span class="key">Enter</span></span> 
-                  or cancel with <span className="keyboard-hint"><span class="key">Esc</span></span> to revert changes.
-                </p>
-              </div>
-
-              <div className="instruction-card">
-                <h4><span className="icon">✦</span> Text Formatting</h4>
-                <p>
-                  <code>*text*</code> <span class="example"><span class="arrow">→</span> <span class="result"><i>italics</i></span></span><br/>
-                  <code>X_i</code> <span class="example"><span class="arrow">→</span> <span class="result">X<sub>i</sub></span></span><br/>
-                  <code>#X#</code> <span class="example"><span class="arrow">→</span> <span class="result"><span class="overline">X</span></span></span>
-                </p>
-              </div>
-
-              <div className="instruction-card">
-                <h4><span className="icon">↝</span> Movement Arrows</h4>
-                <p>
-                  Activate <strong>Move Mode</strong>, then click the source node (e.g., a trace) 
-                  followed by the target. Arrows curve beneath the tree. 
-                  Click <code>×</code> on any arrow to remove it.
-                </p>
-              </div>
-
-              <div className="instruction-card">
-                <h4><span className="icon">✕</span> Deleting Nodes</h4>
-                <p>
-                  The red <code>✕</code> removes a node and all its descendants. 
-                  On the root node, it clears the entire structure while preserving the root label.
-                </p>
-              </div>
-
-              <div className="instruction-card">
-                <h4><span className="icon">◰</span> Saving Your Work</h4>
-                <p>
-                  <strong>Save JSON</strong> preserves the full tree structure for later editing. 
-                  <strong>Export PNG</strong> generates a clean image for documents and presentations.
-                </p>
-              </div>
-
-            </div>
-          </div>
-        </div>
-      );
-    };
-
-    ReactDOM.createRoot(document.getElementById('root')).render(<KilmerApp />);
-  </script>
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<SyntaxTreeBuilder />);
+    </script>
 </body>
 </html>
