@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kilmer - Syntactic Tree Diagrams</title>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --color-bg: #faf9f7;
+      --color-surface: #ffffff;
+      --color-text: #1a1a1a;
+      --color-text-muted: #6b6b6b;
+      --color-accent: #1a472a;
+      --color-border: #e0ddd8;
+      --color-select: #2563eb; 
+      --font-display: 'Crimson Pro', Georgia, serif;
+      --font-body: 'Source Sans 3', system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font-body); background-color: var(--color-bg); color: var(--color-text); min-height: 100vh; overflow-x: hidden; }
+    .container { max-width: 1300px; margin: 0 auto; padding: 40px 24px; }
+
+    .header { text-align: center; margin-bottom: 40px; }
+    .header-logo { max-width: 320px; height: auto; margin-bottom: 12px; }
+    
+    .toolbar {
+      background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;
+      padding: 16px 24px; margin-bottom: 32px; display: flex; gap: 10px; flex-wrap: wrap;
+      align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); position: sticky; top: 20px; z-index: 100;
+    }
+
+    .btn {
+      font-family: var(--font-body); padding: 8px 16px; border: 1px solid var(--color-border);
+      border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
+      background: var(--color-surface); transition: all 0.2s;
+    }
+    .btn:hover:not(:disabled) { border-color: var(--color-text); transform: translateY(-1px); }
+    .btn-primary { background: var(--color-accent); color: white; border-color: var(--color-accent); }
+    .btn.active-mode { background: var(--color-select); color: white; border-color: var(--color-select); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    
+    .tree-canvas {
+      background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;
+      min-height: 600px; padding: 80px 40px; display: flex; justify-content: center;
+      position: relative; overflow: visible;
+    }
+
+    .tree-node { display: flex; flex-direction: column; align-items: center; position: relative; }
+    .node-wrapper { position: relative; padding-bottom: 15px; }
+    .node-label { font-family: var(--font-display); font-size: 20px; min-height: 1.5em; display: flex; align-items: center; justify-content: center; position: relative; z-index: 10; }
+    
+    .node-display { padding: 4px 10px; border-radius: 4px; border: 2px solid transparent; cursor: pointer; }
+    .node-display:hover { background: rgba(0,0,0,0.05); }
+    .node-display.is-source { border-color: var(--color-select); background: rgba(37, 99, 235, 0.05); }
+    .node-display.move-active { cursor: crosshair; }
+    
+    .node-display i { font-style: italic; }
+    .node-display sub { font-size: 0.7em; vertical-align: sub; line-height: 0; }
+    .node-display .overline { text-decoration: overline; }
+
+    .node-label input { font-family: var(--font-display); font-size: 18px; text-align: center; outline: none; border: 2px solid var(--color-accent); border-radius: 4px; width: auto; min-width: 30px; }
+
+    .node-actions {
+      position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+      margin-top: -5px; display: flex; gap: 3px; opacity: 0; pointer-events: none;
+      transition: opacity 0.2s; background: white; padding: 4px; border-radius: 6px;
+      border: 1px solid var(--color-border); box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 50;
+    }
+    .node-label:hover .node-actions, .node-actions:hover { opacity: 1; pointer-events: auto; }
+
+    .action-btn { width: 28px; height: 28px; border: 1px solid var(--color-border); border-radius: 4px; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .action-btn:hover { background: var(--color-accent); color: white; }
+    .action-btn.danger:hover { background: #dc2626; border-color: #dc2626; color: white; }
+
+    .node-children { display: flex; justify-content: center; gap: 40px; padding-top: 40px; position: relative; }
+    .triangle-container { display: flex; flex-direction: column; align-items: center; margin-top: -15px; }
+    .triangle-svg { overflow: visible; margin-bottom: 5px; }
+
+    .arrow-delete-btn { cursor: pointer; pointer-events: auto; }
+    .arrow-delete-btn rect { fill: white; stroke: var(--color-border); rx: 4; }
+    .arrow-delete-btn:hover rect { fill: #dc2626; stroke: #dc2626; }
+    .arrow-delete-btn:hover text { fill: white; font-weight: bold; }
+
+    /* Redesigned Instructions */
+    .instructions-panel {
+      margin-top: 48px;
+      background: linear-gradient(135deg, #fdfcfb 0%, #f7f6f3 100%);
+      border: 1px solid var(--color-border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .instructions-header {
+      background: var(--color-accent);
+      color: white;
+      padding: 16px 24px;
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .instructions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1px;
+      background: var(--color-border);
+    }
+
+    .instruction-card {
+      background: white;
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .instruction-card h4 {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--color-accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .instruction-card h4 .icon {
+      width: 24px;
+      height: 24px;
+      background: var(--color-accent);
+      color: white;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-family: var(--font-body);
+    }
+
+    .instruction-card p {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--color-text-muted);
+    }
+
+    .instruction-card code {
+      display: inline-block;
+      background: #f5f4f0;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 13px;
+      color: var(--color-text);
+      border: 1px solid #e8e6e1;
+    }
+
+    .instruction-card .example {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .instruction-card .example .arrow {
+      color: var(--color-accent);
+      font-size: 12px;
+    }
+
+    .instruction-card .example .result {
+      font-family: var(--font-display);
+      font-size: 15px;
+    }
+
+    .instruction-card .example .result i { font-style: italic; }
+    .instruction-card .example .result sub { font-size: 0.7em; vertical-align: sub; }
+    .instruction-card .example .result .overline { text-decoration: overline; }
+
+    .keyboard-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .key {
+      display: inline-block;
+      background: linear-gradient(180deg, #fafafa 0%, #e8e8e8 100%);
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 12px;
+      font-family: var(--font-body);
+      font-weight: 600;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useRef, useCallback, useEffect, useLayoutEffect } = React;
+
+    const LOGO_URL = "kilmer_logo.png";
+    const generateId = () => Math.random().toString(36).substring(2, 11);
+
+    const formatLabel = (text) => {
+      if (!text) return '';
+      return text
+        .replace(/\*(.*?)\*/g, '<i>$1</i>')
+        .replace(/_(.*?)(\s|$)/g, '<sub>$1</sub>$2')
+        .replace(/#(.*?)#/g, '<span class="overline">$1</span>');
+    };
+
+    // Helper to measure text width for dynamic triangle sizing
+    const measureText = (text, font = "20px 'Crimson Pro', Georgia, serif") => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.font = font;
+      // Strip formatting markers for measurement
+      const plainText = text.replace(/\*(.*?)\*/g, '$1').replace(/_(.*?)(\s|$)/g, '$1$2').replace(/#(.*?)#/g, '$1');
+      return ctx.measureText(plainText).width;
+    };
+
+    const TreeNode = ({ node, isRoot, updateNode, addNode, toggleTri, delNode, isMoveMode, sourceId, onNodeClick }) => {
+      const [editLabel, setEditLabel] = useState(false);
+      const [editTri, setEditTri] = useState(false);
+      const [val, setVal] = useState(node.label);
+      const [tVal, setTVal] = useState(node.triangleText || '');
+
+      useEffect(() => { setVal(node.label); setTVal(node.triangleText || ''); }, [node]);
+
+      const handleLabelClick = () => {
+        if (isMoveMode) onNodeClick(node.id);
+        else setEditLabel(true);
+      };
+
+      const handleTriClick = () => {
+        if (isMoveMode) onNodeClick(node.id);
+        else setEditTri(true);
+      };
+
+      // Calculate dynamic triangle width based on text
+      const triangleWidth = node.triangleText !== null 
+        ? Math.max(80, measureText(node.triangleText || '...') + 40) 
+        : 80;
+
+      return (
+        <div className="tree-node" data-node-id={node.id}>
+          <div className="node-wrapper">
+            <div className={`node-label ${isMoveMode ? 'move-mode' : ''}`}>
+              {editLabel ? (
+                <input 
+                  autoFocus 
+                  value={val} 
+                  onChange={e => setVal(e.target.value)} 
+                  size={val.length || 1} 
+                  onBlur={() => { updateNode(node.id, {label: val}); setEditLabel(false); }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') e.currentTarget.blur();
+                    if (e.key === 'Escape') { setVal(node.label); setEditLabel(false); }
+                  }} 
+                />
+              ) : (
+                <div className={`node-display ${isMoveMode ? 'move-active' : ''} ${sourceId === node.id ? 'is-source' : ''}`}
+                     onClick={handleLabelClick} dangerouslySetInnerHTML={{ __html: formatLabel(val) || '...' }} />
+              )}
+              {!isMoveMode && (
+                <div className="node-actions">
+                  {!node.children && !node.triangleText && (
+                    <><button className="action-btn" onClick={() => addNode(node.id, 1)}>↓</button>
+                      <button className="action-btn" onClick={() => addNode(node.id, 2)}>⑂</button></>
+                  )}
+                  <button className="action-btn" onClick={() => toggleTri(node.id)}>△</button>
+                  <button className="action-btn danger" onClick={() => delNode(node.id)} title="Delete node or descendants">✕</button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {node.triangleText !== null && (
+            <div className="triangle-container">
+              <svg className="triangle-svg" width={triangleWidth} height="50" style={{overflow: 'visible'}}>
+                <polygon points={`${triangleWidth/2},0 0,50 ${triangleWidth},50`} fill="none" stroke="black" strokeWidth="1.2" />
+              </svg>
+              <div className="node-label">
+                {editTri ? (
+                  <input 
+                    autoFocus 
+                    value={tVal} 
+                    onChange={e => setTVal(e.target.value)} 
+                    size={tVal.length || 1}
+                    onBlur={() => { updateNode(node.id, {triangleText: tVal}); setEditTri(false); }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') e.currentTarget.blur();
+                      if (e.key === 'Escape') { setTVal(node.triangleText || ''); setEditTri(false); }
+                    }} 
+                  />
+                ) : (
+                  <div className="node-display" onClick={handleTriClick} dangerouslySetInnerHTML={{ __html: formatLabel(tVal) || '...' }} />
+                )}
+              </div>
+            </div>
+          )}
+
+          {node.children && (
+            <div className="node-children">
+              {node.children.map(c => <TreeNode key={c.id} node={c} isRoot={false} {...{updateNode, addNode, toggleTri, delNode, isMoveMode, sourceId, onNodeClick}} />)}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const KilmerApp = () => {
+      const [tree, setTree] = useState(null);
+      const [moves, setMoves] = useState([]);
+      const [isMoveMode, setIsMoveMode] = useState(false);
+      const [sourceId, setSourceId] = useState(null);
+      const [svgLines, setSvgLines] = useState(null);
+      const canvasRef = useRef(null);
+      const fileRef = useRef(null);
+
+      const findAndUpdate = (n, id, update) => {
+        if (!n) return null;
+        if (n.id === id) return { ...n, ...update };
+        return { ...n, children: n.children ? n.children.map(c => findAndUpdate(c, id, update)) : null };
+      };
+
+      const findAndRemove = (n, id) => {
+        if (!n || !n.children) return n;
+        if (n.children.some(c => c.id === id)) {
+          return { ...n, children: n.children.filter(c => c.id !== id).length > 0 ? n.children.filter(c => c.id !== id) : null };
+        }
+        return { ...n, children: n.children.map(c => findAndRemove(c, id)) };
+      };
+
+      const updateNode = (id, up) => setTree(prev => findAndUpdate(prev, id, up));
+      const addNode = (id, count) => setTree(prev => findAndUpdate(prev, id, { children: Array.from({length: count}, () => ({id: generateId(), label: '', children: null, triangleText: null})) }));
+      
+      const delNode = (id) => {
+        if (tree.id === id) {
+          setTree(prev => ({...prev, children: null, triangleText: null}));
+        } else {
+          setTree(prev => findAndRemove(prev, id));
+        }
+        setMoves(prev => prev.filter(m => m.from !== id && m.to !== id));
+      };
+
+      const toggleTri = (id) => {
+        const rec = (n) => {
+          if (!n) return null;
+          if (n.id === id) return n.triangleText !== null ? { ...n, triangleText: null } : { ...n, triangleText: '', children: null };
+          return { ...n, children: n.children ? n.children.map(rec) : null };
+        };
+        setTree(prev => rec(prev));
+      };
+
+      const draw = useCallback(() => {
+        if (!canvasRef.current || !tree) return;
+        const canvas = canvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+        
+        const getPos = (id) => {
+          const el = canvas.querySelector(`[data-node-id="${id}"] > .node-wrapper .node-display`);
+          if (!el) return null;
+          const r = el.getBoundingClientRect();
+          return { x: r.left + r.width/2 - rect.left + canvas.scrollLeft, y: r.top - rect.top + canvas.scrollTop, r };
+        };
+
+        const lines = [];
+        const allNodes = canvas.querySelectorAll('[data-node-id]');
+        allNodes.forEach(nodeEl => {
+          const id = nodeEl.getAttribute('data-node-id');
+          const pPos = getPos(id);
+          if (!pPos) return;
+          const childCont = nodeEl.querySelector(':scope > .node-children');
+          if (childCont) {
+            childCont.querySelectorAll(':scope > .tree-node').forEach(childEl => {
+              const cId = childEl.getAttribute('data-node-id');
+              const cPos = getPos(cId);
+              if (cPos) {
+                lines.push(<line key={`${id}-${cId}`} x1={pPos.x} y1={pPos.r.bottom - rect.top} x2={cPos.x} y2={cPos.r.top - rect.top} stroke="black" strokeWidth="1.2" />);
+              }
+            });
+          }
+        });
+
+        const arrows = moves.map(m => {
+          const s = getPos(m.from); const e = getPos(m.to);
+          if (!s || !e) return null;
+          const midX = (s.x + e.x) / 2;
+          const curve = Math.max(70, Math.abs(e.x - s.x)/2.2);
+          const ctrlY = Math.max(s.r.bottom, e.r.bottom) - rect.top + curve;
+          const sy = s.r.bottom - rect.top; const ey = e.r.bottom - rect.top;
+          const path = `M ${s.x} ${sy} Q ${midX} ${ctrlY} ${e.x} ${ey}`;
+          const t = 0.5;
+          const bx = (1-t)**2 * s.x + 2*(1-t)*t*midX + t**2 * e.x;
+          const by = (1-t)**2 * sy + 2*(1-t)*t*ctrlY + t**2 * ey;
+          return (
+            <g key={m.id}>
+              <path d={path} fill="none" stroke="black" strokeWidth="1.5" markerEnd="url(#head)" opacity="0.8" />
+              <g className="arrow-delete-btn" onClick={() => setMoves(prev => prev.filter(x => x.id !== m.id))} transform={`translate(${bx-10},${by-10})`}>
+                <rect width="20" height="20" fill="white" stroke="#e0ddd8" /><text x="10" y="15" textAnchor="middle" fontSize="14" fill="#dc2626">×</text>
+              </g>
+            </g>
+          );
+        });
+        setSvgLines(<><defs><marker id="head" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" /></marker></defs>{lines}{arrows}</>);
+      }, [tree, moves]);
+
+      useLayoutEffect(() => { draw(); }, [tree, moves, draw]);
+      useEffect(() => { window.addEventListener('resize', draw); return () => window.removeEventListener('resize', draw); }, [draw]);
+
+      const load = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const data = JSON.parse(ev.target.result);
+            setTree(data.tree || data);
+            setMoves(data.moves || []);
+          } catch(err) { alert("Invalid JSON file"); }
+        };
+        reader.readAsText(file);
+        e.target.value = "";
+      };
+
+      return (
+        <div className="container">
+          <header className="header">
+            <img src={LOGO_URL} alt="Kilmer" className="header-logo" onError={e => e.target.style.display='none'} />
+            <p>Syntactic tree diagramming assistant</p>
+          </header>
+
+          <div className="toolbar">
+            <button className="btn btn-primary" onClick={() => {setTree({id: generateId(), label: '...', children: null, triangleText: null}); setMoves([]);}}>New Tree</button>
+            <div className="toolbar-divider" />
+            <button className={`btn ${isMoveMode ? 'active-mode' : ''}`} onClick={() => {setIsMoveMode(!isMoveMode); setSourceId(null);}} disabled={!tree}>
+              {isMoveMode ? (sourceId ? 'Select Target...' : 'Select Source...') : 'Move Mode'}
+            </button>
+            <div className="toolbar-divider" />
+            <button className="btn" onClick={() => fileRef.current.click()}>Load JSON</button>
+            <input type="file" ref={fileRef} style={{display:'none'}} accept=".json" onChange={load} />
+            <button className="btn" onClick={() => {
+              const a = document.createElement('a');
+              a.href = URL.createObjectURL(new Blob([JSON.stringify({tree, moves})], {type:'application/json'}));
+              a.download = 'tree.json'; a.click();
+            }} disabled={!tree}>Save JSON</button>
+            <button className="btn" onClick={() => {
+              const el = canvasRef.current;
+              const ui = el.querySelectorAll('.node-actions, .arrow-delete-btn');
+              ui.forEach(x => x.style.opacity = '0');
+              html2canvas(el, {backgroundColor: '#ffffff', scale: 2}).then(cv => {
+                const a = document.createElement('a'); a.download = 'syntax_tree.png'; a.href = cv.toDataURL(); a.click();
+                ui.forEach(x => x.style.opacity = '');
+              });
+            }} disabled={!tree}>Export PNG</button>
+          </div>
+
+          <div className="tree-canvas" ref={canvasRef}>
+            <svg width="100%" height="100%" style={{position:'absolute', top:0, left:0, pointerEvents:'none', zIndex:1, overflow:'visible'}}>{svgLines}</svg>
+            {tree ? <TreeNode node={tree} isRoot={true} {...{updateNode, addNode, toggleTri, delNode, isMoveMode, sourceId, onNodeClick: (id) => {
+              if (!sourceId) setSourceId(id);
+              else if (sourceId === id) setSourceId(null);
+              else { setMoves(p => [...p, {id: generateId(), from: sourceId, to: id}]); setSourceId(null); setIsMoveMode(false); }
+            }}} /> : <div style={{color:'#999'}}>Click <strong>New Tree</strong> to begin or <strong>Load JSON</strong> load a previously generated diagram</div>}
+          </div>
+
+          {/* Redesigned Instructions Panel */}
+          <div className="instructions-panel">
+            <div className="instructions-header">Quick Reference</div>
+            <div className="instructions-grid">
+              
+              <div className="instruction-card">
+                <h4><span className="icon">↓</span> Building the Tree</h4>
+                <p>
+                  Hover over any node to reveal action buttons. 
+                  Use <code>↓</code> for a single daughter or <code>⑂</code> for binary branching. 
+                  The <code>△</code> button creates a triangle for unanalyzed constituents.
+                </p>
+              </div>
+
+              <div className="instruction-card">
+                <h4><span className="icon">A</span> Editing Labels</h4>
+                <p>
+                  Click any label to edit. Confirm with <span className="keyboard-hint"><span class="key">Enter</span></span> 
+                  or cancel with <span className="keyboard-hint"><span class="key">Esc</span></span> to revert changes.
+                </p>
+              </div>
+
+              <div className="instruction-card">
+                <h4><span className="icon">✦</span> Text Formatting</h4>
+                <p>
+                  <code>*text*</code> <span class="example"><span class="arrow">→</span> <span class="result"><i>italics</i></span></span><br/>
+                  <code>X_i</code> <span class="example"><span class="arrow">→</span> <span class="result">X<sub>i</sub></span></span><br/>
+                  <code>#X#</code> <span class="example"><span class="arrow">→</span> <span class="result"><span class="overline">X</span></span></span>
+                </p>
+              </div>
+
+              <div className="instruction-card">
+                <h4><span className="icon">↝</span> Movement Arrows</h4>
+                <p>
+                  Activate <strong>Move Mode</strong>, then click the source node (e.g., a trace) 
+                  followed by the target. Arrows curve beneath the tree. 
+                  Click <code>×</code> on any arrow to remove it.
+                </p>
+              </div>
+
+              <div className="instruction-card">
+                <h4><span className="icon">✕</span> Deleting Nodes</h4>
+                <p>
+                  The red <code>✕</code> removes a node and all its descendants. 
+                  On the root node, it clears the entire structure while preserving the root label.
+                </p>
+              </div>
+
+              <div className="instruction-card">
+                <h4><span className="icon">◰</span> Saving Your Work</h4>
+                <p>
+                  <strong>Save JSON</strong> preserves the full tree structure for later editing. 
+                  <strong>Export PNG</strong> generates a clean image for documents and presentations.
+                </p>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<KilmerApp />);
+  </script>
+</body>
+</html>
