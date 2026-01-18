@@ -49,6 +49,14 @@
     .btn-primary { background: var(--color-accent); color: white; border-color: var(--color-accent); }
     .btn.active-mode { background: var(--color-select); color: white; border-color: var(--color-select); }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-undo-redo { font-size: 18px; padding: 6px 12px; }
+
+    .toolbar-divider {
+      width: 1px;
+      height: 24px;
+      background: linear-gradient(to bottom, transparent, var(--color-border), transparent);
+      margin: 0 6px;
+    }
     
     .tree-canvas {
       background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;
@@ -141,18 +149,38 @@
       font-size: 1.25rem;
       font-weight: 600;
       letter-spacing: 0.02em;
+      width: 100%;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.2s;
+    }
+
+    .instructions-header:hover {
+      background: #153d23;
+    }
+
+    .collapse-icon {
+      font-size: 0.9rem;
+      transition: transform 0.3s ease;
+    }
+
+    .collapse-icon.expanded {
+      transform: rotate(90deg);
     }
 
     .instructions-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 1px;
       background: var(--color-border);
     }
 
-    @media (max-width: 900px) {
+    @media (max-width: 700px) {
       .instructions-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: 1fr;
       }
     }
 
@@ -283,6 +311,34 @@
     .instruction-card .example .result .double-overline { text-decoration: overline; border-top: 1.5px solid currentColor; padding-top: 2px; }
     .instruction-card .example .result s { text-decoration: line-through; }
 
+    .text-formatting-card .formatting-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .text-formatting-card .formatting-columns ul {
+      margin: 0;
+    }
+
+    .text-formatting-card .combining-header {
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: 4px;
+      padding-left: 0;
+    }
+
+    .text-formatting-card .combining-header::before {
+      content: none;
+    }
+
+    @media (max-width: 600px) {
+      .text-formatting-card .formatting-columns {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+    }
+
     .keyboard-hint {
       display: inline-flex;
       align-items: center;
@@ -299,6 +355,14 @@
       font-family: var(--font-body);
       font-weight: 600;
       box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    .instruction-card li .key {
+      margin-right: 2px;
+    }
+
+    .instruction-card li .key + .key {
+      margin-left: 0;
     }
 
     .footer {
@@ -336,11 +400,15 @@
     const formatLabel = (text) => {
       if (!text) return '';
       return text
+        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
         .replace(/\*(.*?)\*/g, '<i>$1</i>')
         .replace(/=(.*?)=/g, '<s>$1</s>')
         .replace(/##(.*?)##/g, '<span class="double-overline">$1</span>')
         .replace(/#(.*?)#/g, '<span class="overline">$1</span>')
-        .replace(/\^(.*?)(\s|$)/g, '<sup>$1</sup>$2')
+        // Closed format first (X¨n¨ or X_i_), then open format (X¨n or X_i until space/end)
+        .replace(/¨(.*?)¨/g, '<sup>$1</sup>')
+        .replace(/¨(.*?)(\s|$)/g, '<sup>$1</sup>$2')
+        .replace(/_(.*?)_/g, '<sub>$1</sub>')
         .replace(/_(.*?)(\s|$)/g, '<sub>$1</sub>$2');
     };
 
@@ -351,16 +419,19 @@
       ctx.font = font;
       // Strip formatting markers for measurement
       const plainText = text
+        .replace(/\*\*(.*?)\*\*/g, '$1')
         .replace(/\*(.*?)\*/g, '$1')
         .replace(/=(.*?)=/g, '$1')
         .replace(/##(.*?)##/g, '$1')
         .replace(/#(.*?)#/g, '$1')
-        .replace(/\^(.*?)(\s|$)/g, '$1$2')
+        .replace(/¨(.*?)¨/g, '$1')
+        .replace(/¨(.*?)(\s|$)/g, '$1$2')
+        .replace(/_(.*?)_/g, '$1')
         .replace(/_(.*?)(\s|$)/g, '$1$2');
       return ctx.measureText(plainText).width;
     };
 
-    const TreeNode = ({ node, isRoot, updateNode, addNode, toggleTri, toggleSublabel, delNode, isMoveMode, sourceId, onNodeClick }) => {
+    const TreeNode = ({ node, isRoot, updateNode, addNode, toggleTri, toggleSublabel, delNode, isMoveMode, isPhaseMode, sourceId, onNodeClick, onPhaseClick }) => {
       const [editLabel, setEditLabel] = useState(false);
       const [editSublabel, setEditSublabel] = useState(false);
       const [editTri, setEditTri] = useState(false);
@@ -376,6 +447,7 @@
 
       const handleLabelClick = () => {
         if (isMoveMode) onNodeClick(node.id);
+        else if (isPhaseMode) onPhaseClick(node.id);
         else {
           // Clear placeholder text when clicking to edit
           if (val === '...') setVal('');
@@ -385,6 +457,7 @@
 
       const handleSublabelClick = () => {
         if (isMoveMode) onNodeClick(node.id);
+        else if (isPhaseMode) onPhaseClick(node.id);
         else {
           if (subVal === '...') setSubVal('');
           setEditSublabel(true);
@@ -393,6 +466,7 @@
 
       const handleTriClick = () => {
         if (isMoveMode) onNodeClick(node.id);
+        else if (isPhaseMode) onPhaseClick(node.id);
         else {
           if (tVal === '...') setTVal('');
           setEditTri(true);
@@ -405,12 +479,13 @@
         : 80;
 
       const hasSublabel = node.sublabel !== null && node.sublabel !== undefined;
+      const isSpecialMode = isMoveMode || isPhaseMode;
 
       return (
         <div className="tree-node" data-node-id={node.id} data-has-sublabel={hasSublabel}>
           <div className={`node-wrapper ${hasSublabel ? 'has-sublabel' : ''}`}>
             <div className={`node-content ${hasSublabel ? 'has-sublabel' : ''}`}>
-              <div className={`node-label ${isMoveMode ? 'move-mode' : ''}`}>
+              <div className={`node-label ${isSpecialMode ? 'move-mode' : ''}`}>
                 {editLabel ? (
                   <input 
                     autoFocus 
@@ -424,13 +499,13 @@
                     }} 
                   />
                 ) : (
-                  <div className={`node-display ${isMoveMode ? 'move-active' : ''} ${sourceId === node.id ? 'is-source' : ''} ${val === '...' ? 'placeholder' : ''}`}
+                  <div className={`node-display ${isSpecialMode ? 'move-active' : ''} ${sourceId === node.id ? 'is-source' : ''} ${val === '...' ? 'placeholder' : ''}`}
                        onClick={handleLabelClick} dangerouslySetInnerHTML={{ __html: formatLabel(val) || '...' }} />
                 )}
               </div>
 
               {hasSublabel && (
-                <div className={`node-sublabel ${isMoveMode ? 'move-mode' : ''}`}>
+                <div className={`node-sublabel ${isSpecialMode ? 'move-mode' : ''}`}>
                   {editSublabel ? (
                     <input 
                       autoFocus 
@@ -450,11 +525,11 @@
                 </div>
               )}
 
-              {!isMoveMode && (
+              {!isSpecialMode && (
                 <div className="node-actions">
                   {!node.children && !node.triangleText && (
-                    <><button className="action-btn" onClick={() => addNode(node.id, 1)} title="Add single daughter">↓</button>
-                      <button className="action-btn" onClick={() => addNode(node.id, 2)} title="Add binary branch">⑂</button></>
+                    <><button className="action-btn" onClick={() => addNode(node.id, 1)} title="Add single daughter">│</button>
+                      <button className="action-btn" onClick={() => addNode(node.id, 2)} title="Add binary branch">⑃</button></>
                   )}
                   <button className="action-btn" onClick={() => toggleTri(node.id)} title="Toggle triangle">△</button>
                   <button className={`action-btn ${hasSublabel ? 'active' : ''}`} onClick={() => toggleSublabel(node.id)} title="Toggle secondary label">₂</button>
@@ -485,7 +560,7 @@
                 ) : (
                   <div className={`node-display ${tVal === '...' ? 'placeholder' : ''}`} onClick={handleTriClick} dangerouslySetInnerHTML={{ __html: formatLabel(tVal) || '...' }} />
                 )}
-                {!isMoveMode && (
+                {!isSpecialMode && (
                   <div className="node-actions">
                     <button className="action-btn danger" onClick={() => toggleTri(node.id)} title="Remove triangle">✕</button>
                   </div>
@@ -496,7 +571,7 @@
 
           {node.children && (
             <div className="node-children">
-              {node.children.map(c => <TreeNode key={c.id} node={c} isRoot={false} {...{updateNode, addNode, toggleTri, toggleSublabel, delNode, isMoveMode, sourceId, onNodeClick}} />)}
+              {node.children.map(c => <TreeNode key={c.id} node={c} isRoot={false} {...{updateNode, addNode, toggleTri, toggleSublabel, delNode, isMoveMode, isPhaseMode, sourceId, onNodeClick, onPhaseClick}} />)}
             </div>
           )}
         </div>
@@ -504,14 +579,172 @@
     };
 
     const KilmerApp = () => {
-      const [tree, setTree] = useState(null);
-      const [moves, setMoves] = useState([]);
-      const [dottedLines, setDottedLines] = useState(new Set());
+      // History management for undo/redo
+      const [history, setHistory] = useState([]);
+      const [historyIndex, setHistoryIndex] = useState(-1);
+      const isUndoRedo = useRef(false);
+      
+      const [tree, setTreeInternal] = useState(null);
+      const [moves, setMovesInternal] = useState([]);
+      const [phases, setPhasesInternal] = useState(new Set()); // Node IDs that are phase boundaries
+      const [dottedLines, setDottedLinesInternal] = useState(new Set());
       const [isMoveMode, setIsMoveMode] = useState(false);
+      const [isPhaseMode, setIsPhaseMode] = useState(false);
       const [sourceId, setSourceId] = useState(null);
       const [svgLines, setSvgLines] = useState(null);
+      const [showInstructions, setShowInstructions] = useState(false);
       const canvasRef = useRef(null);
       const fileRef = useRef(null);
+
+      // Create a snapshot of current state
+      const createSnapshot = useCallback(() => ({
+        tree: tree ? JSON.parse(JSON.stringify(tree)) : null,
+        moves: JSON.parse(JSON.stringify(moves)),
+        phases: Array.from(phases),
+        dottedLines: Array.from(dottedLines)
+      }), [tree, moves, phases, dottedLines]);
+
+      // Restore state from snapshot
+      const restoreSnapshot = useCallback((snapshot) => {
+        isUndoRedo.current = true;
+        setTreeInternal(snapshot.tree);
+        setMovesInternal(snapshot.moves);
+        setPhasesInternal(new Set(snapshot.phases || []));
+        setDottedLinesInternal(new Set(snapshot.dottedLines));
+        setTimeout(() => { isUndoRedo.current = false; }, 0);
+      }, []);
+
+      // Push current state to history
+      const pushHistory = useCallback(() => {
+        if (isUndoRedo.current) return;
+        const snapshot = createSnapshot();
+        setHistory(prev => {
+          const newHistory = prev.slice(0, historyIndex + 1);
+          newHistory.push(snapshot);
+          // Limit history to 50 states
+          if (newHistory.length > 50) newHistory.shift();
+          return newHistory;
+        });
+        setHistoryIndex(prev => Math.min(prev + 1, 49));
+      }, [createSnapshot, historyIndex]);
+
+      // Wrapped setters that track history
+      const setTree = useCallback((updater) => {
+        setTreeInternal(prev => {
+          const newVal = typeof updater === 'function' ? updater(prev) : updater;
+          return newVal;
+        });
+      }, []);
+
+      const setMoves = useCallback((updater) => {
+        setMovesInternal(prev => {
+          const newVal = typeof updater === 'function' ? updater(prev) : updater;
+          return newVal;
+        });
+      }, []);
+
+      const setDottedLines = useCallback((updater) => {
+        setDottedLinesInternal(prev => {
+          const newVal = typeof updater === 'function' ? updater(prev) : updater;
+          return newVal;
+        });
+      }, []);
+
+      const setPhases = useCallback((updater) => {
+        setPhasesInternal(prev => {
+          const newVal = typeof updater === 'function' ? updater(prev) : updater;
+          return newVal;
+        });
+      }, []);
+
+      // Toggle phase boundary on a node
+      const togglePhase = useCallback((nodeId) => {
+        setPhases(prev => {
+          const newSet = new Set(prev);
+          if (newSet.has(nodeId)) {
+            newSet.delete(nodeId);
+          } else {
+            newSet.add(nodeId);
+          }
+          return newSet;
+        });
+      }, []);
+
+      // Track changes and push to history
+      useEffect(() => {
+        if (!isUndoRedo.current && tree !== null) {
+          const timeoutId = setTimeout(pushHistory, 100);
+          return () => clearTimeout(timeoutId);
+        }
+      }, [tree, moves, phases, dottedLines]);
+
+      // Undo function
+      const undo = useCallback(() => {
+        if (historyIndex > 0) {
+          const newIndex = historyIndex - 1;
+          setHistoryIndex(newIndex);
+          restoreSnapshot(history[newIndex]);
+        }
+      }, [history, historyIndex, restoreSnapshot]);
+
+      // Redo function
+      const redo = useCallback(() => {
+        if (historyIndex < history.length - 1) {
+          const newIndex = historyIndex + 1;
+          setHistoryIndex(newIndex);
+          restoreSnapshot(history[newIndex]);
+        }
+      }, [history, historyIndex, restoreSnapshot]);
+
+      const canUndo = historyIndex > 0;
+      const canRedo = historyIndex < history.length - 1;
+
+      // Save function for keyboard shortcut
+      const saveTree = useCallback(() => {
+        if (!tree) return;
+        const filename = (prompt('Enter filename:', 'tree') || 'tree').replace(/\s+/g, '_');
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([JSON.stringify({tree, moves, phases: Array.from(phases), dottedLines: Array.from(dottedLines)})], {type:'application/json'}));
+        a.download = `${filename}.kilmer`; 
+        a.click();
+      }, [tree, moves, phases, dottedLines]);
+
+      // Keyboard shortcuts
+      useEffect(() => {
+        const handleKeyDown = (e) => {
+          // Check if we're in an input field
+          if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+          
+          // Ctrl+Z or Cmd+Z: Undo
+          if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+            e.preventDefault();
+            undo();
+          }
+          // Ctrl+Y or Cmd+Y or Ctrl+Shift+Z: Redo
+          if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey) || (e.key === 'Z' && e.shiftKey))) {
+            e.preventDefault();
+            redo();
+          }
+          // Ctrl+S or Cmd+S: Save
+          if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            saveTree();
+          }
+          // Escape: Exit move mode or phase mode
+          if (e.key === 'Escape') {
+            if (isMoveMode) {
+              setIsMoveMode(false);
+              setSourceId(null);
+            }
+            if (isPhaseMode) {
+              setIsPhaseMode(false);
+            }
+          }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+      }, [undo, redo, saveTree, isMoveMode, isPhaseMode]);
 
       const toggleDottedLine = (lineKey) => {
         setDottedLines(prev => {
@@ -698,10 +931,64 @@
             </g>
           );
         });
-        setSvgLines(<><defs><marker id="head" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" /></marker></defs>{lines}{arrows}</>);
-      }, [tree, moves, dottedLines]);
 
-      useLayoutEffect(() => { draw(); }, [tree, moves, dottedLines, draw]);
+        // Draw phase boundary arcs
+        const phaseArcs = Array.from(phases).map(nodeId => {
+          const nodeEl = canvas.querySelector(`[data-node-id="${nodeId}"]`);
+          if (!nodeEl) return null;
+          
+          // Get the main label element for precise positioning
+          const labelEl = nodeEl.querySelector(':scope > .node-wrapper .node-content > .node-label .node-display');
+          if (!labelEl) return null;
+          
+          const labelRect = labelEl.getBoundingClientRect();
+          const x = labelRect.left - rect.left + canvas.scrollLeft;
+          const y = labelRect.top - rect.top + canvas.scrollTop;
+          const width = labelRect.width;
+          
+          // Create an arc that sits just above the node label
+          const padding = 14;
+          const arcHeight = 15;
+          const startX = x - padding;
+          const startY = y + 5;
+          const endX = x + width + padding;
+          const endY = y + 5;
+          const controlY = y - arcHeight;
+          
+          const path = `M ${startX} ${startY} Q ${x + width/2} ${controlY} ${endX} ${endY}`;
+          const phaseKey = `phase-${nodeId}`;
+          const isDotted = !dottedLines.has(phaseKey); // Default is dotted, toggle to solid
+          
+          return (
+            <g key={phaseKey}>
+              <path 
+                d={path} 
+                fill="none" 
+                stroke="transparent" 
+                strokeWidth="12"
+                style={{cursor: 'pointer', pointerEvents: 'stroke'}}
+                onDoubleClick={() => toggleDottedLine(phaseKey)}
+              />
+              <path 
+                d={path} 
+                fill="none" 
+                stroke="black" 
+                strokeWidth="1.5" 
+                strokeDasharray={isDotted ? "5,3" : "none"}
+                opacity="0.8"
+                style={{pointerEvents: 'none'}}
+              />
+              <g className="arrow-delete-btn" onClick={() => togglePhase(nodeId)} transform={`translate(${x + width/2 - 10},${controlY - 18})`}>
+                <rect width="20" height="20" fill="white" stroke="#e0ddd8" /><text x="10" y="15" textAnchor="middle" fontSize="14" fill="#dc2626">×</text>
+              </g>
+            </g>
+          );
+        });
+
+        setSvgLines(<><defs><marker id="head" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" /></marker></defs>{lines}{arrows}{phaseArcs}</>);
+      }, [tree, moves, phases, dottedLines]);
+
+      useLayoutEffect(() => { draw(); }, [tree, moves, phases, dottedLines, draw]);
       useEffect(() => { window.addEventListener('resize', draw); return () => window.removeEventListener('resize', draw); }, [draw]);
 
       const load = (e) => {
@@ -711,9 +998,14 @@
         reader.onload = (ev) => {
           try {
             const data = JSON.parse(ev.target.result);
-            setTree(data.tree || data);
-            setMoves(data.moves || []);
-            setDottedLines(new Set(data.dottedLines || []));
+            isUndoRedo.current = true;
+            setTreeInternal(data.tree || data);
+            setMovesInternal(data.moves || []);
+            setPhasesInternal(new Set(data.phases || []));
+            setDottedLinesInternal(new Set(data.dottedLines || []));
+            setHistory([]);
+            setHistoryIndex(-1);
+            setTimeout(() => { isUndoRedo.current = false; }, 0);
           } catch(err) { alert("Invalid JSON file"); }
         };
         reader.readAsText(file);
@@ -727,22 +1019,23 @@
           </header>
 
           <div className="toolbar">
-            <button className="btn btn-primary" onClick={() => {setTree({id: generateId(), label: '...', children: null, triangleText: null, sublabel: null}); setMoves([]); setDottedLines(new Set());}}>New Tree</button>
+            <button className="btn btn-primary" onClick={() => {setTree({id: generateId(), label: '...', children: null, triangleText: null, sublabel: null}); setMoves([]); setPhases(new Set()); setDottedLines(new Set()); setHistory([]); setHistoryIndex(-1);}}>New Tree</button>
             <div className="toolbar-divider" />
-            <button className={`btn ${isMoveMode ? 'active-mode' : ''}`} onClick={() => {setIsMoveMode(!isMoveMode); setSourceId(null);}} disabled={!tree}>
-              {isMoveMode ? (sourceId ? 'Select Target...' : 'Select Source...') : 'Move Mode'}
+            <button className="btn" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)">↶</button>
+            <button className="btn" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Y)">↷</button>
+            <div className="toolbar-divider" />
+            <button className={`btn ${isMoveMode ? 'active-mode' : ''}`} onClick={() => {setIsMoveMode(!isMoveMode); setIsPhaseMode(false); setSourceId(null);}} disabled={!tree}>
+              {isMoveMode ? (sourceId ? 'Select Target...' : 'Select Source...') : 'Move'}
+            </button>
+            <button className={`btn ${isPhaseMode ? 'active-mode' : ''}`} onClick={() => {setIsPhaseMode(!isPhaseMode); setIsMoveMode(false); setSourceId(null);}} disabled={!tree}>
+              {isPhaseMode ? 'Click a Phase...' : 'Phase'}
             </button>
             <div className="toolbar-divider" />
-            <button className="btn" onClick={() => fileRef.current.click()}>Load JSON</button>
-            <input type="file" ref={fileRef} style={{display:'none'}} accept=".json" onChange={load} />
-            <button className="btn" onClick={() => {
-              const filename = prompt('Enter filename:', 'tree') || 'tree';
-              const a = document.createElement('a');
-              a.href = URL.createObjectURL(new Blob([JSON.stringify({tree, moves, dottedLines: Array.from(dottedLines)})], {type:'application/json'}));
-              a.download = `${filename}.json`; a.click();
-            }} disabled={!tree}>Save JSON</button>
+            <button className="btn" onClick={() => fileRef.current.click()}>Load</button>
+            <input type="file" ref={fileRef} style={{display:'none'}} accept=".kilmer,.json" onChange={load} />
+            <button className="btn" onClick={saveTree} disabled={!tree} title="Save (Ctrl+S)">Save</button>
             <button className="btn" onClick={async () => {
-              const filename = prompt('Enter filename:', 'syntax_tree') || 'syntax_tree';
+              const filename = (prompt('Enter filename:', 'syntax_tree') || 'syntax_tree').replace(/\s+/g, '_');
               const el = canvasRef.current;
               const ui = el.querySelectorAll('.node-actions, .arrow-delete-btn');
               ui.forEach(x => x.style.opacity = '0');
@@ -790,23 +1083,30 @@
 
           <div className="tree-canvas" ref={canvasRef}>
             <svg width="100%" height="100%" style={{position:'absolute', top:0, left:0, pointerEvents:'none', zIndex:1, overflow:'visible'}}>{svgLines}</svg>
-            {tree ? <TreeNode node={tree} isRoot={true} {...{updateNode, addNode, toggleTri, toggleSublabel, delNode, isMoveMode, sourceId, onNodeClick: (id) => {
+            {tree ? <TreeNode node={tree} isRoot={true} {...{updateNode, addNode, toggleTri, toggleSublabel, delNode, isMoveMode, isPhaseMode, sourceId, onNodeClick: (id) => {
               if (!sourceId) setSourceId(id);
               else if (sourceId === id) setSourceId(null);
               else { setMoves(p => [...p, {id: generateId(), from: sourceId, to: id}]); setSourceId(null); setIsMoveMode(false); }
-            }}} /> : <div style={{color:'#999'}}>Click <strong>New Tree</strong> to start a new diagram or <strong>Load JSON</strong> to continue editing a previous one.</div>}
+            }, onPhaseClick: (id) => {
+              togglePhase(id);
+              setIsPhaseMode(false);
+            }}} /> : <div style={{color:'#999'}}>Click <strong>New Tree</strong> to start a new diagram or <strong>Load</strong> to continue editing a previous one.</div>}
           </div>
 
-          {/* Redesigned Instructions Panel */}
+          {/* Redesigned Instructions Panel - Collapsible */}
           <div className="instructions-panel">
-            <div className="instructions-header">Quick Reference</div>
-            <div className="instructions-grid">
+            <button className="instructions-header" onClick={() => setShowInstructions(prev => !prev)}>
+              <span>Quick Reference</span>
+              <span className={`collapse-icon ${showInstructions ? 'expanded' : ''}`}>▶</span>
+            </button>
+            {showInstructions && (
+              <div className="instructions-grid">
               
               <div className="instruction-card">
-                <h4><span className="icon">↓</span> Building the Tree</h4>
+                <h4><span className="icon">⑃</span> Building the Tree</h4>
                 <ul>
                   <li>Hover over any node to reveal action buttons.</li>
-                  <li>Use <code>↓</code> for a single daughter or <code>⑂</code> for binary branching.</li>
+                  <li>Use <code>│</code> for a single daughter or <code>⑃</code> for binary branching.</li>
                   <li>The <code>△</code> button creates a triangle for unanalyzed constituents.</li>
                   <li>Double-click any branch line to toggle dotted style.</li>
                 </ul>
@@ -821,24 +1121,44 @@
                 </ul>
               </div>
 
-              <div className="instruction-card">
+              <div className="instruction-card text-formatting-card">
                 <h4><span className="icon">✦</span> Text Formatting</h4>
-                <ul>
-                  <li><code>*text*</code> <span class="example"><span class="arrow">→</span> <span class="result"><i>italics</i></span></span></li>
-                  <li><code>X_i</code> <span class="example"><span class="arrow">→</span> <span class="result">X<sub>i</sub></span></span></li>
-                  <li><code>X^n</code> <span class="example"><span class="arrow">→</span> <span class="result">X<sup>n</sup></span></span></li>
-                  <li><code>#X#</code> <span class="example"><span class="arrow">→</span> <span class="result"><span class="overline">X</span></span></span></li>
-                  <li><code>##X##</code> <span class="example"><span class="arrow">→</span> <span class="result"><span class="double-overline">X</span></span></span></li>
-                  <li><code>=X=</code> <span class="example"><span class="arrow">→</span> <span class="result"><s>X</s></span></span></li>
-                </ul>
+                <div className="formatting-columns">
+                  <ul>
+                    <li><code>**text**</code> <span class="example"><span class="arrow">→</span> <span class="result"><b>bold</b></span></span></li>
+                    <li><code>*text*</code> <span class="example"><span class="arrow">→</span> <span class="result"><i>italics</i></span></span></li>
+                    <li><code>X_i</code> or <code>X_i_</code> <span class="example"><span class="arrow">→</span> <span class="result">X<sub>i</sub></span></span></li>
+                    <li><code>X¨n</code> or <code>X¨n¨</code> <span class="example"><span class="arrow">→</span> <span class="result">X<sup>n</sup></span></span></li>
+                    <li><code>#X#</code> <span class="example"><span class="arrow">→</span> <span class="result"><span class="overline">X</span></span></span></li>
+                    <li><code>##X##</code> <span class="example"><span class="arrow">→</span> <span class="result"><span class="double-overline">X</span></span></span></li>
+                    <li><code>=X=</code> <span class="example"><span class="arrow">→</span> <span class="result"><s>X</s></span></span></li>
+                  </ul>
+                  <ul>
+                    <li className="combining-header">Styles can be combined:</li>
+                    <li><code>**X**_i_</code> <span class="example"><span class="arrow">→</span> <span class="result"><b>X</b><sub>i</sub></span></span></li>
+                    <li><code>*X*_i_</code> <span class="example"><span class="arrow">→</span> <span class="result"><i>X</i><sub>i</sub></span></span></li>
+                    <li><code>X¨*n*¨</code> <span class="example"><span class="arrow">→</span> <span class="result">X<sup><i>n</i></sup></span></span></li>
+                    <li><code>#*XP*#</code> <span class="example"><span class="arrow">→</span> <span class="result"><span class="overline"><i>XP</i></span></span></span></li>
+                    <li><code>=*t*_i_=</code> <span class="example"><span class="arrow">→</span> <span class="result"><s><i>t</i><sub>i</sub></s></span></span></li>
+                  </ul>
+                </div>
               </div>
 
               <div className="instruction-card">
                 <h4><span className="icon">↝</span> Movement Arrows</h4>
                 <ul>
-                  <li>Activate <strong>Move Mode</strong>, then click the source node (e.g., a trace) followed by the target.</li>
+                  <li>Activate <strong>Move</strong>, then click the source node (e.g., a trace) followed by the target.</li>
                   <li>Arrows curve beneath the tree.</li>
                   <li>Click <code>×</code> on any arrow to remove it.</li>
+                </ul>
+              </div>
+
+              <div className="instruction-card">
+                <h4><span className="icon">◠</span> Phase Boundaries</h4>
+                <ul>
+                  <li>Activate <strong>Phase</strong>, then click a phase head (vP, CP).</li>
+                  <li>A dashed arc marks the phase boundary.</li>
+                  <li>Click <code>×</code> on the arc to remove it.</li>
                 </ul>
               </div>
 
@@ -853,12 +1173,23 @@
               <div className="instruction-card">
                 <h4><span className="icon">◰</span> Saving Your Work</h4>
                 <ul>
-                  <li><strong>Save JSON</strong> preserves the full tree structure for later editing.</li>
+                  <li><strong>Save</strong> exports a <code>.kilmer</code> file for later editing.</li>
                   <li><strong>Export PNG</strong> generates a clean image for documents and presentations.</li>
                 </ul>
               </div>
 
+              <div className="instruction-card">
+                <h4><span className="icon">⌨</span> Keyboard Shortcuts</h4>
+                <ul>
+                  <li><span className="key">Ctrl</span>+<span className="key">Z</span> Undo</li>
+                  <li><span className="key">Ctrl</span>+<span className="key">Y</span> Redo</li>
+                  <li><span className="key">Ctrl</span>+<span className="key">S</span> Save</li>
+                  <li><span className="key">Esc</span> Exit Move Mode</li>
+                </ul>
+              </div>
+
             </div>
+            )}
           </div>
 
           <footer className="footer">
