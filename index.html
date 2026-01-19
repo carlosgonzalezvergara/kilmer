@@ -214,33 +214,36 @@
 
     .instruction-card {
       background: white;
-      padding: 20px 24px;
+      padding: 24px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 12px;
     }
 
     .instruction-card h4 {
       font-family: var(--font-display);
-      font-size: 1rem;
+      font-size: 1.1rem; /* Aumentado ligeramente */
       font-weight: 600;
       color: var(--color-accent);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px; /* Más espacio entre ícono y texto */
+      margin-bottom: 8px;
     }
 
     .instruction-card h4 .icon {
-      width: 24px;
-      height: 24px;
+      width: 32px;  /* Antes 24px */
+      height: 32px; /* Antes 24px */
       background: var(--color-accent);
       color: white;
-      border-radius: 6px;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 14px;
+      font-size: 18px; /* Antes 14px */
       font-family: var(--font-body);
+      flex-shrink: 0; /* Evita que el ícono se encoja */
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Un toque de relieve */
     }
 
     .instruction-card p {
@@ -363,6 +366,16 @@
 
     .instruction-card li .key + .key {
       margin-left: 0;
+    }
+
+    /* Quita el punto verde de las listas de atajos de teclado */
+    .shortcut-list li::before {
+      content: none !important;
+    }
+
+    /* Ajuste adicional para que los atajos no tengan el espacio de la viñeta */
+    .shortcut-list li {
+    padding-left: 0 !important;
     }
 
     .footer {
@@ -1031,9 +1044,9 @@
               {isPhaseMode ? 'Click a Phase...' : 'Phase'}
             </button>
             <div className="toolbar-divider" />
-            <button className="btn" onClick={() => fileRef.current.click()}>Load</button>
+            <button className="btn" onClick={() => fileRef.current.click()}>Load .kilmer</button>
             <input type="file" ref={fileRef} style={{display:'none'}} accept=".kilmer,.json" onChange={load} />
-            <button className="btn" onClick={saveTree} disabled={!tree} title="Save (Ctrl+S)">Save</button>
+            <button className="btn" onClick={saveTree} disabled={!tree} title="Save (Ctrl+S)">Save .kilmer</button>
             <button className="btn" onClick={async () => {
               const filename = (prompt('Enter filename:', 'syntax_tree') || 'syntax_tree').replace(/\s+/g, '_');
               const el = canvasRef.current;
@@ -1145,10 +1158,11 @@
               </div>
 
               <div className="instruction-card">
-                <h4><span className="icon">↝</span> Movement Arrows</h4>
+                <h4><span className="icon">⤳</span> Movement Arrows</h4>
                 <ul>
                   <li>Activate <strong>Move</strong>, then click the source node (e.g., a trace) followed by the target.</li>
                   <li>Arrows curve beneath the tree.</li>
+                  <li>Double-click any the line to toggle dotted style.</li>
                   <li>Click <code>×</code> on any arrow to remove it.</li>
                 </ul>
               </div>
@@ -1157,7 +1171,7 @@
                 <h4><span className="icon">◠</span> Phase Boundaries</h4>
                 <ul>
                   <li>Activate <strong>Phase</strong>, then click a phase head (vP, CP).</li>
-                  <li>A dashed arc marks the phase boundary.</li>
+                  <li>A dashed arc marks the phase boundary. Double-click to make it solid.</li>
                   <li>Click <code>×</code> on the arc to remove it.</li>
                 </ul>
               </div>
@@ -1180,32 +1194,46 @@
 
               <div className="instruction-card">
                 <h4><span className="icon">⌨</span> Keyboard Shortcuts</h4>
-                <ul>
-                  <li><span className="key">Ctrl</span>+<span className="key">Z</span> Undo</li>
-                  <li><span className="key">Ctrl</span>+<span className="key">Y</span> Redo</li>
-                  <li><span className="key">Ctrl</span>+<span className="key">S</span> Save</li>
+                <div style={{ display: 'flex', justifyContent: 'flex-start', gap: '40px' }}>
+                  <ul className="shortcut-list" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                    <li style={{ marginBottom: '5px', opacity: 0.7, fontSize: '0.8em' }}>Windows / Linux</li>
+                    <li><span className="key">Ctrl</span>+<span className="key">Z</span> Undo</li>
+                    <li><span className="key">Ctrl</span>+<span className="key">Y</span> Redo</li>
+                    <li><span className="key">Ctrl</span>+<span className="key">S</span> Save</li>
+                  </ul>
+
+                  <ul className="shortcut-list" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                    <li style={{ marginBottom: '5px', opacity: 0.7, fontSize: '0.8em' }}>macOS</li>
+                    <li><span className="key">⌘</span>+<span className="key">Z</span> Undo</li>
+                    <li><span className="key">⌘</span>+<span className="key">Shift</span>+<span className="key">Z</span> Redo</li>
+                    <li><span className="key">⌘</span>+<span className="key">S</span> Save</li>
+                  </ul>
+                </div>
+
+                <hr style={{ margin: '15px 0', border: '0', borderTop: '1px solid #eee' }} />
+
+                <ul className="shortcut-list" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                   <li><span className="key">Esc</span> Exit Move Mode</li>
                 </ul>
               </div>
-
             </div>
-            )}
-          </div>
-
-          <footer className="footer">
-            <p>Carlos González Vergara (<strong><a href="mailto:cgonzalv@uc.cl">cgonzalv@uc.cl</a></strong>)</p>
-            <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" rel="noopener noreferrer">
-              <img 
-                src="https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by-nc-nd.svg" 
-                alt="CC BY-NC-ND 4.0" 
-              />
-            </a>
-          </footer>
+          )}
         </div>
-      );
-    };
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<KilmerApp />);
-  </script>
+        <footer className="footer">
+          <p>Carlos González Vergara (<strong><a href="mailto:cgonzalv@uc.cl">cgonzalv@uc.cl</a></strong>)</p>
+          <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" rel="noopener noreferrer">
+            <img 
+              src="https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by-nc-nd.svg" 
+              alt="CC BY-NC-ND 4.0" 
+            />
+          </a>
+        </footer>
+      </div>
+    );
+  };
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<KilmerApp />);
+</script>
 </body>
 </html>
