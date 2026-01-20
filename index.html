@@ -57,6 +57,34 @@
       background: linear-gradient(to bottom, transparent, var(--color-border), transparent);
       margin: 0 6px;
     }
+
+    /* Build direction switch */
+    .build-switch { display: flex; align-items: center; gap: 8px; padding: 0 6px; user-select: none; }
+    .build-switch-label { font-size: 13px; font-weight: 700; color: var(--color-muted); }
+    .build-switch-label.active { color: var(--color-text); }
+
+    .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #d6d6d6;
+      transition: .2s;
+      border-radius: 999px;
+      border: 1px solid var(--color-border);
+    }
+    .slider:before {
+      position: absolute; content: "";
+      height: 18px; width: 18px;
+      left: 2px; top: 2px;
+      background: white;
+      transition: .2s;
+      border-radius: 50%;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+    }
+    .switch input:focus + .slider { outline: none; box-shadow: 0 0 0 3px rgba(34, 94, 219, 0.20); }
+    .switch input:checked + .slider { background: var(--color-accent); }
+    .switch input:checked + .slider:before { transform: translateX(20px); }
     
     .tree-canvas {
       background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;
@@ -66,30 +94,69 @@
 
     .tree-node { display: flex; flex-direction: column; align-items: center; position: relative; }
     .node-wrapper { position: relative; padding-bottom: 15px; }
-    .node-wrapper.has-sublabel { padding-bottom: 8px; }
+    .node-wrapper.has-sublabels { padding-bottom: 8px; }
     .node-content { display: flex; flex-direction: column; align-items: center; }
     .node-label { font-family: var(--font-display); font-size: 20px; min-height: 1.5em; display: flex; align-items: center; justify-content: center; position: relative; z-index: 10; }
     
-    .node-sublabel { 
-      font-family: var(--font-display); 
-      font-size: 15px; 
+    .node-sublabels {
+      font-family: var(--font-display);
+      font-size: 15px;
       color: var(--color-text-muted);
-      min-height: 1.2em; 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      position: relative; 
+      min-height: 1.2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
       z-index: 10;
       margin-top: -2px;
+      gap: 4px;
     }
-    
-    .node-display { padding: 4px 10px; border-radius: 4px; border: 2px solid transparent; cursor: pointer; }
+
+    .sublabel-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 8px;
+      border: 1px solid var(--color-border);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.96);
+    }
+
+    .sublabel-pill .node-display {
+      padding: 0;
+      border: 0;
+      cursor: pointer;
+    }
+    .sublabel-pill .node-display:hover { background: transparent; }
+
+    .pill-x {
+      width: 18px;
+      height: 18px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      line-height: 1;
+      padding: 0;
+      color: #dc2626;
+    }
+    .pill-x:hover {
+      background: #dc2626;
+      border-color: #dc2626;
+      color: white;
+    }
+.node-display { padding: 4px 10px; border-radius: 4px; border: 2px solid transparent; cursor: pointer; }
     .node-display:hover { background: rgba(0,0,0,0.05); }
     .node-display.is-source { border-color: var(--color-select); background: rgba(37, 99, 235, 0.05); }
     .node-display.move-active { cursor: crosshair; }
     .node-display.placeholder { color: #bbb; }
     
-    .node-sublabel .node-display { padding: 2px 8px; font-size: 15px; }
+    .node-sublabels .node-display { font-size: 15px; }
     
     .node-display i { font-style: italic; }
     .node-display sub { font-size: 0.7em; vertical-align: sub; line-height: 0; }
@@ -102,9 +169,9 @@
     }
     .node-display s { text-decoration: line-through; }
 
-    .node-label input, .node-sublabel input { font-family: var(--font-display); text-align: center; outline: none; border: 2px solid var(--color-accent); border-radius: 4px; width: auto; min-width: 30px; }
+    .node-label input, .node-sublabels input { font-family: var(--font-display); text-align: center; outline: none; border: 2px solid var(--color-accent); border-radius: 4px; width: auto; min-width: 30px; }
     .node-label input { font-size: 18px; }
-    .node-sublabel input { font-size: 14px; }
+    .node-sublabels input { font-size: 14px; }
 
     .node-actions {
       position: absolute; top: 65%; left: 50%; transform: translateX(-50%);
@@ -112,9 +179,16 @@
       transition: opacity 0.2s; background: white; padding: 6px; border-radius: 8px;
       border: 1px solid var(--color-border); box-shadow: 0 4px 12px rgba(0,0,0,0.12); z-index: 50;
     }
-    .node-content.has-sublabel .node-actions { top: 90%; }
+    .node-content.has-sublabels .node-actions { top: 90%; }
     .node-content:hover .node-actions, .node-actions:hover, .triangle-label:hover .node-actions { opacity: 1; pointer-events: auto; }
     .triangle-label .node-actions { top: 80%; }
+    /* Bottom-up build mode: place node toolbar above the node for more intuitive "add parent" actions */
+    .node-content.bottomup .node-actions {
+      top: 0px;
+      left: 50%;
+      transform: translate(-50%, -100%);
+    }
+
 
     .action-btn { width: 32px; height: 32px; border: 1px solid var(--color-border); border-radius: 6px; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; }
     .action-btn:hover { background: var(--color-accent); color: white; }
@@ -122,7 +196,7 @@
     .action-btn.active { background: var(--color-accent); color: white; }
 
     .node-children { display: flex; justify-content: center; gap: 40px; padding-top: 40px; position: relative; }
-    .node-wrapper.has-sublabel + .node-children { padding-top: 22px; }
+    .node-wrapper.has-sublabels + .node-children { padding-top: 22px; }
     
     .triangle-container { display: flex; flex-direction: column; align-items: center; margin-top: -15px; }
     .triangle-svg { overflow: visible; margin-bottom: 5px; }
@@ -203,7 +277,7 @@
         overflow-x: auto;
       }
       .node-label { font-size: 16px; }
-      .node-sublabel { font-size: 13px; }
+      .node-sublabels { font-size: 13px; }
       .node-children { gap: 24px; padding-top: 30px; }
       .instructions-grid {
         grid-template-columns: 1fr;
@@ -444,36 +518,51 @@
       return ctx.measureText(plainText).width;
     };
 
-    const TreeNode = ({ node, isRoot, updateNode, addNode, toggleTri, toggleSublabel, delNode, isMoveMode, isPhaseMode, sourceId, onNodeClick, onPhaseClick }) => {
+    const TreeNode = ({
+      node,
+      isRoot,
+      updateNode,
+      addNode,
+      addParent,
+      addSublabel,
+      updateSublabel,
+      removeSublabel,
+      buildMode,
+      toggleTri,
+      delNode,
+      isMoveMode,
+      isPhaseMode,
+      sourceId,
+      onNodeClick,
+      onPhaseClick
+    }) => {
       const [editLabel, setEditLabel] = useState(false);
-      const [editSublabel, setEditSublabel] = useState(false);
       const [editTri, setEditTri] = useState(false);
+
+      const [editSubIdx, setEditSubIdx] = useState(null);
+      const [subEditVal, setSubEditVal] = useState('');
+
       const [val, setVal] = useState(node.label);
-      const [subVal, setSubVal] = useState(node.sublabel || '');
       const [tVal, setTVal] = useState(node.triangleText || '');
 
-      useEffect(() => { 
-        setVal(node.label); 
-        setSubVal(node.sublabel || ''); 
-        setTVal(node.triangleText || ''); 
-      }, [node]);
+      useEffect(() => {
+        setVal(node.label);
+        setTVal(node.triangleText || '');
+        // When the underlying node changes (undo/redo/load), exit sublabel edit mode.
+        setEditSubIdx(null);
+        setSubEditVal('');
+      }, [node.id, node.label, node.triangleText]);
+
+      const sublabels = Array.isArray(node.sublabels) ? node.sublabels : [];
+      const hasSublabels = sublabels.length > 0;
+      const isSpecialMode = isMoveMode || isPhaseMode;
 
       const handleLabelClick = () => {
         if (isMoveMode) onNodeClick(node.id);
         else if (isPhaseMode) onPhaseClick(node.id);
         else {
-          // Clear placeholder text when clicking to edit
           if (val === '...') setVal('');
           setEditLabel(true);
-        }
-      };
-
-      const handleSublabelClick = () => {
-        if (isMoveMode) onNodeClick(node.id);
-        else if (isPhaseMode) onPhaseClick(node.id);
-        else {
-          if (subVal === '...') setSubVal('');
-          setEditSublabel(true);
         }
       };
 
@@ -486,66 +575,121 @@
         }
       };
 
+      const startEditSublabel = (idx) => {
+        if (isMoveMode) onNodeClick(node.id);
+        else if (isPhaseMode) onPhaseClick(node.id);
+        else {
+          const current = sublabels[idx] ?? '...';
+          setSubEditVal(current === '...' ? '' : current);
+          setEditSubIdx(idx);
+        }
+      };
+
       // Calculate dynamic triangle width based on text
-      const triangleWidth = node.triangleText !== null 
-        ? Math.max(80, measureText(node.triangleText || '...') + 40) 
+      const triangleWidth = node.triangleText !== null
+        ? Math.max(80, measureText(node.triangleText || '...') + 40)
         : 80;
 
-      const hasSublabel = node.sublabel !== null && node.sublabel !== undefined;
-      const isSpecialMode = isMoveMode || isPhaseMode;
-
       return (
-        <div className="tree-node" data-node-id={node.id} data-has-sublabel={hasSublabel}>
-          <div className={`node-wrapper ${hasSublabel ? 'has-sublabel' : ''}`}>
-            <div className={`node-content ${hasSublabel ? 'has-sublabel' : ''}`}>
+        <div className="tree-node" data-node-id={node.id} data-has-sublabel={hasSublabels}>
+          <div className={`node-wrapper ${hasSublabels ? 'has-sublabels' : ''}`}>
+            <div className={`node-content ${hasSublabels ? 'has-sublabels' : ''} ${buildMode === 'bottomup' ? 'bottomup' : ''}`}>
               <div className={`node-label ${isSpecialMode ? 'move-mode' : ''}`}>
                 {editLabel ? (
-                  <input 
-                    autoFocus 
-                    value={val} 
-                    onChange={e => setVal(e.target.value)} 
-                    size={Math.max(val.length, 1)} 
-                    onBlur={() => { updateNode(node.id, {label: val || '...'}); setEditLabel(false); }}
+                  <input
+                    autoFocus
+                    value={val}
+                    onChange={e => setVal(e.target.value)}
+                    size={Math.max(val.length, 1)}
+                    onBlur={() => { updateNode(node.id, { label: val || '...' }); setEditLabel(false); }}
                     onKeyDown={e => {
                       if (e.key === 'Enter') e.currentTarget.blur();
                       if (e.key === 'Escape') { setVal(node.label); setEditLabel(false); }
-                    }} 
+                    }}
                   />
                 ) : (
-                  <div className={`node-display ${isSpecialMode ? 'move-active' : ''} ${sourceId === node.id ? 'is-source' : ''} ${val === '...' ? 'placeholder' : ''}`}
-                       onClick={handleLabelClick} dangerouslySetInnerHTML={{ __html: formatLabel(val) || '...' }} />
+                  <div
+                    className={`node-display ${isSpecialMode ? 'move-active' : ''} ${sourceId === node.id ? 'is-source' : ''} ${val === '...' ? 'placeholder' : ''}`}
+                    onClick={handleLabelClick}
+                    dangerouslySetInnerHTML={{ __html: formatLabel(val) || '...' }}
+                  />
                 )}
               </div>
 
-              {hasSublabel && (
-                <div className={`node-sublabel ${isSpecialMode ? 'move-mode' : ''}`}>
-                  {editSublabel ? (
-                    <input 
-                      autoFocus 
-                      value={subVal} 
-                      onChange={e => setSubVal(e.target.value)} 
-                      size={Math.max(subVal.length, 1)} 
-                      onBlur={() => { updateNode(node.id, {sublabel: subVal || '...'}); setEditSublabel(false); }}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') e.currentTarget.blur();
-                        if (e.key === 'Escape') { setSubVal(node.sublabel || ''); setEditSublabel(false); }
-                      }} 
-                    />
-                  ) : (
-                    <div className={`node-display ${subVal === '...' ? 'placeholder' : ''}`}
-                         onClick={handleSublabelClick} dangerouslySetInnerHTML={{ __html: formatLabel(subVal) || '...' }} />
-                  )}
+              {hasSublabels && (
+                <div className="node-sublabels">
+                  {sublabels.map((s, idx) => (
+                    <div className="sublabel-pill" key={`${node.id}-sub-${idx}`}>
+                      {editSubIdx === idx ? (
+                        <input
+                          autoFocus
+                          value={subEditVal}
+                          onChange={e => setSubEditVal(e.target.value)}
+                          size={Math.max(subEditVal.length, 1)}
+                          onBlur={() => {
+                            updateSublabel(node.id, idx, subEditVal || '...');
+                            setEditSubIdx(null);
+                            setSubEditVal('');
+                          }}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') e.currentTarget.blur();
+                            if (e.key === 'Escape') { setEditSubIdx(null); setSubEditVal(''); }
+                          }}
+                        />
+                      ) : (
+                        <div
+                          className={`node-display ${s === '...' ? 'placeholder' : ''}`}
+                          onClick={() => startEditSublabel(idx)}
+                          dangerouslySetInnerHTML={{ __html: formatLabel(s) || '...' }}
+                        />
+                      )}
+
+                      {!isSpecialMode && (
+                        <button
+                          className="pill-x"
+                          title="Remove this secondary label"
+                          onClick={(e) => { e.stopPropagation(); removeSublabel(node.id, idx); }}
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
 
               {!isSpecialMode && (
                 <div className="node-actions">
-                  {!node.children && !node.triangleText && (
-                    <><button className="action-btn" onClick={() => addNode(node.id, 1)} title="Add single daughter">│</button>
-                      <button className="action-btn" onClick={() => addNode(node.id, 2)} title="Add binary branch">⑃</button></>
+                  {(buildMode === 'bottomup' || (!node.children && !node.triangleText && !node.terminalLocked)) && (
+                    <>
+                      <button
+                        className="action-btn"
+                        onClick={() => { if (buildMode === 'bottomup') addParent(node.id, 1); else addNode(node.id, 1); }}
+                        title={buildMode === 'bottomup' ? 'Add unary parent' : 'Add single daughter'}
+                      >
+                        │
+                      </button>
+                      <button
+                        className="action-btn"
+                        onClick={(e) => { if (buildMode === 'bottomup') addParent(node.id, 2, e.shiftKey ? 'right' : 'left'); else addNode(node.id, 2); }}
+                        title={buildMode === 'bottomup' ? 'Add binary parent (Shift to flip side)' : 'Add binary branch'}
+                      >
+                        ⑃
+                      </button>
+                    </>
                   )}
+
                   <button className="action-btn" onClick={() => toggleTri(node.id)} title="Toggle triangle">△</button>
-                  <button className={`action-btn ${hasSublabel ? 'active' : ''}`} onClick={() => toggleSublabel(node.id)} title="Toggle secondary label">₂</button>
+
+                  <button
+                    className={`action-btn ${hasSublabels ? 'active' : ''}`}
+                    onClick={() => addSublabel(node.id)}
+                    disabled={sublabels.length >= 4}
+                    title={sublabels.length >= 4 ? 'Maximum: 4 secondary labels' : 'Add a secondary label (max 4). Adding a 2nd label locks the node as terminal.'}
+                  >
+                    +₂
+                  </button>
+
                   <button className="action-btn danger" onClick={() => delNode(node.id)} title="Delete node or descendants">✕</button>
                 </div>
               )}
@@ -554,21 +698,21 @@
 
           {node.triangleText !== null && (
             <div className="triangle-container">
-              <svg className="triangle-svg" width={triangleWidth} height="50" style={{overflow: 'visible'}}>
-                <polygon points={`${triangleWidth/2},0 0,50 ${triangleWidth},50`} fill="none" stroke="black" strokeWidth="1.2" />
+              <svg className="triangle-svg" width={triangleWidth} height="50" style={{ overflow: 'visible' }}>
+                <polygon points={`${triangleWidth / 2},0 0,50 ${triangleWidth},50`} fill="none" stroke="black" strokeWidth="1.2" />
               </svg>
               <div className="node-label triangle-label">
                 {editTri ? (
-                  <input 
-                    autoFocus 
-                    value={tVal} 
-                    onChange={e => setTVal(e.target.value)} 
+                  <input
+                    autoFocus
+                    value={tVal}
+                    onChange={e => setTVal(e.target.value)}
                     size={Math.max(tVal.length, 1)}
-                    onBlur={() => { updateNode(node.id, {triangleText: tVal || '...'}); setEditTri(false); }}
+                    onBlur={() => { updateNode(node.id, { triangleText: tVal || '...' }); setEditTri(false); }}
                     onKeyDown={e => {
                       if (e.key === 'Enter') e.currentTarget.blur();
                       if (e.key === 'Escape') { setTVal(node.triangleText || ''); setEditTri(false); }
-                    }} 
+                    }}
                   />
                 ) : (
                   <div className={`node-display ${tVal === '...' ? 'placeholder' : ''}`} onClick={handleTriClick} dangerouslySetInnerHTML={{ __html: formatLabel(tVal) || '...' }} />
@@ -584,7 +728,29 @@
 
           {node.children && (
             <div className="node-children">
-              {node.children.map(c => <TreeNode key={c.id} node={c} isRoot={false} {...{updateNode, addNode, toggleTri, toggleSublabel, delNode, isMoveMode, isPhaseMode, sourceId, onNodeClick, onPhaseClick}} />)}
+              {node.children.map(c => (
+                <TreeNode
+                  key={c.id}
+                  node={c}
+                  isRoot={false}
+                  {...{
+                    updateNode,
+                    addNode,
+                    addParent,
+                    addSublabel,
+                    updateSublabel,
+                    removeSublabel,
+                    buildMode,
+                    toggleTri,
+                    delNode,
+                    isMoveMode,
+                    isPhaseMode,
+                    sourceId,
+                    onNodeClick,
+                    onPhaseClick
+                  }}
+                />
+              ))}
             </div>
           )}
         </div>
@@ -603,6 +769,7 @@
       const [dottedLines, setDottedLinesInternal] = useState(new Set());
       const [isMoveMode, setIsMoveMode] = useState(false);
       const [isPhaseMode, setIsPhaseMode] = useState(false);
+      const [buildMode, setBuildMode] = useState('topdown');
       const [sourceId, setSourceId] = useState(null);
       const [svgLines, setSvgLines] = useState(null);
       const [showInstructions, setShowInstructions] = useState(false);
@@ -783,14 +950,74 @@
           return { ...n, children: n.children.filter(c => c.id !== id).length > 0 ? n.children.filter(c => c.id !== id) : null };
         }
         return { ...n, children: n.children.map(c => findAndRemove(c, id)) };
-      };
+      };      const makeBlankNode = () => ({ id: generateId(), label: '...', children: null, triangleText: null, sublabels: [], terminalLocked: false });
 
-      const updateNode = (id, up) => setTree(prev => findAndUpdate(prev, id, up));
-      const addNode = (id, count) => setTree(prev => findAndUpdate(prev, id, { children: Array.from({length: count}, () => ({id: generateId(), label: '...', children: null, triangleText: null, sublabel: null})) }));
       
-      const delNode = (id) => {
+
+      const normalizeNode = (n) => {
+        if (!n) return null;
+        const sublabels = Array.isArray(n.sublabels)
+          ? n.sublabels.slice(0, 4)
+          : (n.sublabel !== null && n.sublabel !== undefined ? [n.sublabel] : []);
+        const locked = !!n.terminalLocked || sublabels.length >= 2;
+
+        return {
+          id: n.id || generateId(),
+          label: n.label !== undefined && n.label !== null ? n.label : '...',
+          children: n.children ? n.children.map(normalizeNode) : null,
+          triangleText: (n.triangleText !== undefined ? n.triangleText : null),
+          sublabels,
+          terminalLocked: locked
+        };
+      };
+const updateNode = (id, up) => setTree(prev => findAndUpdate(prev, id, up));
+      const addNode = (id, count) => {
+  const rec = (n) => {
+    if (!n) return null;
+    if (n.id === id) {
+      if (n.terminalLocked) return n; // terminal nodes cannot receive daughters
+      return { ...n, children: Array.from({ length: count }, makeBlankNode) };
+    }
+    return { ...n, children: n.children ? n.children.map(rec) : null };
+  };
+  setTree(prev => rec(prev));
+};
+
+const addParent =
+ (id, arity, side = 'left') => {
+        const wrapWithParent = (child) => {
+          const parent = makeBlankNode();
+          if (arity === 1) {
+            parent.children = [child];
+          } else {
+            const sibling = makeBlankNode();
+            parent.children = side === 'right' ? [sibling, child] : [child, sibling];
+          }
+          return parent;
+        };
+
+        const rec = (n) => {
+          if (!n) return [n, false];
+          if (n.id === id) return [wrapWithParent(n), true];
+          if (!n.children) return [n, false];
+          let changed = false;
+          const newChildren = n.children.map(c => {
+            const [nextChild, didChange] = rec(c);
+            changed = changed || didChange;
+            return nextChild;
+          });
+          if (!changed) return [n, false];
+          return [{ ...n, children: newChildren }, true];
+        };
+
+        setTree(prev => {
+          const [next, changed] = rec(prev);
+          return changed ? next : prev;
+        });
+      };
+const delNode = (id) => {
         if (tree.id === id) {
-          setTree(prev => ({...prev, children: null, triangleText: null, sublabel: null}));
+          setTree(prev => ({...prev, children: null, triangleText: null, sublabels: [], terminalLocked: false}));
         } else {
           setTree(prev => findAndRemove(prev, id));
         }
@@ -806,13 +1033,63 @@
         setTree(prev => rec(prev));
       };
 
-      const toggleSublabel = (id) => {
+      const addSublabel = (id) => {
         const rec = (n) => {
           if (!n) return null;
           if (n.id === id) {
-            return n.sublabel !== null && n.sublabel !== undefined 
-              ? { ...n, sublabel: null } 
-              : { ...n, sublabel: '...' };
+            const current = Array.isArray(n.sublabels) ? n.sublabels : [];
+            if (current.length >= 4) return n;
+
+            const nextSublabels = [...current, '...'];
+            const nextLocked = n.terminalLocked || nextSublabels.length >= 2;
+
+            return {
+              ...n,
+              sublabels: nextSublabels,
+              terminalLocked: nextLocked,
+              children: nextLocked ? null : n.children
+            };
+          }
+          return { ...n, children: n.children ? n.children.map(rec) : null };
+        };
+        setTree(prev => rec(prev));
+      };
+
+      const updateSublabel = (id, idx, value) => {
+        const rec = (n) => {
+          if (!n) return null;
+          if (n.id === id) {
+            const current = Array.isArray(n.sublabels) ? n.sublabels : [];
+            const nextSublabels = current.map((s, i) => (i === idx ? (value || '...') : s));
+            const nextLocked = n.terminalLocked || nextSublabels.length >= 2;
+
+            return {
+              ...n,
+              sublabels: nextSublabels,
+              terminalLocked: nextLocked,
+              children: nextLocked ? null : n.children
+            };
+          }
+          return { ...n, children: n.children ? n.children.map(rec) : null };
+        };
+        setTree(prev => rec(prev));
+      };
+
+      const removeSublabel = (id, idx) => {
+        const rec = (n) => {
+          if (!n) return null;
+          if (n.id === id) {
+            const current = Array.isArray(n.sublabels) ? n.sublabels : [];
+            const nextSublabels = current.filter((_, i) => i !== idx);
+            // Keep terminal lock sticky once it was triggered (matches "applied more than once blocks")
+            const nextLocked = n.terminalLocked || nextSublabels.length >= 2;
+
+            return {
+              ...n,
+              sublabels: nextSublabels,
+              terminalLocked: nextLocked,
+              children: nextLocked ? null : n.children
+            };
           }
           return { ...n, children: n.children ? n.children.map(rec) : null };
         };
@@ -836,7 +1113,8 @@
           if (hasTriangle) {
             bottomEl = nodeEl.querySelector(':scope > .triangle-container > .node-label .node-display');
           } else if (hasSublabel) {
-            bottomEl = nodeEl.querySelector(':scope > .node-wrapper .node-sublabel .node-display');
+            const subs = nodeEl.querySelectorAll(':scope > .node-wrapper .node-sublabels .node-display');
+            bottomEl = subs && subs.length ? subs[subs.length - 1] : null;
           } else {
             bottomEl = nodeEl.querySelector(':scope > .node-wrapper .node-content > .node-label .node-display');
           }
@@ -1012,7 +1290,7 @@
           try {
             const data = JSON.parse(ev.target.result);
             isUndoRedo.current = true;
-            setTreeInternal(data.tree || data);
+            setTreeInternal(normalizeNode(data.tree || data));
             setMovesInternal(data.moves || []);
             setPhasesInternal(new Set(data.phases || []));
             setDottedLinesInternal(new Set(data.dottedLines || []));
@@ -1032,10 +1310,23 @@
           </header>
 
           <div className="toolbar">
-            <button className="btn btn-primary" onClick={() => {setTree({id: generateId(), label: '...', children: null, triangleText: null, sublabel: null}); setMoves([]); setPhases(new Set()); setDottedLines(new Set()); setHistory([]); setHistoryIndex(-1);}}>New Tree</button>
+            <button className="btn btn-primary" onClick={() => {setTree({id: generateId(), label: '...', children: null, triangleText: null, sublabels: [], terminalLocked: false}); setMoves([]); setPhases(new Set()); setDottedLines(new Set()); setHistory([]); setHistoryIndex(-1);}}>New Tree</button>
             <div className="toolbar-divider" />
             <button className="btn" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)">↶</button>
             <button className="btn" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Y)">↷</button>
+            <div className="toolbar-divider" />
+            <div className="build-switch" title="Build direction">
+              <span className={`build-switch-label ${buildMode === 'topdown' ? 'active' : ''}`}>Top-down</span>
+              <label className="switch" aria-label="Toggle build direction">
+                <input
+                  type="checkbox"
+                  checked={buildMode === 'bottomup'}
+                  onChange={(e) => setBuildMode(e.target.checked ? 'bottomup' : 'topdown')}
+                />
+                <span className="slider" />
+              </label>
+              <span className={`build-switch-label ${buildMode === 'bottomup' ? 'active' : ''}`}>Bottom-up</span>
+            </div>
             <div className="toolbar-divider" />
             <button className={`btn ${isMoveMode ? 'active-mode' : ''}`} onClick={() => {setIsMoveMode(!isMoveMode); setIsPhaseMode(false); setSourceId(null);}} disabled={!tree}>
               {isMoveMode ? (sourceId ? 'Select Target...' : 'Select Source...') : 'Move'}
@@ -1043,6 +1334,8 @@
             <button className={`btn ${isPhaseMode ? 'active-mode' : ''}`} onClick={() => {setIsPhaseMode(!isPhaseMode); setIsMoveMode(false); setSourceId(null);}} disabled={!tree}>
               {isPhaseMode ? 'Click a Phase...' : 'Phase'}
             </button>
+
+
             <div className="toolbar-divider" />
             <button className="btn" onClick={() => fileRef.current.click()}>Load .kilmer</button>
             <input type="file" ref={fileRef} style={{display:'none'}} accept=".kilmer,.json" onChange={load} />
@@ -1054,7 +1347,7 @@
               ui.forEach(x => x.style.opacity = '0');
               
               // html2canvas has issues with flexbox centering, temporarily adjust
-              const treeNodes = el.querySelectorAll('.tree-node, .node-label, .node-sublabel, .node-content, .triangle-container');
+              const treeNodes = el.querySelectorAll('.tree-node, .node-label, .node-sublabels, .node-content, .triangle-container');
               const originalStyles = [];
               treeNodes.forEach((node, i) => {
                 originalStyles[i] = node.style.cssText;
@@ -1096,7 +1389,7 @@
 
           <div className="tree-canvas" ref={canvasRef}>
             <svg width="100%" height="100%" style={{position:'absolute', top:0, left:0, pointerEvents:'none', zIndex:1, overflow:'visible'}}>{svgLines}</svg>
-            {tree ? <TreeNode node={tree} isRoot={true} {...{updateNode, addNode, toggleTri, toggleSublabel, delNode, isMoveMode, isPhaseMode, sourceId, onNodeClick: (id) => {
+            {tree ? <TreeNode node={tree} isRoot={true} {...{updateNode, addNode, addParent, buildMode, toggleTri, addSublabel, updateSublabel, removeSublabel, delNode, isMoveMode, isPhaseMode, sourceId, onNodeClick: (id) => {
               if (!sourceId) setSourceId(id);
               else if (sourceId === id) setSourceId(null);
               else { setMoves(p => [...p, {id: generateId(), from: sourceId, to: id}]); setSourceId(null); setIsMoveMode(false); }
@@ -1131,6 +1424,29 @@
                   <li>Click any label to edit.</li>
                   <li>Confirm with <span className="keyboard-hint"><span class="key">Enter</span></span> or cancel with <span className="keyboard-hint"><span class="key">Esc</span></span> to revert.</li>
                   <li>Use <code>₂</code> to add a secondary label below the main one.</li>
+                </ul>
+              </div>
+
+              {/* NEW: Build modes */}
+              <div className="instruction-card">
+                <h4><span className="icon">⇅</span> Build Modes</h4>
+                <ul>
+                  <li>Use the <strong>Top-down / Bottom-up</strong> switch in the top toolbar to change the construction mode at any time.</li>
+                  <li><strong>Top-down</strong>: <code>│</code> and <code>⑃</code> create <strong>daughters</strong> from the selected node.</li>
+                  <li><strong>Bottom-up</strong>: <code>│</code> and <code>⑃</code> create a <strong>parent</strong> above the selected node (wrapping it).</li>
+                  <li>In Bottom-up mode, the node tools appear <strong>above</strong> the node (so “adding a parent” feels natural).</li>
+                </ul>
+              </div>
+
+              {/* NEW: Multiple bottom labels (stacked pills) */}
+              <div className="instruction-card">
+                <h4><span className="icon">+₂</span> Multiple Bottom Labels</h4>
+                <ul>
+                  <li>Use <code>+₂</code> to add up to <strong>4</strong> bottom labels (“pills”) under a node.</li>
+                  <li>Each pill is <strong>editable</strong> (click to edit) and can be removed with its <code>×</code>.</li>
+                  <li>If a node reaches <strong>2+</strong> bottom labels, it becomes <strong>terminal (locked)</strong>:
+                  existing daughters (if any) are removed, and no new daughters can be added in Top-down mode.</li>
+                  <li>Bottom-up wrapping still works on locked nodes (it adds a parent, not daughters).</li>
                 </ul>
               </div>
 
