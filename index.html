@@ -1608,7 +1608,7 @@ const delNode = (id) => {
                 <ul>
                   <li>Click any label to edit.</li>
                   <li>Confirm with <span className="keyboard-hint"><span class="key">Enter</span></span> or cancel with <span className="keyboard-hint"><span class="key">Esc</span></span> to revert.</li>
-                  <li>Use <code>₂</code> to add a secondary label below the main one.</li>
+                  <li>Use <code>+₂</code> to add a secondary label below the main one.</li>
                 </ul>
               </div>
 
@@ -1620,7 +1620,7 @@ const delNode = (id) => {
                   <li><strong>Top-down</strong>: <code>│</code>, <code>⑃</code>, and <code>△</code> create <strong>daughters</strong> from the selected node.</li>
                   <li><strong>Bottom-up</strong>: <code>│</code>, <code>→⑃</code>/<code>⑃←</code>, and <code>△</code> create a <strong>parent</strong> above the selected node.</li>
                   <li>The arrows in <code>→⑃</code> and <code>⑃←</code> indicate where the <strong>sibling</strong> will appear (left or right).</li>
-                  <li>In Bottom-up mode, the node tools appear <strong>above</strong> the node (so "adding a parent" feels natural).</li>
+                  <li>In Bottom-up mode, the node tools appear <strong>above</strong> the node. In Top-down mode, the node tools appear <strong>below</strong>.</li>
                 </ul>
               </div>
 
