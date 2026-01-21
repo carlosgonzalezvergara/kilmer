@@ -1528,46 +1528,90 @@ const delNode = (id) => {
             <button className="btn" onClick={async () => {
               const filename = (prompt('Enter filename:', 'syntax_tree') || 'syntax_tree').replace(/\s+/g, '_');
               const el = canvasRef.current;
-              const ui = el.querySelectorAll('.node-actions, .arrow-delete-btn');
-              ui.forEach(x => x.style.opacity = '0');
               
-              // html2canvas has issues with flexbox centering, temporarily adjust
-              const treeNodes = el.querySelectorAll('.tree-node, .node-label, .node-sublabels, .node-content, .triangle-container');
-              const originalStyles = [];
-              treeNodes.forEach((node, i) => {
-                originalStyles[i] = node.style.cssText;
+              // Function to copy computed styles to inline styles
+              const copyComputedStyles = (source, target, skipBorderStyles = false) => {
+                const computed = window.getComputedStyle(source);
+                for (let i = 0; i < computed.length; i++) {
+                  const prop = computed[i];
+                  // Skip border-related styles if requested
+                  if (skipBorderStyles && (prop.startsWith('border') || prop === 'box-shadow' || prop === 'outline')) {
+                    continue;
+                  }
+                  target.style.setProperty(prop, computed.getPropertyValue(prop));
+                }
+              };
+              
+              // Deep clone with computed styles
+              const cloneWithStyles = (element) => {
+                const clone = element.cloneNode(false);
+                const isPill = element.classList && element.classList.contains('sublabel-pill');
+                copyComputedStyles(element, clone, isPill);
+                
+                for (let child of element.childNodes) {
+                  if (child.nodeType === Node.ELEMENT_NODE) {
+                    clone.appendChild(cloneWithStyles(child));
+                  } else {
+                    clone.appendChild(child.cloneNode(true));
+                  }
+                }
+                return clone;
+              };
+              
+              const clone = cloneWithStyles(el);
+              
+              // Remove UI elements from clone
+              clone.querySelectorAll('.node-actions, .arrow-delete-btn').forEach(x => x.remove());
+              
+              // Remove pill delete buttons
+              clone.querySelectorAll('.pill-x').forEach(x => x.remove());
+              
+              // Ensure pills have clean styling and proper alignment
+              clone.querySelectorAll('.sublabel-pill').forEach(pill => {
+                pill.style.border = 'none';
+                pill.style.borderWidth = '0';
+                pill.style.borderStyle = 'none';
+                pill.style.borderRadius = '0';
+                pill.style.background = 'transparent';
+                pill.style.backgroundColor = 'transparent';
+                pill.style.padding = '0';
+                pill.style.boxShadow = 'none';
+                pill.style.outline = 'none';
+                pill.style.display = 'flex';
+                pill.style.alignItems = 'center';
+                pill.style.justifyContent = 'center';
               });
               
-              // Force text alignment for capture
-              el.querySelectorAll('.node-display').forEach(node => {
-                node.style.textAlign = 'center';
-                node.style.display = 'block';
-              });
+              // Create container for the clone
+              const container = document.createElement('div');
+              container.style.cssText = `
+                position: fixed;
+                left: 0;
+                top: 0;
+                z-index: -9999;
+                pointer-events: none;
+                overflow: visible;
+                background: white;
+              `;
+              container.appendChild(clone);
+              document.body.appendChild(container);
+              
+              // Wait for rendering
+              await new Promise(resolve => setTimeout(resolve, 150));
               
               try {
-                const cv = await html2canvas(el, {
-                  backgroundColor: null,
+                const cv = await html2canvas(clone, {
+                  backgroundColor: '#ffffff',
                   scale: 2,
                   useCORS: true,
-                  scrollX: -window.scrollX,
-                  scrollY: -window.scrollY,
-                  width: el.scrollWidth,
-                  height: el.scrollHeight
+                  logging: false
                 });
                 const a = document.createElement('a'); 
                 a.download = `${filename}.png`; 
                 a.href = cv.toDataURL('image/png'); 
                 a.click();
               } finally {
-                // Restore original styles
-                treeNodes.forEach((node, i) => {
-                  node.style.cssText = originalStyles[i];
-                });
-                el.querySelectorAll('.node-display').forEach(node => {
-                  node.style.textAlign = '';
-                  node.style.display = '';
-                });
-                ui.forEach(x => x.style.opacity = '');
+                document.body.removeChild(container);
               }
             }} disabled={!tree}>Export PNG</button>
           </div>
