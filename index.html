@@ -53,9 +53,9 @@
 
     .toolbar-divider {
       width: 1px;
-      height: 24px;
-      background: linear-gradient(to bottom, transparent, var(--color-border), transparent);
-      margin: 0 6px;
+      height: 28px;
+      background: linear-gradient(to bottom, transparent 5%, #c0bdb8 20%, #c0bdb8 80%, transparent 95%);
+      margin: 0 10px;
     }
 
     /* Build direction switch */
@@ -182,15 +182,16 @@
     .node-content.has-sublabels .node-actions { top: 90%; }
     .node-content:hover .node-actions, .node-actions:hover, .triangle-label:hover .node-actions { opacity: 1; pointer-events: auto; }
     .triangle-label .node-actions { top: 80%; }
+    .triangle-label.has-triangle-sublabels .node-actions { top: 95%; }
     /* Bottom-up build mode: place node toolbar above the node for more intuitive "add parent" actions */
     .node-content.bottomup .node-actions {
-      top: 0px;
+      top: 8px;
       left: 50%;
       transform: translate(-50%, -100%);
     }
 
 
-    .action-btn { width: 32px; height: 32px; border: 1px solid var(--color-border); border-radius: 6px; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .action-btn { min-width: 32px; height: 32px; padding: 0 6px; border: 1px solid var(--color-border); border-radius: 6px; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; gap: 1px; }
     .action-btn:hover { background: var(--color-accent); color: white; }
     .action-btn.danger:hover { background: #dc2626; border-color: #dc2626; color: white; }
     .action-btn.active { background: var(--color-accent); color: white; }
@@ -200,6 +201,8 @@
     
     .triangle-container { display: flex; flex-direction: column; align-items: center; margin-top: -15px; }
     .triangle-svg { overflow: visible; margin-bottom: 5px; }
+    .triangle-label { position: relative; display: flex; flex-direction: column; align-items: center; }
+    .triangle-label .node-sublabels { margin-top: 2px; }
 
     .arrow-delete-btn { cursor: pointer; pointer-events: auto; }
     .arrow-delete-btn rect { fill: white; stroke: var(--color-border); rx: 4; }
@@ -527,6 +530,9 @@
       addSublabel,
       updateSublabel,
       removeSublabel,
+      addTriangleSublabel,
+      updateTriangleSublabel,
+      removeTriangleSublabel,
       buildMode,
       toggleTri,
       delNode,
@@ -542,6 +548,9 @@
       const [editSubIdx, setEditSubIdx] = useState(null);
       const [subEditVal, setSubEditVal] = useState('');
 
+      const [editTriSubIdx, setEditTriSubIdx] = useState(null);
+      const [triSubEditVal, setTriSubEditVal] = useState('');
+
       const [val, setVal] = useState(node.label);
       const [tVal, setTVal] = useState(node.triangleText || '');
 
@@ -551,11 +560,25 @@
         // When the underlying node changes (undo/redo/load), exit sublabel edit mode.
         setEditSubIdx(null);
         setSubEditVal('');
+        setEditTriSubIdx(null);
+        setTriSubEditVal('');
       }, [node.id, node.label, node.triangleText]);
 
       const sublabels = Array.isArray(node.sublabels) ? node.sublabels : [];
       const hasSublabels = sublabels.length > 0;
+      const triangleSublabels = Array.isArray(node.triangleSublabels) ? node.triangleSublabels : [];
+      const hasTriangleSublabels = triangleSublabels.length > 0;
       const isSpecialMode = isMoveMode || isPhaseMode;
+
+      const startEditTriangleSublabel = (idx) => {
+        if (isMoveMode) onNodeClick(node.id);
+        else if (isPhaseMode) onPhaseClick(node.id);
+        else {
+          const current = triangleSublabels[idx] ?? '...';
+          setTriSubEditVal(current === '...' ? '' : current);
+          setEditTriSubIdx(idx);
+        }
+      };
 
       const handleLabelClick = () => {
         if (isMoveMode) onNodeClick(node.id);
@@ -669,17 +692,36 @@
                       >
                         │
                       </button>
-                      <button
-                        className="action-btn"
-                        onClick={(e) => { if (buildMode === 'bottomup') addParent(node.id, 2, e.shiftKey ? 'right' : 'left'); else addNode(node.id, 2); }}
-                        title={buildMode === 'bottomup' ? 'Add binary parent (Shift to flip side)' : 'Add binary branch'}
-                      >
-                        ⑃
-                      </button>
+                      {buildMode === 'bottomup' ? (
+                        <>
+                          <button
+                            className="action-btn"
+                            onClick={() => addParent(node.id, 2, 'right')}
+                            title="Add binary parent (sibling to the left)"
+                          >
+                            <span style={{fontSize: '12px'}}>→</span>⑃
+                          </button>
+                          <button
+                            className="action-btn"
+                            onClick={() => addParent(node.id, 2, 'left')}
+                            title="Add binary parent (sibling to the right)"
+                          >
+                            ⑃<span style={{fontSize: '12px'}}>←</span>
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          className="action-btn"
+                          onClick={() => addNode(node.id, 2)}
+                          title="Add binary branch"
+                        >
+                          ⑃
+                        </button>
+                      )}
                     </>
                   )}
 
-                  <button className="action-btn" onClick={() => toggleTri(node.id)} title="Toggle triangle">△</button>
+                  <button className="action-btn" onClick={() => toggleTri(node.id, buildMode)} title={buildMode === 'bottomup' ? 'Add triangle parent' : 'Toggle triangle'}>△</button>
 
                   <button
                     className={`action-btn ${hasSublabels ? 'active' : ''}`}
@@ -701,7 +743,7 @@
               <svg className="triangle-svg" width={triangleWidth} height="50" style={{ overflow: 'visible' }}>
                 <polygon points={`${triangleWidth / 2},0 0,50 ${triangleWidth},50`} fill="none" stroke="black" strokeWidth="1.2" />
               </svg>
-              <div className="node-label triangle-label">
+              <div className={`node-label triangle-label ${hasTriangleSublabels ? 'has-triangle-sublabels' : ''}`}>
                 {editTri ? (
                   <input
                     autoFocus
@@ -717,9 +759,60 @@
                 ) : (
                   <div className={`node-display ${tVal === '...' ? 'placeholder' : ''}`} onClick={handleTriClick} dangerouslySetInnerHTML={{ __html: formatLabel(tVal) || '...' }} />
                 )}
+
+                {hasTriangleSublabels && (
+                  <div className="node-sublabels">
+                    {triangleSublabels.map((s, idx) => (
+                      <div className="sublabel-pill" key={`${node.id}-trisub-${idx}`}>
+                        {editTriSubIdx === idx ? (
+                          <input
+                            autoFocus
+                            value={triSubEditVal}
+                            onChange={e => setTriSubEditVal(e.target.value)}
+                            size={Math.max(triSubEditVal.length, 1)}
+                            onBlur={() => {
+                              updateTriangleSublabel(node.id, idx, triSubEditVal || '...');
+                              setEditTriSubIdx(null);
+                              setTriSubEditVal('');
+                            }}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') e.currentTarget.blur();
+                              if (e.key === 'Escape') { setEditTriSubIdx(null); setTriSubEditVal(''); }
+                            }}
+                          />
+                        ) : (
+                          <div
+                            className={`node-display ${s === '...' ? 'placeholder' : ''}`}
+                            onClick={() => startEditTriangleSublabel(idx)}
+                            dangerouslySetInnerHTML={{ __html: formatLabel(s) || '...' }}
+                          />
+                        )}
+
+                        {!isSpecialMode && (
+                          <button
+                            className="pill-x"
+                            title="Remove this secondary label"
+                            onClick={(e) => { e.stopPropagation(); removeTriangleSublabel(node.id, idx); }}
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {!isSpecialMode && (
                   <div className="node-actions">
-                    <button className="action-btn danger" onClick={() => toggleTri(node.id)} title="Remove triangle">✕</button>
+                    <button
+                      className={`action-btn ${hasTriangleSublabels ? 'active' : ''}`}
+                      onClick={() => addTriangleSublabel(node.id)}
+                      disabled={triangleSublabels.length >= 4}
+                      title={triangleSublabels.length >= 4 ? 'Maximum: 4 secondary labels' : 'Add a secondary label (max 4)'}
+                    >
+                      +₂
+                    </button>
+                    <button className="action-btn danger" onClick={() => toggleTri(node.id, 'topdown')} title="Remove triangle">✕</button>
                   </div>
                 )}
               </div>
@@ -740,6 +833,9 @@
                     addSublabel,
                     updateSublabel,
                     removeSublabel,
+                    addTriangleSublabel,
+                    updateTriangleSublabel,
+                    removeTriangleSublabel,
                     buildMode,
                     toggleTri,
                     delNode,
@@ -950,7 +1046,7 @@
           return { ...n, children: n.children.filter(c => c.id !== id).length > 0 ? n.children.filter(c => c.id !== id) : null };
         }
         return { ...n, children: n.children.map(c => findAndRemove(c, id)) };
-      };      const makeBlankNode = () => ({ id: generateId(), label: '...', children: null, triangleText: null, sublabels: [], terminalLocked: false });
+      };      const makeBlankNode = () => ({ id: generateId(), label: '...', children: null, triangleText: null, triangleSublabels: [], sublabels: [], terminalLocked: false });
 
       
 
@@ -959,6 +1055,9 @@
         const sublabels = Array.isArray(n.sublabels)
           ? n.sublabels.slice(0, 4)
           : (n.sublabel !== null && n.sublabel !== undefined ? [n.sublabel] : []);
+        const triangleSublabels = Array.isArray(n.triangleSublabels)
+          ? n.triangleSublabels.slice(0, 4)
+          : [];
         const locked = !!n.terminalLocked || sublabels.length >= 2;
 
         return {
@@ -966,6 +1065,7 @@
           label: n.label !== undefined && n.label !== null ? n.label : '...',
           children: n.children ? n.children.map(normalizeNode) : null,
           triangleText: (n.triangleText !== undefined ? n.triangleText : null),
+          triangleSublabels,
           sublabels,
           terminalLocked: locked
         };
@@ -1024,13 +1124,60 @@ const delNode = (id) => {
         setMoves(prev => prev.filter(m => m.from !== id && m.to !== id));
       };
 
-      const toggleTri = (id) => {
-        const rec = (n) => {
-          if (!n) return null;
-          if (n.id === id) return n.triangleText !== null ? { ...n, triangleText: null } : { ...n, triangleText: '...', children: null };
-          return { ...n, children: n.children ? n.children.map(rec) : null };
-        };
-        setTree(prev => rec(prev));
+      const toggleTri = (id, mode = 'topdown') => {
+        if (mode === 'bottomup') {
+          // In bottom-up mode, create a parent node with triangle above the current node
+          // The current node becomes the triangle text (no intermediate branch)
+          const wrapWithTriangleParent = (child) => {
+            const parent = makeBlankNode();
+            parent.triangleText = child.label !== '...' ? child.label : '...';
+            // Copy sublabels to triangle if present, then clear the child
+            parent.children = null;
+            // The child node is "absorbed" into the triangle text
+            return parent;
+          };
+
+          const rec = (n) => {
+            if (!n) return [n, false];
+            if (n.id === id) {
+              // If node already has a triangle, remove it (toggle off)
+              if (n.triangleText !== null) {
+                return [{ ...n, triangleText: null }, true];
+              }
+              // Otherwise, replace with a parent that has the node's label as triangle text
+              return [wrapWithTriangleParent(n), true];
+            }
+            if (!n.children) return [n, false];
+            let changed = false;
+            const newChildren = n.children.map(c => {
+              const [nextChild, didChange] = rec(c);
+              changed = changed || didChange;
+              return nextChild;
+            });
+            if (!changed) return [n, false];
+            return [{ ...n, children: newChildren }, true];
+          };
+
+          setTree(prev => {
+            // Special case: if the target is the root node
+            if (prev.id === id) {
+              if (prev.triangleText !== null) {
+                return { ...prev, triangleText: null };
+              }
+              return wrapWithTriangleParent(prev);
+            }
+            const [next, changed] = rec(prev);
+            return changed ? next : prev;
+          });
+        } else {
+          // Top-down mode: original behavior - add triangle below
+          const rec = (n) => {
+            if (!n) return null;
+            if (n.id === id) return n.triangleText !== null ? { ...n, triangleText: null } : { ...n, triangleText: '...', children: null };
+            return { ...n, children: n.children ? n.children.map(rec) : null };
+          };
+          setTree(prev => rec(prev));
+        }
       };
 
       const addSublabel = (id) => {
@@ -1090,6 +1237,44 @@ const delNode = (id) => {
               terminalLocked: nextLocked,
               children: nextLocked ? null : n.children
             };
+          }
+          return { ...n, children: n.children ? n.children.map(rec) : null };
+        };
+        setTree(prev => rec(prev));
+      };
+
+      // Triangle sublabel functions
+      const addTriangleSublabel = (id) => {
+        const rec = (n) => {
+          if (!n) return null;
+          if (n.id === id) {
+            const current = Array.isArray(n.triangleSublabels) ? n.triangleSublabels : [];
+            if (current.length >= 4) return n;
+            return { ...n, triangleSublabels: [...current, '...'] };
+          }
+          return { ...n, children: n.children ? n.children.map(rec) : null };
+        };
+        setTree(prev => rec(prev));
+      };
+
+      const updateTriangleSublabel = (id, idx, value) => {
+        const rec = (n) => {
+          if (!n) return null;
+          if (n.id === id) {
+            const current = Array.isArray(n.triangleSublabels) ? n.triangleSublabels : [];
+            return { ...n, triangleSublabels: current.map((s, i) => (i === idx ? (value || '...') : s)) };
+          }
+          return { ...n, children: n.children ? n.children.map(rec) : null };
+        };
+        setTree(prev => rec(prev));
+      };
+
+      const removeTriangleSublabel = (id, idx) => {
+        const rec = (n) => {
+          if (!n) return null;
+          if (n.id === id) {
+            const current = Array.isArray(n.triangleSublabels) ? n.triangleSublabels : [];
+            return { ...n, triangleSublabels: current.filter((_, i) => i !== idx) };
           }
           return { ...n, children: n.children ? n.children.map(rec) : null };
         };
@@ -1389,7 +1574,7 @@ const delNode = (id) => {
 
           <div className="tree-canvas" ref={canvasRef}>
             <svg width="100%" height="100%" style={{position:'absolute', top:0, left:0, pointerEvents:'none', zIndex:1, overflow:'visible'}}>{svgLines}</svg>
-            {tree ? <TreeNode node={tree} isRoot={true} {...{updateNode, addNode, addParent, buildMode, toggleTri, addSublabel, updateSublabel, removeSublabel, delNode, isMoveMode, isPhaseMode, sourceId, onNodeClick: (id) => {
+            {tree ? <TreeNode node={tree} isRoot={true} {...{updateNode, addNode, addParent, buildMode, toggleTri, addSublabel, updateSublabel, removeSublabel, addTriangleSublabel, updateTriangleSublabel, removeTriangleSublabel, delNode, isMoveMode, isPhaseMode, sourceId, onNodeClick: (id) => {
               if (!sourceId) setSourceId(id);
               else if (sourceId === id) setSourceId(null);
               else { setMoves(p => [...p, {id: generateId(), from: sourceId, to: id}]); setSourceId(null); setIsMoveMode(false); }
@@ -1432,9 +1617,10 @@ const delNode = (id) => {
                 <h4><span className="icon">⇅</span> Build Modes</h4>
                 <ul>
                   <li>Use the <strong>Top-down / Bottom-up</strong> switch in the top toolbar to change the construction mode at any time.</li>
-                  <li><strong>Top-down</strong>: <code>│</code> and <code>⑃</code> create <strong>daughters</strong> from the selected node.</li>
-                  <li><strong>Bottom-up</strong>: <code>│</code> and <code>⑃</code> create a <strong>parent</strong> above the selected node (wrapping it).</li>
-                  <li>In Bottom-up mode, the node tools appear <strong>above</strong> the node (so “adding a parent” feels natural).</li>
+                  <li><strong>Top-down</strong>: <code>│</code>, <code>⑃</code>, and <code>△</code> create <strong>daughters</strong> from the selected node.</li>
+                  <li><strong>Bottom-up</strong>: <code>│</code>, <code>→⑃</code>/<code>⑃←</code>, and <code>△</code> create a <strong>parent</strong> above the selected node.</li>
+                  <li>The arrows in <code>→⑃</code> and <code>⑃←</code> indicate where the <strong>sibling</strong> will appear (left or right).</li>
+                  <li>In Bottom-up mode, the node tools appear <strong>above</strong> the node (so "adding a parent" feels natural).</li>
                 </ul>
               </div>
 
