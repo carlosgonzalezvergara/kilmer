@@ -154,7 +154,17 @@
     .node-display:hover { background: rgba(0,0,0,0.05); }
     .node-display.is-source { border-color: var(--color-select); background: rgba(37, 99, 235, 0.05); }
     .node-display.move-active { cursor: crosshair; }
-    .node-display.placeholder { color: #bbb; }
+    .node-display.placeholder {
+      color: #888;
+      border: 1px dashed #ccc;
+      background: rgba(37, 99, 235, 0.04);
+      padding: 4px 12px;
+      border-radius: 4px;
+    }
+
+    .node-display.placeholder:hover {
+      color: var(--color-accent);
+    }
     
     .node-sublabels .node-display { font-size: 15px; }
     
@@ -1625,7 +1635,7 @@ const delNode = (id) => {
             }, onPhaseClick: (id) => {
               togglePhase(id);
               setIsPhaseMode(false);
-            }}} /> : <div style={{color:'#999'}}>Click <strong>New Tree</strong> to start a new diagram or <strong>Load</strong> to continue editing a previous one.</div>}
+            }}} /> : <div style={{color:'#999'}}>Click <strong>New Tree</strong> to start a new diagram or <strong>Load a .kilmer file</strong> to continue editing a previous one.</div>}
           </div>
 
           {/* Redesigned Instructions Panel - Collapsible */}
