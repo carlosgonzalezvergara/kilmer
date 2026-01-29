@@ -88,7 +88,7 @@
     
     .tree-canvas {
       background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;
-      min-height: 600px; padding: 80px 40px; display: flex; justify-content: center;
+      min-height: 400px; padding: 80px 40px; display: flex; justify-content: center;
       position: relative; overflow: visible;
     }
 
@@ -1512,31 +1512,6 @@ const delNode = (id) => {
           <div className="toolbar">
             <button className="btn btn-primary" onClick={() => {setTree({id: generateId(), label: '...', children: null, triangleText: null, sublabels: [], terminalLocked: false}); setMoves([]); setPhases(new Set()); setDottedLines(new Set()); setHistory([]); setHistoryIndex(-1);}}>New Tree</button>
             <div className="toolbar-divider" />
-            <button className="btn" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)">↶</button>
-            <button className="btn" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Y)">↷</button>
-            <div className="toolbar-divider" />
-            <div className="build-switch" title="Build direction">
-              <span className={`build-switch-label ${buildMode === 'topdown' ? 'active' : ''}`}>Top-down</span>
-              <label className="switch" aria-label="Toggle build direction">
-                <input
-                  type="checkbox"
-                  checked={buildMode === 'bottomup'}
-                  onChange={(e) => setBuildMode(e.target.checked ? 'bottomup' : 'topdown')}
-                />
-                <span className="slider" />
-              </label>
-              <span className={`build-switch-label ${buildMode === 'bottomup' ? 'active' : ''}`}>Bottom-up</span>
-            </div>
-            <div className="toolbar-divider" />
-            <button className={`btn ${isMoveMode ? 'active-mode' : ''}`} onClick={() => {setIsMoveMode(!isMoveMode); setIsPhaseMode(false); setSourceId(null);}} disabled={!tree}>
-              {isMoveMode ? (sourceId ? 'Select Target...' : 'Select Source...') : 'Move'}
-            </button>
-            <button className={`btn ${isPhaseMode ? 'active-mode' : ''}`} onClick={() => {setIsPhaseMode(!isPhaseMode); setIsMoveMode(false); setSourceId(null);}} disabled={!tree}>
-              {isPhaseMode ? 'Click a Phase...' : 'Phase'}
-            </button>
-
-
-            <div className="toolbar-divider" />
             <button className="btn" onClick={() => fileRef.current.click()}>Load .kilmer</button>
             <input type="file" ref={fileRef} style={{display:'none'}} accept=".kilmer,.json,application/json,text/plain,*/*" onChange={load} />
             <button className="btn" onClick={saveTree} disabled={!tree} title="Save (Ctrl+S)">Save .kilmer</button>
@@ -1629,6 +1604,32 @@ const delNode = (id) => {
                 document.body.removeChild(container);
               }
             }} disabled={!tree}>Export PNG</button>
+
+            <div className="toolbar-divider" />
+            <div className="build-switch" title="Build direction">
+              <span className={`build-switch-label ${buildMode === 'topdown' ? 'active' : ''}`}>Top-down</span>
+              <label className="switch" aria-label="Toggle build direction">
+                <input
+                  type="checkbox"
+                  checked={buildMode === 'bottomup'}
+                  onChange={(e) => setBuildMode(e.target.checked ? 'bottomup' : 'topdown')}
+                />
+                <span className="slider" />
+              </label>
+              <span className={`build-switch-label ${buildMode === 'bottomup' ? 'active' : ''}`}>Bottom-up</span>
+            </div>
+
+            <div className="toolbar-divider" />
+            <button className={`btn ${isMoveMode ? 'active-mode' : ''}`} onClick={() => {setIsMoveMode(!isMoveMode); setIsPhaseMode(false); setSourceId(null);}} disabled={!tree}>
+              {isMoveMode ? (sourceId ? 'Select Target...' : 'Select Source...') : 'Move'}
+            </button>
+            <button className={`btn ${isPhaseMode ? 'active-mode' : ''}`} onClick={() => {setIsPhaseMode(!isPhaseMode); setIsMoveMode(false); setSourceId(null);}} disabled={!tree}>
+              {isPhaseMode ? 'Click a Phase...' : 'Phase'}
+            </button>
+
+            <div className="toolbar-divider" />
+            <button className="btn" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)">↶</button>
+            <button className="btn" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Y)">↷</button>
           </div>
 
           <div className="tree-canvas" ref={canvasRef}>
@@ -1646,7 +1647,7 @@ const delNode = (id) => {
           {/* Redesigned Instructions Panel - Collapsible */}
           <div className="instructions-panel">
             <button className="instructions-header" onClick={() => setShowInstructions(prev => !prev)}>
-              <span>Quick Reference</span>
+              <span>Instructions</span>
               <span className={`collapse-icon ${showInstructions ? 'expanded' : ''}`}>▶</span>
             </button>
             {showInstructions && (
