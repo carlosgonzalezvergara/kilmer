@@ -38,6 +38,7 @@
       background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;
       padding: 16px 24px; margin-bottom: 32px; display: flex; gap: 10px; flex-wrap: wrap;
       align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); position: sticky; top: 20px; z-index: 100;
+      color: var(--color-text);
     }
 
     .btn {
@@ -230,12 +231,13 @@
       background: linear-gradient(135deg, #fdfcfb 0%, #f7f6f3 100%);
       border: 1px solid var(--color-border);
       border-radius: 16px;
-      overflow: visible;
+      overflow: hidden;
     }
 
     .instructions-header {
       background: var(--color-accent);
       color: white;
+      border-radius: 12px;
       padding: 16px 24px;
       font-family: var(--font-display);
       font-size: 1.25rem;
@@ -252,6 +254,10 @@
 
     .instructions-header:hover {
       background: #153d23;
+    }
+
+    .instructions-panel:has(.collapse-icon.expanded) .instructions-header {
+      border-radius: 12px 12px 0 0;
     }
 
     .collapse-icon {
