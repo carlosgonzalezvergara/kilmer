@@ -59,33 +59,33 @@
       margin: 0 10px;
     }
 
-    /* Build direction switch */
-    .build-switch { display: flex; align-items: center; gap: 8px; padding: 0 6px; user-select: none; }
-    .build-switch-label { font-size: 13px; font-weight: 700; color: var(--color-muted); }
-    .build-switch-label.active { color: var(--color-text); }
-
-    .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-    .switch input { opacity: 0; width: 0; height: 0; }
-    .slider {
-      position: absolute; cursor: pointer;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: #d6d6d6;
-      transition: .2s;
-      border-radius: 999px;
+    /* Build direction segmented control */
+    .segmented-control {
+      display: inline-flex;
       border: 1px solid var(--color-border);
+      border-radius: 6px;
+      overflow: hidden;
+      background: #e0e0e0;
     }
-    .slider:before {
-      position: absolute; content: "";
-      height: 18px; width: 18px;
-      left: 2px; top: 2px;
-      background: white;
-      transition: .2s;
-      border-radius: 50%;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+    .segmented-control button {
+      padding: 6px 14px;
+      border: none;
+      background: transparent;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
     }
-    .switch input:focus + .slider { outline: none; box-shadow: 0 0 0 3px rgba(34, 94, 219, 0.20); }
-    .switch input:checked + .slider { background: var(--color-accent); }
-    .switch input:checked + .slider:before { transform: translateX(20px); }
+    .segmented-control button:hover:not(.active) {
+      background: rgba(255,255,255,0.5);
+      color: var(--color-text);
+    }
+    .segmented-control button.active {
+      background: var(--color-accent);
+      color: white;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
     
     .tree-canvas {
       background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;
@@ -1612,17 +1612,19 @@ const delNode = (id) => {
             }} disabled={!tree}>Export PNG</button>
 
             <div className="toolbar-divider" />
-            <div className="build-switch" title="Build direction">
-              <span className={`build-switch-label ${buildMode === 'topdown' ? 'active' : ''}`}>Top-down</span>
-              <label className="switch" aria-label="Toggle build direction">
-                <input
-                  type="checkbox"
-                  checked={buildMode === 'bottomup'}
-                  onChange={(e) => setBuildMode(e.target.checked ? 'bottomup' : 'topdown')}
-                />
-                <span className="slider" />
-              </label>
-              <span className={`build-switch-label ${buildMode === 'bottomup' ? 'active' : ''}`}>Bottom-up</span>
+            <div className="segmented-control" title="Build direction">
+              <button 
+                className={buildMode === 'topdown' ? 'active' : ''} 
+                onClick={() => setBuildMode('topdown')}
+              >
+                Top-down
+              </button>
+              <button 
+                className={buildMode === 'bottomup' ? 'active' : ''} 
+                onClick={() => setBuildMode('bottomup')}
+              >
+                Bottom-up
+              </button>
             </div>
 
             <div className="toolbar-divider" />
