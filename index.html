@@ -34,6 +34,56 @@
     .header { text-align: center; margin-bottom: 24px; }
     .header-logo { max-width: 320px; height: auto; }
     
+    /* 1. Reactivamos el mouse en etiquetas, botones y entradas de texto */
+/* Los botones y textos SÍ deben capturar el mouse */
+    .node-display, 
+    .action-btn, 
+    .sublabel-pill, 
+    .pill-x,
+    .node-label input { 
+      pointer-events: auto !important; 
+    }
+
+    /* Aseguramos que la barra aparezca al instante al poner el mouse */
+    .node-content:hover > .node-actions, 
+    .node-actions:hover { 
+      opacity: 1; 
+      transition-delay: 0s; 
+    }
+
+.node-actions {
+      position: absolute; 
+      top: 65%; 
+      left: 50%; 
+      transform: translateX(-50%);
+      display: flex; 
+      gap: 4px; 
+      opacity: 0; 
+      /* La barra no intercepta clics, dejando que pasen a las líneas */
+      pointer-events: none; 
+      
+      background: white; /* Totalmente opaca */
+      padding: 4px; /* Reducimos el padding para que el 'foco' sea menor */
+      border-radius: 8px;
+      border: 1px solid var(--color-border); 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 100;
+      
+      /* Retardo para que no desaparezca de inmediato */
+      transition: opacity 0.2s ease-out 0.3s; 
+    }
+
+    /* Ajuste dinámico para que no tape las etiquetas secundarias */
+    .node-content.has-sublabels .node-actions { top: 100%; margin-top: 8px; }
+
+/* 3. Aseguramos que al poner el mouse aparezca al instante (sin retardo) */
+.node-content:hover > .node-actions, 
+.node-actions:hover, 
+.triangle-label:hover > .node-actions { 
+  opacity: 1; 
+  transition-delay: 0s; 
+}
+
     .toolbar {
       background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;
       padding: 16px 24px; margin-bottom: 32px; display: flex; gap: 10px; flex-wrap: wrap;
@@ -276,13 +326,31 @@
     .node-sublabels input { font-size: 14px; }
 
     .node-actions {
-      position: absolute; top: 65%; left: 50%; transform: translateX(-50%);
-      display: flex; gap: 4px; opacity: 0; pointer-events: none;
-      transition: opacity 0.2s; background: white; padding: 6px; border-radius: 8px;
-      border: 1px solid var(--color-border); box-shadow: 0 4px 12px rgba(0,0,0,0.12); z-index: 50;
-    }
+  position: absolute; 
+  top: 65%; 
+  left: 50%; 
+  transform: translateX(-50%);
+  display: flex; 
+  gap: 4px; 
+  opacity: 0; 
+  pointer-events: none;
+  /* Agregamos un delay de 0.3s al ocultarse para mejorar la usabilidad */
+  transition: opacity 0.2s ease-out 0.3s; 
+  background: #ffffff; /* Asegura un blanco totalmente opaco */
+  padding: 6px; 
+  border-radius: 8px;
+  border: 1px solid var(--color-border); 
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15); /* Sombra un poco más marcada */
+  z-index: 200; /* Prioridad máxima */
+}
     .node-content.has-sublabels .node-actions { top: 90%; }
-    .node-content:hover .node-actions, .node-actions:hover, .triangle-label:hover .node-actions { opacity: 1; pointer-events: auto; }
+    .node-content:hover .node-actions, 
+.node-actions:hover, 
+.triangle-label:hover .node-actions { 
+  opacity: 1; 
+  pointer-events: auto; 
+  transition-delay: 0s; /* Aparece al instante al poner el mouse */
+}
     .triangle-label .node-actions { top: 80%; }
     .triangle-label.has-triangle-sublabels .node-actions { top: 95%; }
     /* Bottom-up build mode: place node toolbar above the node for more intuitive "add parent" actions */
@@ -1904,7 +1972,8 @@ const delNode = (id) => {
                 width: '100%',
                 height: '100%',
                 margin: '0 auto',
-                zIndex: 10
+                zIndex: 20,
+                pointerEvents: 'none'
               }}
             >
               <div 
