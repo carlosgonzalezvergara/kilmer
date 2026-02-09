@@ -318,7 +318,7 @@
       pointer-events: none;
     }
 
-    /* Sub-etiquetas (pills) */
+    /* Sub-etiquetas (secondary labels) */
     .node-sublabels {
       font-family: var(--font-display);
       font-size: 15px;
@@ -337,12 +337,8 @@
     .sublabel-pill {
       position: relative;
       display: flex;
+      justify-content: center;
       align-items: center;
-      gap: 6px;
-      padding: 2px 8px;
-      border: 1px solid var(--color-border);
-      border-radius: 999px;
-      background: rgba(255,255,255,0.96);
     }
 
     /* Keep the display element in layout when editing, just make it invisible */
@@ -355,15 +351,24 @@
       padding: 0;
       border: 0;
       cursor: pointer;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      white-space: normal;
+      max-width: 100px;
+      text-align: center;
     }
 
     .sublabel-pill .node-display:hover { background: transparent; }
 
     .pill-x {
-      width: 18px;
-      height: 18px;
+      position: absolute;
+      right: -28px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
       border: 1px solid var(--color-border);
-      border-radius: 6px;
+      border-radius: 4px;
       background: white;
       cursor: pointer;
       display: flex;
@@ -373,17 +378,25 @@
       line-height: 1;
       padding: 0;
       color: #dc2626;
+      opacity: 0;
+      transition: opacity 0.15s, background 0.15s, border-color 0.15s, color 0.15s;
     }
 
     .pill-x:hover {
+      opacity: 1 !important;
       background: #dc2626;
       border-color: #dc2626;
       color: white;
+      font-weight: bold;
+    }
+    
+    .sublabel-pill:hover .pill-x {
+      opacity: 1;
     }
 
     .node-display { padding: 4px 10px; border-radius: 4px; border: 2px solid transparent; cursor: pointer; }
     .node-display:hover { background: rgba(0,0,0,0.05); }
-    .node-display.is-source { border-color: var(--color-select); background: rgba(37, 99, 235, 0.05); }
+    .node-display.is-source { border-color: #16a34a; background: rgba(22, 163, 74, 0.1); }
     .node-display.move-active { cursor: crosshair; }
     .node-display.placeholder {
       color: #888;
@@ -426,7 +439,9 @@
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
-      width: 80px;
+      width: auto;
+      min-width: 80px;
+      max-width: 100px;
       box-sizing: border-box;
       margin: 0;
       border: 2px solid var(--color-accent);
@@ -446,11 +461,13 @@
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
-      width: 70px;
+      width: auto;
+      min-width: 80px;
+      max-width: 100px;
       box-sizing: border-box;
       margin: 0;
       border: 2px solid var(--color-accent);
-      border-radius: 999px;
+      border-radius: 4px;
       padding: 2px 8px;
       font-family: var(--font-display);
       text-align: center;
@@ -495,13 +512,16 @@
 
     .triangle-svg { overflow: visible; margin-bottom: 5px; }
     .triangle-label { position: relative; display: flex; flex-direction: column; align-items: center; }
-    /* Sub-etiquetas (pills) */
+    /* Sub-etiquetas (secondary labels) */
     .triangle-label .node-sublabels { margin-top: 2px; }
 
-    .arrow-delete-btn { cursor: pointer; pointer-events: auto; }
+    .arrow-delete-btn { cursor: pointer; pointer-events: auto; opacity: 0; transition: opacity 0.15s; }
     .arrow-delete-btn rect { fill: white; stroke: var(--color-border); rx: 4; }
     .arrow-delete-btn:hover rect { fill: #dc2626; stroke: #dc2626; }
     .arrow-delete-btn:hover text { fill: white; font-weight: bold; }
+    .arrow-group:hover .arrow-delete-btn,
+    .phase-group:hover .arrow-delete-btn,
+    .arrow-delete-btn:hover { opacity: 1; }
 
     /* =================================
        PANEL DE INSTRUCCIONES
@@ -608,7 +628,7 @@
       }
     /* Etiquetas de nodos */
       .node-label { font-size: 16px; }
-    /* Sub-etiquetas (pills) */
+    /* Sub-etiquetas (secondary labels) */
       .node-sublabels { font-size: 13px; }
       .node-children { gap: 24px; padding-top: 30px; }
       .instructions-grid {
@@ -1664,7 +1684,7 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
           const arrowKey = `arrow-${m.id}`;
           const isDotted = dottedLines.has(arrowKey);
           return (
-            <g key={m.id}>
+            <g key={m.id} className="arrow-group">
               <path d={path} fill="none" stroke="transparent" strokeWidth="15" style={{cursor: 'pointer', pointerEvents: 'stroke'}} onDoubleClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleDottedLine(arrowKey); }} />
               <path d={path} fill="none" stroke="black" strokeWidth="1.5" markerEnd="url(#head)" opacity="0.8" strokeDasharray={isDotted ? "5,4" : "none"} style={{pointerEvents: 'none'}} />
               <g className="arrow-delete-btn" onClick={() => setMoves(prev => prev.filter(x => x.id !== m.id))} transform={`translate(${bx-10},${by-10})`}>
@@ -1698,7 +1718,7 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
           const isDotted = !dottedLines.has(phaseKey);
 
           return (
-            <g key={phaseKey}>
+            <g key={phaseKey} className="phase-group">
               <path d={path} fill="none" stroke="transparent" strokeWidth="12" style={{cursor: 'pointer', pointerEvents: 'stroke'}} onDoubleClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleDottedLine(phaseKey); }} />
               <path d={path} fill="none" stroke="black" strokeWidth="1.5" strokeDasharray={isDotted ? "5,3" : "none"} opacity="0.8" style={{pointerEvents: 'none'}} />
               <g className="arrow-delete-btn" onClick={() => togglePhase(nodeId)} transform={`translate(${x + width/2 - 10},${controlY - 18})`}>
@@ -1821,6 +1841,17 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
               const clone = cloneWithStyles(el);
               setZoomLevel(savedZoom);
 
+              // --- Evita colisión de IDs de markers SVG (previene pérdida de punta tras exportar) ---
+              const exportMarkerId = `head_export_${Date.now()}`;
+
+              // Renombra el marker en el CLON (si existe)
+              clone.querySelectorAll('marker#head').forEach(m => { m.id = exportMarkerId; });
+
+              // Actualiza cualquier referencia marker-end en el CLON
+              clone.querySelectorAll('[marker-end="url(#head)"]').forEach(p => {
+                p.setAttribute('marker-end', `url(#${exportMarkerId})`);
+              });
+
               clone.querySelectorAll('.node-actions, .arrow-delete-btn').forEach(x => x.remove());
               clone.querySelectorAll('.pill-x').forEach(x => x.remove());
               clone.querySelectorAll('.sublabel-pill').forEach(pill => {
@@ -1831,6 +1862,7 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
                 pill.style.display = 'flex'; pill.style.alignItems = 'center'; pill.style.justifyContent = 'center';
               });
               clone.style.transform = 'none';
+              clone.style.margin = '20px';
 
               // Force explicit height on clone to include all content including arrows
               const svgEl = clone.querySelector('svg');
@@ -1840,14 +1872,61 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
               }
 
               const container = document.createElement('div');
-              container.style.cssText = 'position: fixed; left: 0; top: 0; z-index: -9999; pointer-events: none; overflow: visible; background: white; padding: 40px;';
+              container.style.cssText = 'position: fixed; left: 0; top: 0; z-index: -9999; pointer-events: none; overflow: visible; background: transparent; padding: 0;';
               container.appendChild(clone);
               document.body.appendChild(container);
 
               await new Promise(resolve => setTimeout(resolve, 150));
 
               try {
-                const cv = await html2canvas(clone, { backgroundColor: null, scale: 3, useCORS: true, logging: false });
+                const pad = 40; // margen de seguridad alrededor
+
+          const containerRect = container.getBoundingClientRect();
+
+          // calcula el bbox real de TODO lo visible dentro del clone (sin contar el SVG "lienzo" gigante)
+          let minL = Infinity, minT = Infinity, maxR = -Infinity, maxB = -Infinity;
+
+          // incluye el propio clone + todos sus descendientes
+          const elems = [clone, ...clone.querySelectorAll('*')];
+
+          for (const e of elems) {
+            // OJO: el SVG principal de líneas suele ser enorme (width/height del stage) y mete espacio en blanco.
+            // Lo excluimos del bbox, pero mantenemos sus hijos (paths, etc.) que sí tienen bbox real.
+            if (e.tagName === 'svg' && e.parentElement && e.parentElement.classList && e.parentElement.classList.contains('zoom-container')) {
+              const pos = (e.style && e.style.position) ? e.style.position : '';
+              if (pos === 'absolute' && !e.classList.contains('triangle-svg')) continue;
+            }
+
+            const r = e.getBoundingClientRect();
+            if (!r || (r.width === 0 && r.height === 0)) continue;
+            if (r.left < minL) minL = r.left;
+            if (r.top < minT) minT = r.top;
+            if (r.right > maxR) maxR = r.right;
+            if (r.bottom > maxB) maxB = r.bottom;
+          }
+
+          // fallback por si algo raro ocurre
+          if (!isFinite(minL) || !isFinite(minT) || !isFinite(maxR) || !isFinite(maxB)) {
+            const r = clone.getBoundingClientRect();
+            minL = r.left; minT = r.top; maxR = r.right; maxB = r.bottom;
+          }
+
+          // convierte bbox “de viewport” a coordenadas relativas al container para html2canvas
+          const x = (minL - containerRect.left) - pad;
+          const y = (minT - containerRect.top) - pad;
+          const width = (maxR - minL) + (pad * 2);
+          const height = (maxB - minT) + (pad * 2);
+
+          const cv = await html2canvas(container, {
+            backgroundColor: null,
+            scale: 3,
+            useCORS: true,
+            logging: false,
+            x,
+            y,
+            width,
+            height
+          });
                 const a = document.createElement('a');
                 a.download = `${filename}.png`;
                 a.href = cv.toDataURL('image/png');
@@ -1983,12 +2062,12 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
                 </ul>
               </div>
 
-              {/* NEW: Multiple bottom labels (stacked pills) */}
+              {/* NEW: Multiple bottom labels (secondary labels) */}
               <div className="instruction-card">
                 <h4><span className="icon">+₂</span> Multiple Bottom Labels</h4>
                 <ul>
                   <li>Use <code>+₂</code> to add up to <strong>4</strong> bottom labels (“pills”) under a node.</li>
-                  <li>Each pill is <strong>editable</strong> (click to edit) and can be removed with its <code>×</code>.</li>
+                  <li>Each secondary label is <strong>editable</strong> (click to edit) and can be removed with its <code>×</code> (visible on hover).</li>
                   <li>If a node reaches <strong>2+</strong> bottom labels, it becomes <strong>terminal (locked)</strong>:
                   existing daughters (if any) are removed, and no new daughters can be added in Top-down mode.</li>
                   <li>Bottom-up wrapping still works on locked nodes (it adds a parent, not daughters).</li>
