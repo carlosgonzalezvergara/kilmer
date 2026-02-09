@@ -1841,15 +1841,20 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
               const clone = cloneWithStyles(el);
               setZoomLevel(savedZoom);
 
-              // --- Evita colisión de IDs de markers SVG (previene pérdida de punta tras exportar) ---
+              // --- Evita colisión de IDs de markers SVG (y asegura que html2canvas renderice las puntas) ---
               const exportMarkerId = `head_export_${Date.now()}`;
+              const exportMarkerUrl = `url(${window.location.href.split('#')[0]}#${exportMarkerId})`;
 
               // Renombra el marker en el CLON (si existe)
               clone.querySelectorAll('marker#head').forEach(m => { m.id = exportMarkerId; });
 
-              // Actualiza cualquier referencia marker-end en el CLON
-              clone.querySelectorAll('[marker-end="url(#head)"]').forEach(p => {
-                p.setAttribute('marker-end', `url(#${exportMarkerId})`);
+              // Actualiza referencias a marker-end en el CLON.
+              // Nota: html2canvas a veces falla con url(#id) en SVG; usar URL absoluta suele resolverlo.
+              clone.querySelectorAll('[marker-end]').forEach(p => {
+                const v = p.getAttribute('marker-end') || '';
+                if (v.includes('url(#head)') || v.includes(`url(#${exportMarkerId})`)) {
+                  p.setAttribute('marker-end', exportMarkerUrl);
+                }
               });
 
               clone.querySelectorAll('.node-actions, .arrow-delete-btn').forEach(x => x.remove());
@@ -1877,6 +1882,61 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
               document.body.appendChild(container);
 
               await new Promise(resolve => setTimeout(resolve, 150));
+              // --- Para exportación: "hornea" puntas de flecha como polígonos (html2canvas suele fallar con SVG <marker>) ---
+              const bakeArrowheadsForExport = (root) => {
+                const paths = root.querySelectorAll('path[marker-end]');
+                paths.forEach(path => {
+                  const v = path.getAttribute('marker-end') || '';
+                  if (!v.includes('#')) return;
+
+                  // Solo para flechas (marker-end). Convertimos a triángulo al final del trazo.
+                  try {
+                    const svg = path.ownerSVGElement;
+                    if (!svg || !path.getTotalLength) return;
+
+                    const len = path.getTotalLength();
+                    if (!isFinite(len) || len <= 0) return;
+
+                    const pEnd = path.getPointAtLength(len);
+                    const pPrev = path.getPointAtLength(Math.max(0, len - 8)); // un poco antes del final para el ángulo
+
+                    const dx = pEnd.x - pPrev.x;
+                    const dy = pEnd.y - pPrev.y;
+                    const ang = Math.atan2(dy, dx);
+
+                    const headLen = 12;   // largo de la punta
+                    const headWid = 8;    // ancho de la punta
+
+                    const backX = pEnd.x - headLen * Math.cos(ang);
+                    const backY = pEnd.y - headLen * Math.sin(ang);
+
+                    const leftX = backX + (headWid / 2) * Math.cos(ang + Math.PI / 2);
+                    const leftY = backY + (headWid / 2) * Math.sin(ang + Math.PI / 2);
+
+                    const rightX = backX + (headWid / 2) * Math.cos(ang - Math.PI / 2);
+                    const rightY = backY + (headWid / 2) * Math.sin(ang - Math.PI / 2);
+
+                    const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                    poly.setAttribute('points', `${pEnd.x},${pEnd.y} ${leftX},${leftY} ${rightX},${rightY}`);
+
+                    const stroke = path.getAttribute('stroke') || path.style.stroke || '#000';
+                    poly.setAttribute('fill', stroke);
+                    poly.setAttribute('stroke', 'none');
+                    poly.setAttribute('opacity', path.getAttribute('opacity') || path.style.opacity || '1');
+
+                    // Inserta después del path para que quede arriba
+                    path.parentNode.appendChild(poly);
+
+                    // Quita el marker-end para evitar que html2canvas intente resolverlo
+                    path.removeAttribute('marker-end');
+                  } catch (_) {}
+                });
+              };
+
+              // Asegura que el clone ya esté en el DOM antes de hornear puntas
+              await new Promise(resolve => requestAnimationFrame(resolve));
+              bakeArrowheadsForExport(clone);
+
 
               try {
                 const pad = 40; // margen de seguridad alrededor
