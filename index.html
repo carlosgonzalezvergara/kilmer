@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kilmer - Syntactic Tree Diagrams</title>
+  <title>Kilmer - Syntactic Tree Builder</title>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -22,7 +22,7 @@
       --color-text-muted: #6b6b6b;
       --color-accent: #1a472a;
       --color-border: #e0ddd8;
-      --color-select: #2563eb; 
+      --color-select: #2563eb;
       --font-display: 'Crimson Pro', Georgia, serif;
       --font-body: 'Source Sans 3', system-ui, sans-serif;
     }
@@ -33,7 +33,10 @@
 
     .header { text-align: center; margin-bottom: 24px; }
     .header-logo { max-width: 320px; height: auto; }
-    
+
+    /* =================================
+       TOOLBAR Y CONTROLES
+       ================================= */
     .toolbar {
       background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;
       padding: 16px 24px; margin-bottom: 8px; display: flex; gap: 10px; flex-wrap: wrap;
@@ -41,6 +44,7 @@
       color: var(--color-text);
     }
 
+    /* Barra de estado de modo (Move/Phase) */
     .mode-status-bar {
       background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
       border: 1px solid #86efac;
@@ -103,11 +107,13 @@
       border-color: var(--color-accent);
     }
 
+    /* Botones principales */
     .btn {
       font-family: var(--font-body); padding: 8px 16px; border: 1px solid var(--color-border);
       border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
       background: var(--color-surface); transition: all 0.2s;
     }
+
     .btn:hover:not(:disabled) { border-color: var(--color-text); transform: translateY(-1px); }
     .btn-primary { background: var(--color-accent); color: white; border-color: var(--color-accent); }
     .btn.active-mode { background: #16a34a; color: white; border-color: #16a34a; }
@@ -120,6 +126,7 @@
       margin: 0 10px;
     }
 
+    /* Control segmentado (Top-down/Bottom-up) */
     .segmented-control {
       display: inline-flex;
       border: 1px solid var(--color-border);
@@ -127,6 +134,7 @@
       overflow: hidden;
       background: #e0e0e0;
     }
+
     .segmented-control button {
       padding: 8px 16px;
       border: none;
@@ -138,22 +146,28 @@
       cursor: pointer;
       transition: all 0.2s ease;
     }
+
     .segmented-control button:hover:not(.active) {
       background: rgba(255,255,255,0.5);
       color: var(--color-text);
     }
+
     .segmented-control button.active {
       background: var(--color-accent);
       color: white;
       box-shadow: 0 1px 3px rgba(0,0,0,0.15);
     }
-    
+
+    /* =================================
+       CANVAS Y CONTROLES DE ZOOM
+       ================================= */
     .tree-canvas {
       background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;
       min-height: 267px; padding: 53px 40px; display: flex; align-items: flex-start; justify-content: flex-start;
       position: relative; overflow-x: auto; overflow-y: hidden;
       }
 
+    /* Controles de zoom */
     .zoom-controls {
       position: absolute;
       top: 12px;
@@ -171,13 +185,16 @@
       pointer-events: none;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
+
     .zoom-controls.visible {
       opacity: 0.6;
       pointer-events: auto;
     }
+
     .zoom-controls.visible:hover {
       opacity: 1;
     }
+
     .zoom-btn {
       width: 28px;
       height: 28px;
@@ -193,13 +210,16 @@
       border-radius: 4px;
       transition: background 0.15s;
     }
+
     .zoom-btn:hover:not(:disabled) {
       background: rgba(0,0,0,0.08);
     }
+
     .zoom-btn:disabled {
       opacity: 0.3;
       cursor: not-allowed;
     }
+
     .zoom-indicator {
       min-width: 44px;
       height: 28px;
@@ -214,18 +234,18 @@
       transition: background 0.15s, color 0.15s;
       user-select: none;
     }
+
     .zoom-indicator:hover {
       background: rgba(0,0,0,0.08);
       color: var(--color-text);
     }
 
-    
-
-.zoom-stage {
+    .zoom-stage {
       position: relative;
       margin: 0 auto;
     }
-.zoom-wrapper {
+
+    .zoom-wrapper {
       position: relative;
       min-width: 100%;
       min-height: 100%;
@@ -233,25 +253,30 @@
       align-items: flex-start;
       justify-content: center;
     }
-    
+
     .zoom-container {
       position: absolute;
       left: 50%;
       transform-origin: top center;
     }
 
+    /* =================================
+       ÁRBOL SINTÁCTICO - NODOS
+       ================================= */
     .tree-node { display: flex; flex-direction: column; align-items: center; position: relative; }
     .node-wrapper { position: relative; padding-bottom: 15px; }
     .node-wrapper.has-sublabels { padding-bottom: 8px; }
     .node-content { display: flex; flex-direction: column; align-items: center; }
+    /* Etiquetas de nodos */
     .node-label { font-family: var(--font-display); font-size: 20px; min-height: 1.5em; display: flex; align-items: center; justify-content: center; position: relative; z-index: 10; }
-    
+
     /* Keep the display element in layout when editing, just make it invisible */
     .node-label.is-editing .node-display {
       opacity: 0;
       pointer-events: none;
     }
-    
+
+    /* Sub-etiquetas (pills) */
     .node-sublabels {
       font-family: var(--font-display);
       font-size: 15px;
@@ -277,7 +302,7 @@
       border-radius: 999px;
       background: rgba(255,255,255,0.96);
     }
-    
+
     /* Keep the display element in layout when editing, just make it invisible */
     .sublabel-pill:has(input) .node-display {
       opacity: 0;
@@ -289,6 +314,7 @@
       border: 0;
       cursor: pointer;
     }
+
     .sublabel-pill .node-display:hover { background: transparent; }
 
     .pill-x {
@@ -306,6 +332,7 @@
       padding: 0;
       color: #dc2626;
     }
+
     .pill-x:hover {
       background: #dc2626;
       border-color: #dc2626;
@@ -332,18 +359,19 @@
     .node-display.placeholder:hover {
       color: var(--color-accent);
     }
-    
+
     .node-sublabels .node-display { font-size: 15px; }
-    
+
     .node-display i { font-style: italic; }
     .node-display sub { font-size: 0.7em; vertical-align: sub; line-height: 0; }
     .node-display sup { font-size: 0.7em; vertical-align: super; line-height: 0; }
     .node-display .overline { text-decoration: overline; }
-    .node-display .double-overline { 
-      text-decoration: overline; 
-      border-top: 1.5px solid currentColor; 
+    .node-display .double-overline {
+      text-decoration: overline;
+      border-top: 1.5px solid currentColor;
       padding-top: 2px;
     }
+
     .node-display s { text-decoration: line-through; }
 
     .node-label input, .node-sublabels input { font-family: var(--font-display); text-align: center; outline: none; border: 2px solid var(--color-accent); border-radius: 4px; padding: 4px 10px; }
@@ -368,6 +396,7 @@
       background: rgba(255,255,255,0.98);
       z-index: 20;
     }
+
     .node-label .label-input-overlay { font-size: 18px; }
 
     .sublabel-input-overlay {
@@ -389,13 +418,14 @@
       font-size: 14px;
     }
 
-
+    /* Acciones de nodo */
     .node-actions {
       position: absolute; top: 65%; left: 50%; transform: translateX(-50%);
       display: flex; gap: 4px; opacity: 0; pointer-events: none;
       transition: opacity 0.2s; background: white; padding: 6px; border-radius: 8px;
       border: 1px solid var(--color-border); box-shadow: 0 4px 12px rgba(0,0,0,0.12); z-index: 50;
     }
+
     .node-content.has-sublabels .node-actions { top: 90%; }
     .node-content:hover .node-actions, .node-actions:hover, .triangle-label:hover .node-actions { opacity: 1; pointer-events: auto; }
     .triangle-label .node-actions { top: 80%; }
@@ -413,13 +443,17 @@
 
     .node-children { display: flex; justify-content: center; gap: 40px; padding-top: 40px; position: relative; }
     .node-wrapper.has-sublabels + .node-children { padding-top: 22px; }
-    
+
+    /* =================================
+       TRIÁNGULOS Y ELEMENTOS ESPECIALES
+       ================================= */
     .triangle-container { display: flex; flex-direction: column; align-items: center; margin-top: -15px; }
     /* parent has sublabels -> push triangle down */
     .node-wrapper.has-sublabels + .triangle-container { margin-top: -5px; }
 
     .triangle-svg { overflow: visible; margin-bottom: 5px; }
     .triangle-label { position: relative; display: flex; flex-direction: column; align-items: center; }
+    /* Sub-etiquetas (pills) */
     .triangle-label .node-sublabels { margin-top: 2px; }
 
     .arrow-delete-btn { cursor: pointer; pointer-events: auto; }
@@ -427,6 +461,9 @@
     .arrow-delete-btn:hover rect { fill: #dc2626; stroke: #dc2626; }
     .arrow-delete-btn:hover text { fill: white; font-weight: bold; }
 
+    /* =================================
+       PANEL DE INSTRUCCIONES
+       ================================= */
     .instructions-panel {
       margin-top: 48px;
       background: linear-gradient(135deg, #fdfcfb 0%, #f7f6f3 100%);
@@ -487,19 +524,21 @@
       .container { padding: 20px 12px; }
       .header { margin-bottom: 24px; }
       .header-logo { max-width: 240px; }
-      .toolbar { 
-        padding: 12px 16px; 
-        gap: 8px; 
-        position: static; 
+      .toolbar {
+        padding: 12px 16px;
+        gap: 8px;
+        position: static;
       }
-      .btn { 
-        padding: 8px 12px; 
-        font-size: 13px; 
+    /* Botones principales */
+      .btn {
+        padding: 8px 12px;
+        font-size: 13px;
       }
       .segmented-control button {
         padding: 8px 12px;
         font-size: 13px;
       }
+    /* Barra de estado de modo (Move/Phase) */
       .mode-status-bar {
         padding: 8px 12px;
         font-size: 13px;
@@ -516,12 +555,14 @@
         width: 100%;
         margin-top: 4px;
       }
-      .tree-canvas { 
-        min-height: 400px; 
-        padding: 40px 20px; 
+      .tree-canvas {
+        min-height: 400px;
+        padding: 40px 20px;
         overflow-x: auto;
       }
+    /* Etiquetas de nodos */
       .node-label { font-size: 16px; }
+    /* Sub-etiquetas (pills) */
       .node-sublabels { font-size: 13px; }
       .node-children { gap: 24px; padding-top: 30px; }
       .instructions-grid {
@@ -697,6 +738,9 @@
     padding-left: 0 !important;
     }
 
+    /* =================================
+       FOOTER
+       ================================= */
     .footer {
       margin-top: 48px;
       padding: 24px 0;
@@ -705,24 +749,27 @@
       color: var(--color-text-muted);
       font-size: 14px;
     }
+
     .footer strong { color: var(--color-text); }
     .footer a { color: var(--color-accent); text-decoration: none; }
     .footer a:hover { text-decoration: underline; }
-    .footer img { 
-      opacity: 0.8; 
+    .footer img {
+      opacity: 0.8;
       transition: opacity 0.2s;
       display: block;
       margin: 12px auto 0;
-      height: 31px; 
+      height: 31px;
       width: auto;
     }
+
     .footer img:hover { opacity: 1; }
-  
+
     /* --- FIXES: prevent accidental text selection on double click (without breaking input editing) --- */
     .zoom-wrapper, .zoom-container, svg, .node-display {
       -webkit-user-select: none;
       user-select: none;
     }
+
     .label-input-overlay, .sublabel-input-overlay {
       -webkit-user-select: text;
       user-select: text;
@@ -737,7 +784,9 @@
       white-space: nowrap;
     }
 
-
+    /* =================================
+       MEDIA QUERIES - RESPONSIVE
+       ================================= */
     @media (max-width: 900px) {
       .tree-canvas { width: 100%; }
     }
@@ -870,7 +919,6 @@
       const triangleWidth = node.triangleText !== null
         ? Math.max(80, measureText(node.triangleText || '...') + 40)
         : 80;
-
 
       return (
         <div className="tree-node" data-node-id={node.id} data-has-sublabel={hasSublabels}>
@@ -1031,7 +1079,7 @@
       const [history, setHistory] = useState([]);
       const [historyIndex, setHistoryIndex] = useState(-1);
       const isUndoRedo = useRef(false);
-      
+
       const [tree, setTreeInternal] = useState(null);
       const [moves, setMovesInternal] = useState([]);
       const [phases, setPhasesInternal] = useState(new Set());
@@ -1059,7 +1107,6 @@
       const zoomOut = useCallback(() => { setZoomLevel(prev => Math.max(prev - ZOOM_STEP, ZOOM_MIN)); }, []);
       const zoomReset = useCallback(() => { setZoomLevel(100); }, []);
 
-
 // Capture the original canvas size as a minimum (so the canvas can grow and shrink but never below this).
 useLayoutEffect(() => {
   const c = canvasRef.current;
@@ -1082,8 +1129,6 @@ const svgPadX = 240;
 const svgPadY = 250; // Moderate padding for arrows
 const svgW = Math.max(1, Math.ceil(((contentSize.w || 0) / zoomScaleForSvg) + svgPadX));
 const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + svgPadY));
-
-
 
       const createSnapshot = useCallback(() => ({
         tree: tree ? JSON.parse(JSON.stringify(tree)) : null,
@@ -1158,7 +1203,7 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
         const filename = (prompt('Enter filename:', 'tree') || 'tree').replace(/\s+/g, '_');
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([JSON.stringify({tree, moves, phases: Array.from(phases), dottedLines: Array.from(dottedLines)})], {type:'application/json'}));
-        a.download = `${filename}.kilmer`; 
+        a.download = `${filename}.kilmer`;
         a.click();
       }, [tree, moves, phases, dottedLines]);
 
@@ -1202,7 +1247,7 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
         }
         return { ...n, children: n.children.map(c => findAndRemove(c, id)) };
       };
-      
+
       const makeBlankNode = () => ({ id: generateId(), label: '...', children: null, triangleText: null, triangleSublabels: [], sublabels: [], terminalLocked: false });
 
       const normalizeNode = (n) => {
@@ -1220,7 +1265,7 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
       };
 
       const updateNode = (id, up) => setTree(prev => findAndUpdate(prev, id, up));
-      
+
       const addNode = (id, count) => {
         const rec = (n) => {
           if (!n) return null;
@@ -1385,8 +1430,8 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
 
       // Edit state management - prevents line jumping during editing
       const onEditStart = useCallback(() => { isEditingRef.current = true; }, []);
-      const onEditEnd = useCallback(() => { 
-        isEditingRef.current = false; 
+      const onEditEnd = useCallback(() => {
+        isEditingRef.current = false;
         // Redraw after editing ends
         setTimeout(() => draw(), 0);
       }, [draw]);
@@ -1397,18 +1442,18 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
         const container = zoomContainerRef.current;
         const rect = container.getBoundingClientRect();
         const zoomScale = zoomLevel / 100;
-        
+
         const getPos = (id) => {
           const nodeEl = container.querySelector(`[data-node-id="${id}"]`);
           if (!nodeEl) return null;
-          
+
           const hasSublabel = nodeEl.getAttribute('data-has-sublabel') === 'true';
           const hasTriangle = nodeEl.querySelector(':scope > .triangle-container') !== null;
-          
+
           let bottomEl;
           if (hasTriangle) {
             // For triangle: prefer .node-display, fallback to input if editing
-            bottomEl = nodeEl.querySelector(':scope > .triangle-container > .node-label .node-display') 
+            bottomEl = nodeEl.querySelector(':scope > .triangle-container > .node-label .node-display')
                     || nodeEl.querySelector(':scope > .triangle-container > .node-label input');
           } else if (hasSublabel) {
             const subs = nodeEl.querySelectorAll(':scope > .node-wrapper .node-sublabels .node-display');
@@ -1419,18 +1464,18 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
             bottomEl = nodeEl.querySelector(':scope > .node-wrapper .node-content > .node-label .node-display')
                     || nodeEl.querySelector(':scope > .node-wrapper .node-content > .node-label input');
           }
-          
+
           // For top element: prefer .node-display, fallback to input if editing
           const topEl = nodeEl.querySelector(':scope > .node-wrapper .node-content > .node-label .node-display')
                      || nodeEl.querySelector(':scope > .node-wrapper .node-content > .node-label input');
           if (!bottomEl || !topEl) return null;
-          
+
           const bottomR = bottomEl.getBoundingClientRect();
           const topR = topEl.getBoundingClientRect();
-          
-          return { 
-            x: (topR.left + topR.width/2 - rect.left) / zoomScale, 
-            y: (topR.top - rect.top) / zoomScale, 
+
+          return {
+            x: (topR.left + topR.width/2 - rect.left) / zoomScale,
+            y: (topR.top - rect.top) / zoomScale,
             topR: { top: (topR.top - rect.top) / zoomScale, bottom: (topR.bottom - rect.top) / zoomScale },
             bottomR: { top: (bottomR.top - rect.top) / zoomScale, bottom: (bottomR.bottom - rect.top) / zoomScale },
             hasSublabel, hasTriangle
@@ -1493,12 +1538,12 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
           if (!nodeEl) return null;
           const labelEl = nodeEl.querySelector(':scope > .node-wrapper .node-content > .node-label .node-display');
           if (!labelEl) return null;
-          
+
           const labelRect = labelEl.getBoundingClientRect();
           const x = (labelRect.left - rect.left) / zoomScale;
           const y = (labelRect.top - rect.top) / zoomScale;
           const width = labelRect.width / zoomScale;
-          
+
           const padding = 14;
           const arcHeight = 15;
           const startX = x - padding;
@@ -1506,11 +1551,11 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
           const endX = x + width + padding;
           const endY = y + 5;
           const controlY = y - arcHeight;
-          
+
           const path = `M ${startX} ${startY} Q ${x + width/2} ${controlY} ${endX} ${endY}`;
           const phaseKey = `phase-${nodeId}`;
           const isDotted = !dottedLines.has(phaseKey);
-          
+
           return (
             <g key={phaseKey}>
               <path d={path} fill="none" stroke="transparent" strokeWidth="12" style={{cursor: 'pointer', pointerEvents: 'stroke'}} onDoubleClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleDottedLine(phaseKey); }} />
@@ -1600,16 +1645,16 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
             <button className="btn" onClick={async () => {
               const filename = (prompt('Enter filename:', 'syntax_tree') || 'syntax_tree').replace(/\s+/g, '_');
               if (!filename) return;
-              
+
               const savedZoom = zoomLevel;
               setZoomLevel(100);
-              
+
               await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
               await new Promise(resolve => setTimeout(resolve, 100));
-              
+
               const el = zoomContainerRef.current;
               if (!el) { setZoomLevel(savedZoom); return; }
-              
+
               const copyComputedStyles = (source, target, skipBorderStyles = false) => {
                 const computed = window.getComputedStyle(source);
                 for (let i = 0; i < computed.length; i++) {
@@ -1618,7 +1663,7 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
                   target.style.setProperty(prop, computed.getPropertyValue(prop));
                 }
               };
-              
+
               const cloneWithStyles = (element) => {
                 const clone = element.cloneNode(false);
                 const isPill = element.classList && element.classList.contains('sublabel-pill');
@@ -1629,10 +1674,10 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
                 }
                 return clone;
               };
-              
+
               const clone = cloneWithStyles(el);
               setZoomLevel(savedZoom);
-              
+
               clone.querySelectorAll('.node-actions, .arrow-delete-btn').forEach(x => x.remove());
               clone.querySelectorAll('.pill-x').forEach(x => x.remove());
               clone.querySelectorAll('.sublabel-pill').forEach(pill => {
@@ -1643,26 +1688,26 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
                 pill.style.display = 'flex'; pill.style.alignItems = 'center'; pill.style.justifyContent = 'center';
               });
               clone.style.transform = 'none';
-              
+
               // Force explicit height on clone to include all content including arrows
               const svgEl = clone.querySelector('svg');
               if (svgEl) {
                 const svgHeight = parseInt(svgEl.getAttribute('height'));
                 clone.style.minHeight = (svgHeight - 175) + 'px'; // Reduce bottom margin in export
               }
-              
+
               const container = document.createElement('div');
               container.style.cssText = 'position: fixed; left: 0; top: 0; z-index: -9999; pointer-events: none; overflow: visible; background: white; padding: 40px;';
               container.appendChild(clone);
               document.body.appendChild(container);
-              
+
               await new Promise(resolve => setTimeout(resolve, 150));
-              
+
               try {
                 const cv = await html2canvas(clone, { backgroundColor: null, scale: 3, useCORS: true, logging: false });
-                const a = document.createElement('a'); 
-                a.download = `${filename}.png`; 
-                a.href = cv.toDataURL('image/png'); 
+                const a = document.createElement('a');
+                a.download = `${filename}.png`;
+                a.href = cv.toDataURL('image/png');
                 a.click();
               } finally { document.body.removeChild(container); }
             }} disabled={!tree}>Export PNG</button>
@@ -1738,7 +1783,7 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
                     setSourceId(null);
                     setIsMoveMode(false);
                   }
-                }, onPhaseClick: (id) => { togglePhase(id); setIsPhaseMode(false); }}} /> : <div style={{color:'#999'}}>Click <strong>New Tree</strong> to start a new diagram or <strong>Load .kilmer</strong> to edit a previously saved one</div>}
+                }, onPhaseClick: (id) => { togglePhase(id); setIsPhaseMode(false); }}} /> : <div style={{color:'#999'}}>Click <strong>New Tree</strong> to start a new diagram or <strong>Load a .kilmer file</strong> to continue editing a previous one.</div>}
               </div>
               </div>
             </div>
@@ -1751,7 +1796,7 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
             </button>
             {showInstructions && (
               <div className="instructions-grid">
-              
+
               <div className="instruction-card">
                 <h4><span className="icon">⑃</span> Building the Tree</h4>
                 <ul>
