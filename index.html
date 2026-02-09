@@ -36,9 +36,71 @@
     
     .toolbar {
       background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;
-      padding: 16px 24px; margin-bottom: 32px; display: flex; gap: 10px; flex-wrap: wrap;
+      padding: 16px 24px; margin-bottom: 8px; display: flex; gap: 10px; flex-wrap: wrap;
       align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); position: sticky; top: 20px; z-index: 100;
       color: var(--color-text);
+    }
+
+    .mode-status-bar {
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+      border: 1px solid #86efac;
+      border-radius: 8px;
+      padding: 10px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 500;
+      color: #15803d;
+      box-shadow: 0 2px 4px rgba(34, 197, 94, 0.08);
+      animation: slideDown 0.2s ease-out;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .mode-status-bar .status-icon {
+      font-size: 16px;
+    }
+
+    .mode-status-bar .status-step {
+      background: white;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-accent);
+      border: 1px solid #bbf7d0;
+    }
+
+    .mode-status-bar button {
+      margin-left: auto;
+      background: white;
+      border: 1px solid #86efac;
+      border-radius: 6px;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #15803d;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .mode-status-bar button:hover {
+      background: var(--color-accent);
+      color: white;
+      border-color: var(--color-accent);
     }
 
     .btn {
@@ -48,7 +110,7 @@
     }
     .btn:hover:not(:disabled) { border-color: var(--color-text); transform: translateY(-1px); }
     .btn-primary { background: var(--color-accent); color: white; border-color: var(--color-accent); }
-    .btn.active-mode { background: var(--color-select); color: white; border-color: var(--color-select); }
+    .btn.active-mode { background: #16a34a; color: white; border-color: #16a34a; }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
     .toolbar-divider {
@@ -66,7 +128,7 @@
       background: #e0e0e0;
     }
     .segmented-control button {
-      padding: 6px 14px;
+      padding: 8px 16px;
       border: none;
       background: transparent;
       font-family: var(--font-body);
@@ -433,6 +495,26 @@
       .btn { 
         padding: 8px 12px; 
         font-size: 13px; 
+      }
+      .segmented-control button {
+        padding: 8px 12px;
+        font-size: 13px;
+      }
+      .mode-status-bar {
+        padding: 8px 12px;
+        font-size: 13px;
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+        margin-bottom: 16px;
+      }
+      .mode-status-bar .status-step {
+        margin-top: 4px;
+      }
+      .mode-status-bar button {
+        margin-left: 0;
+        width: 100%;
+        margin-top: 4px;
       }
       .tree-canvas { 
         min-height: 400px; 
@@ -1593,16 +1675,42 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
 
             <div className="toolbar-divider" />
             <button className={`btn ${isMoveMode ? 'active-mode' : ''}`} onClick={() => {setIsMoveMode(!isMoveMode); setIsPhaseMode(false); setSourceId(null);}} disabled={!tree}>
-              {isMoveMode ? (sourceId ? 'Select Target...' : 'Select Source...') : 'Move'}
+              Move
             </button>
             <button className={`btn ${isPhaseMode ? 'active-mode' : ''}`} onClick={() => {setIsPhaseMode(!isPhaseMode); setIsMoveMode(false); setSourceId(null);}} disabled={!tree}>
-              {isPhaseMode ? 'Click a Phase...' : 'Phase'}
+              Phase
             </button>
 
             <div className="toolbar-divider" />
             <button className="btn" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)">↶</button>
             <button className="btn" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Y)">↷</button>
           </div>
+
+          {/* Mode Status Bar */}
+          {isMoveMode && (
+            <div className="mode-status-bar">
+              <span className="status-icon">⤳</span>
+              {sourceId ? (
+                <>
+                  <span>Click the <strong>target node</strong> to create movement arrow</span>
+                  <span className="status-step">Step 2/2</span>
+                </>
+              ) : (
+                <>
+                  <span>Click the <strong>source node</strong> (e.g., trace, copy)</span>
+                  <span className="status-step">Step 1/2</span>
+                </>
+              )}
+              <button onClick={() => {setIsMoveMode(false); setSourceId(null);}}>Cancel (Esc)</button>
+            </div>
+          )}
+          {isPhaseMode && (
+            <div className="mode-status-bar">
+              <span className="status-icon">◠</span>
+              <span>Click a <strong>phase head</strong> (e.g., vP, CP) to mark phase boundary</span>
+              <button onClick={() => setIsPhaseMode(false)}>Cancel (Esc)</button>
+            </div>
+          )}
 
           <div className="tree-canvas" ref={canvasRef}>
             <div className={`zoom-controls ${tree ? 'visible' : ''}`}>
@@ -1630,7 +1738,7 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
                     setSourceId(null);
                     setIsMoveMode(false);
                   }
-                }, onPhaseClick: (id) => { togglePhase(id); setIsPhaseMode(false); }}} /> : <div style={{color:'#999'}}>Click <strong>New Tree</strong> to start a new diagram or <strong>Load a .kilmer file</strong> to continue editing a previous one.</div>}
+                }, onPhaseClick: (id) => { togglePhase(id); setIsPhaseMode(false); }}} /> : <div style={{color:'#999'}}>Click <strong>New Tree</strong> to start a new diagram or <strong>Load .kilmer</strong> to edit a previously saved one</div>}
               </div>
               </div>
             </div>
