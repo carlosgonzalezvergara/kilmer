@@ -50,7 +50,6 @@
     .btn-primary { background: var(--color-accent); color: white; border-color: var(--color-accent); }
     .btn.active-mode { background: var(--color-select); color: white; border-color: var(--color-select); }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn-undo-redo { font-size: 18px; padding: 6px 12px; }
 
     .toolbar-divider {
       width: 1px;
@@ -59,7 +58,6 @@
       margin: 0 10px;
     }
 
-    /* Build direction segmented control */
     .segmented-control {
       display: inline-flex;
       border: 1px solid var(--color-border);
@@ -71,9 +69,10 @@
       padding: 6px 14px;
       border: none;
       background: transparent;
-      font-size: 13px;
+      font-family: var(--font-body);
+      font-size: 14px;
       font-weight: 600;
-      color: var(--color-muted);
+      color: var(--color-text-muted);
       cursor: pointer;
       transition: all 0.2s ease;
     }
@@ -89,8 +88,94 @@
     
     .tree-canvas {
       background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;
-      min-height: 400px; padding: 80px 40px; display: flex; justify-content: center;
-      position: relative; overflow: visible;
+      min-height: 267px; padding: 53px 40px; display: flex; align-items: flex-start; justify-content: flex-start;
+      position: relative; overflow-x: auto; overflow-y: hidden;
+      }
+
+    .zoom-controls {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 4px;
+      z-index: 200;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .zoom-controls.visible {
+      opacity: 0.6;
+      pointer-events: auto;
+    }
+    .zoom-controls.visible:hover {
+      opacity: 1;
+    }
+    .zoom-btn {
+      width: 28px;
+      height: 28px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--color-text);
+      border-radius: 4px;
+      transition: background 0.15s;
+    }
+    .zoom-btn:hover:not(:disabled) {
+      background: rgba(0,0,0,0.08);
+    }
+    .zoom-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+    .zoom-indicator {
+      min-width: 44px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      border-radius: 4px;
+      transition: background 0.15s, color 0.15s;
+      user-select: none;
+    }
+    .zoom-indicator:hover {
+      background: rgba(0,0,0,0.08);
+      color: var(--color-text);
+    }
+
+    
+
+.zoom-stage {
+      position: relative;
+      margin: 0 auto;
+    }
+.zoom-wrapper {
+      position: relative;
+      min-width: 100%;
+      min-height: 100%;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    
+    .zoom-container {
+      position: absolute;
+      left: 50%;
+      transform-origin: top center;
     }
 
     .tree-node { display: flex; flex-direction: column; align-items: center; position: relative; }
@@ -98,6 +183,12 @@
     .node-wrapper.has-sublabels { padding-bottom: 8px; }
     .node-content { display: flex; flex-direction: column; align-items: center; }
     .node-label { font-family: var(--font-display); font-size: 20px; min-height: 1.5em; display: flex; align-items: center; justify-content: center; position: relative; z-index: 10; }
+    
+    /* Keep the display element in layout when editing, just make it invisible */
+    .node-label.is-editing .node-display {
+      opacity: 0;
+      pointer-events: none;
+    }
     
     .node-sublabels {
       font-family: var(--font-display);
@@ -115,6 +206,7 @@
     }
 
     .sublabel-pill {
+      position: relative;
       display: flex;
       align-items: center;
       gap: 6px;
@@ -122,6 +214,12 @@
       border: 1px solid var(--color-border);
       border-radius: 999px;
       background: rgba(255,255,255,0.96);
+    }
+    
+    /* Keep the display element in layout when editing, just make it invisible */
+    .sublabel-pill:has(input) .node-display {
+      opacity: 0;
+      pointer-events: none;
     }
 
     .sublabel-pill .node-display {
@@ -151,7 +249,8 @@
       border-color: #dc2626;
       color: white;
     }
-.node-display { padding: 4px 10px; border-radius: 4px; border: 2px solid transparent; cursor: pointer; }
+
+    .node-display { padding: 4px 10px; border-radius: 4px; border: 2px solid transparent; cursor: pointer; }
     .node-display:hover { background: rgba(0,0,0,0.05); }
     .node-display.is-source { border-color: var(--color-select); background: rgba(37, 99, 235, 0.05); }
     .node-display.move-active { cursor: crosshair; }
@@ -185,9 +284,49 @@
     }
     .node-display s { text-decoration: line-through; }
 
-    .node-label input, .node-sublabels input { font-family: var(--font-display); text-align: center; outline: none; border: 2px solid var(--color-accent); border-radius: 4px; width: auto; min-width: 30px; }
+    .node-label input, .node-sublabels input { font-family: var(--font-display); text-align: center; outline: none; border: 2px solid var(--color-accent); border-radius: 4px; padding: 4px 10px; }
     .node-label input { font-size: 18px; }
     .node-sublabels input { font-size: 14px; }
+
+    /* Overlay inputs: keep the normal display element in-flow so the tree doesn't re-center/reflow while typing */
+    .label-input-overlay {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 80px;
+      box-sizing: border-box;
+      margin: 0;
+      border: 2px solid var(--color-accent);
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-family: var(--font-display);
+      text-align: center;
+      outline: none;
+      background: rgba(255,255,255,0.98);
+      z-index: 20;
+    }
+    .node-label .label-input-overlay { font-size: 18px; }
+
+    .sublabel-input-overlay {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 70px;
+      box-sizing: border-box;
+      margin: 0;
+      border: 2px solid var(--color-accent);
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-family: var(--font-display);
+      text-align: center;
+      outline: none;
+      background: rgba(255,255,255,0.98);
+      z-index: 20;
+      font-size: 14px;
+    }
+
 
     .node-actions {
       position: absolute; top: 65%; left: 50%; transform: translateX(-50%);
@@ -199,13 +338,11 @@
     .node-content:hover .node-actions, .node-actions:hover, .triangle-label:hover .node-actions { opacity: 1; pointer-events: auto; }
     .triangle-label .node-actions { top: 80%; }
     .triangle-label.has-triangle-sublabels .node-actions { top: 95%; }
-    /* Bottom-up build mode: place node toolbar above the node for more intuitive "add parent" actions */
     .node-content.bottomup .node-actions {
       top: 8px;
       left: 50%;
       transform: translate(-50%, -100%);
     }
-
 
     .action-btn { min-width: 32px; height: 32px; padding: 0 6px; border: 1px solid var(--color-border); border-radius: 6px; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; gap: 1px; }
     .action-btn:hover { background: var(--color-accent); color: white; }
@@ -216,6 +353,9 @@
     .node-wrapper.has-sublabels + .node-children { padding-top: 22px; }
     
     .triangle-container { display: flex; flex-direction: column; align-items: center; margin-top: -15px; }
+    /* parent has sublabels -> push triangle down */
+    .node-wrapper.has-sublabels + .triangle-container { margin-top: -5px; }
+
     .triangle-svg { overflow: visible; margin-bottom: 5px; }
     .triangle-label { position: relative; display: flex; flex-direction: column; align-items: center; }
     .triangle-label .node-sublabels { margin-top: 2px; }
@@ -225,7 +365,6 @@
     .arrow-delete-btn:hover rect { fill: #dc2626; stroke: #dc2626; }
     .arrow-delete-btn:hover text { fill: white; font-weight: bold; }
 
-    /* Redesigned Instructions */
     .instructions-panel {
       margin-top: 48px;
       background: linear-gradient(135deg, #fdfcfb 0%, #f7f6f3 100%);
@@ -496,7 +635,32 @@
       width: auto;
     }
     .footer img:hover { opacity: 1; }
-  </style>
+  
+    /* --- FIXES: prevent accidental text selection on double click (without breaking input editing) --- */
+    .zoom-wrapper, .zoom-container, svg, .node-display {
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    .label-input-overlay, .sublabel-input-overlay {
+      -webkit-user-select: text;
+      user-select: text;
+    }
+
+    /* --- FIXES: keep placeholder nodes from rendering too narrow before editing --- */
+    .node-display { flex: 0 0 auto; }
+    .node-display.placeholder {
+      min-width: 72px;
+      justify-content: center;
+      display: inline-flex;
+      white-space: nowrap;
+    }
+
+
+    @media (max-width: 900px) {
+      .tree-canvas { width: 100%; }
+    }
+
+</style>
 </head>
 
 <body>
@@ -516,19 +680,16 @@
         .replace(/=(.*?)=/g, '<s>$1</s>')
         .replace(/##(.*?)##/g, '<span class="double-overline">$1</span>')
         .replace(/#(.*?)#/g, '<span class="overline">$1</span>')
-        // Closed format first (X¨n¨ or X_i_), then open format (X¨n or X_i until space/end)
         .replace(/¨(.*?)¨/g, '<sup>$1</sup>')
         .replace(/¨(.*?)(\s|$)/g, '<sup>$1</sup>$2')
         .replace(/_(.*?)_/g, '<sub>$1</sub>')
         .replace(/_(.*?)(\s|$)/g, '<sub>$1</sub>$2');
     };
 
-    // Helper to measure text width for dynamic triangle sizing
     const measureText = (text, font = "20px 'Crimson Pro', Georgia, serif") => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       ctx.font = font;
-      // Strip formatting markers for measurement
       const plainText = text
         .replace(/\*\*(.*?)\*\*/g, '$1')
         .replace(/\*(.*?)\*/g, '$1')
@@ -543,42 +704,29 @@
     };
 
     const TreeNode = ({
-      node,
-      isRoot,
-      updateNode,
-      addNode,
-      addParent,
-      addSublabel,
-      updateSublabel,
-      removeSublabel,
-      addTriangleSublabel,
-      updateTriangleSublabel,
-      removeTriangleSublabel,
-      buildMode,
-      toggleTri,
-      delNode,
-      isMoveMode,
-      isPhaseMode,
-      sourceId,
-      onNodeClick,
-      onPhaseClick
+      node, isRoot, updateNode, addNode, addParent, addSublabel, updateSublabel, removeSublabel,
+      addTriangleSublabel, updateTriangleSublabel, removeTriangleSublabel, buildMode, toggleTri,
+      delNode, isMoveMode, isPhaseMode, sourceId, onNodeClick, onPhaseClick, onEditStart, onEditEnd
     }) => {
       const [editLabel, setEditLabel] = useState(false);
       const [editTri, setEditTri] = useState(false);
-
       const [editSubIdx, setEditSubIdx] = useState(null);
       const [subEditVal, setSubEditVal] = useState('');
-
       const [editTriSubIdx, setEditTriSubIdx] = useState(null);
       const [triSubEditVal, setTriSubEditVal] = useState('');
-
       const [val, setVal] = useState(node.label);
       const [tVal, setTVal] = useState(node.triangleText || '');
+
+      // Keep a stable display width while editing: we render the previous (pre-edit) value
+      // in the normal display element, and place the input on top as an overlay.
+      const editBaseLabelRef = useRef('');
+      const editBaseSubRef = useRef('...');
+      const editBaseTriRef = useRef('...');
+      const editBaseTriSubRef = useRef('...');
 
       useEffect(() => {
         setVal(node.label);
         setTVal(node.triangleText || '');
-        // When the underlying node changes (undo/redo/load), exit sublabel edit mode.
         setEditSubIdx(null);
         setSubEditVal('');
         setEditTriSubIdx(null);
@@ -596,8 +744,10 @@
         else if (isPhaseMode) onPhaseClick(node.id);
         else {
           const current = triangleSublabels[idx] ?? '...';
+          editBaseTriSubRef.current = current || '...';
           setTriSubEditVal(current === '...' ? '' : current);
           setEditTriSubIdx(idx);
+          onEditStart();
         }
       };
 
@@ -605,8 +755,10 @@
         if (isMoveMode) onNodeClick(node.id);
         else if (isPhaseMode) onPhaseClick(node.id);
         else {
+          editBaseLabelRef.current = val || '...';
           if (val === '...') setVal('');
           setEditLabel(true);
+          onEditStart();
         }
       };
 
@@ -614,8 +766,10 @@
         if (isMoveMode) onNodeClick(node.id);
         else if (isPhaseMode) onPhaseClick(node.id);
         else {
+          editBaseTriRef.current = tVal || '...';
           if (tVal === '...') setTVal('');
           setEditTri(true);
+          onEditStart();
         }
       };
 
@@ -624,38 +778,40 @@
         else if (isPhaseMode) onPhaseClick(node.id);
         else {
           const current = sublabels[idx] ?? '...';
+          editBaseSubRef.current = current || '...';
           setSubEditVal(current === '...' ? '' : current);
           setEditSubIdx(idx);
+          onEditStart();
         }
       };
 
-      // Calculate dynamic triangle width based on text
       const triangleWidth = node.triangleText !== null
         ? Math.max(80, measureText(node.triangleText || '...') + 40)
         : 80;
+
 
       return (
         <div className="tree-node" data-node-id={node.id} data-has-sublabel={hasSublabels}>
           <div className={`node-wrapper ${hasSublabels ? 'has-sublabels' : ''}`}>
             <div className={`node-content ${hasSublabels ? 'has-sublabels' : ''} ${buildMode === 'bottomup' ? 'bottomup' : ''}`}>
-              <div className={`node-label ${isSpecialMode ? 'move-mode' : ''}`}>
-                {editLabel ? (
+              <div className={`node-label ${isSpecialMode ? 'move-mode' : ''} ${editLabel ? 'is-editing' : ''}`}>
+                {/* Keep display in-flow to stabilize layout; place the input as an overlay */}
+                <div
+                  className={`node-display ${isSpecialMode ? 'move-active' : ''} ${sourceId === node.id ? 'is-source' : ''} ${(editLabel ? editBaseLabelRef.current : val) === '...' ? 'placeholder' : ''}`}
+                  onClick={handleLabelClick}
+                  dangerouslySetInnerHTML={{ __html: formatLabel(editLabel ? editBaseLabelRef.current : val) || '...' }}
+                />
+                {editLabel && (
                   <input
+                    className="label-input-overlay"
                     autoFocus
                     value={val}
                     onChange={e => setVal(e.target.value)}
-                    size={Math.max(val.length, 1)}
-                    onBlur={() => { updateNode(node.id, { label: val || '...' }); setEditLabel(false); }}
+                    onBlur={() => { updateNode(node.id, { label: val || '...' }); setEditLabel(false); onEditEnd(); }}
                     onKeyDown={e => {
                       if (e.key === 'Enter') e.currentTarget.blur();
-                      if (e.key === 'Escape') { setVal(node.label); setEditLabel(false); }
+                      if (e.key === 'Escape') { setVal(node.label); setEditLabel(false); onEditEnd(); }
                     }}
-                  />
-                ) : (
-                  <div
-                    className={`node-display ${isSpecialMode ? 'move-active' : ''} ${sourceId === node.id ? 'is-source' : ''} ${val === '...' ? 'placeholder' : ''}`}
-                    onClick={handleLabelClick}
-                    dangerouslySetInnerHTML={{ __html: formatLabel(val) || '...' }}
                   />
                 )}
               </div>
@@ -664,38 +820,32 @@
                 <div className="node-sublabels">
                   {sublabels.map((s, idx) => (
                     <div className="sublabel-pill" key={`${node.id}-sub-${idx}`}>
-                      {editSubIdx === idx ? (
+                      {/* Keep display in-flow to stabilize layout; place the input as an overlay */}
+                      <div
+                        className={`node-display ${(editSubIdx === idx ? editBaseSubRef.current : s) === '...' ? 'placeholder' : ''}`}
+                        onClick={() => startEditSublabel(idx)}
+                        dangerouslySetInnerHTML={{ __html: formatLabel(editSubIdx === idx ? editBaseSubRef.current : s) || '...' }}
+                      />
+                      {editSubIdx === idx && (
                         <input
+                          className="sublabel-input-overlay"
                           autoFocus
                           value={subEditVal}
                           onChange={e => setSubEditVal(e.target.value)}
-                          size={Math.max(subEditVal.length, 1)}
                           onBlur={() => {
                             updateSublabel(node.id, idx, subEditVal || '...');
                             setEditSubIdx(null);
                             setSubEditVal('');
+                            onEditEnd();
                           }}
                           onKeyDown={e => {
                             if (e.key === 'Enter') e.currentTarget.blur();
-                            if (e.key === 'Escape') { setEditSubIdx(null); setSubEditVal(''); }
+                            if (e.key === 'Escape') { setEditSubIdx(null); setSubEditVal(''); onEditEnd(); }
                           }}
                         />
-                      ) : (
-                        <div
-                          className={`node-display ${s === '...' ? 'placeholder' : ''}`}
-                          onClick={() => startEditSublabel(idx)}
-                          dangerouslySetInnerHTML={{ __html: formatLabel(s) || '...' }}
-                        />
                       )}
-
                       {!isSpecialMode && (
-                        <button
-                          className="pill-x"
-                          title="Remove this secondary label"
-                          onClick={(e) => { e.stopPropagation(); removeSublabel(node.id, idx); }}
-                        >
-                          ×
-                        </button>
+                        <button className="pill-x" title="Remove this secondary label" onClick={(e) => { e.stopPropagation(); removeSublabel(node.id, idx); }}>×</button>
                       )}
                     </div>
                   ))}
@@ -706,53 +856,19 @@
                 <div className="node-actions">
                   {(buildMode === 'bottomup' || (!node.children && !node.triangleText && !node.terminalLocked)) && (
                     <>
-                      <button
-                        className="action-btn"
-                        onClick={() => { if (buildMode === 'bottomup') addParent(node.id, 1); else addNode(node.id, 1); }}
-                        title={buildMode === 'bottomup' ? 'Add unary parent' : 'Add single daughter'}
-                      >
-                        │
-                      </button>
+                      <button className="action-btn" onClick={() => { if (buildMode === 'bottomup') addParent(node.id, 1); else addNode(node.id, 1); }} title={buildMode === 'bottomup' ? 'Add unary parent' : 'Add single daughter'}>│</button>
                       {buildMode === 'bottomup' ? (
                         <>
-                          <button
-                            className="action-btn"
-                            onClick={() => addParent(node.id, 2, 'right')}
-                            title="Add binary parent (sibling to the left)"
-                          >
-                            <span style={{fontSize: '12px'}}>→</span>⑃
-                          </button>
-                          <button
-                            className="action-btn"
-                            onClick={() => addParent(node.id, 2, 'left')}
-                            title="Add binary parent (sibling to the right)"
-                          >
-                            ⑃<span style={{fontSize: '12px'}}>←</span>
-                          </button>
+                          <button className="action-btn" onClick={() => addParent(node.id, 2, 'right')} title="Add binary parent (sibling to the left)"><span style={{fontSize: '12px'}}>→</span>⑃</button>
+                          <button className="action-btn" onClick={() => addParent(node.id, 2, 'left')} title="Add binary parent (sibling to the right)">⑃<span style={{fontSize: '12px'}}>←</span></button>
                         </>
                       ) : (
-                        <button
-                          className="action-btn"
-                          onClick={() => addNode(node.id, 2)}
-                          title="Add binary branch"
-                        >
-                          ⑃
-                        </button>
+                        <button className="action-btn" onClick={() => addNode(node.id, 2)} title="Add binary branch">⑃</button>
                       )}
                     </>
                   )}
-
                   <button className="action-btn" onClick={() => toggleTri(node.id, buildMode)} title={buildMode === 'bottomup' ? 'Add triangle parent' : 'Toggle triangle'}>△</button>
-
-                  <button
-                    className={`action-btn ${hasSublabels ? 'active' : ''}`}
-                    onClick={() => addSublabel(node.id)}
-                    disabled={sublabels.length >= 4}
-                    title={sublabels.length >= 4 ? 'Maximum: 4 secondary labels' : 'Add a secondary label (max 4). Adding a 2nd label locks the node as terminal.'}
-                  >
-                    +₂
-                  </button>
-
+                  <button className={`action-btn ${hasSublabels ? 'active' : ''}`} onClick={() => addSublabel(node.id)} disabled={sublabels.length >= 4} title={sublabels.length >= 4 ? 'Maximum: 4 secondary labels' : 'Add a secondary label (max 4)'}>+₂</button>
                   <button className="action-btn danger" onClick={() => delNode(node.id)} title="Delete node or descendants">✕</button>
                 </div>
               )}
@@ -765,74 +881,52 @@
                 <polygon points={`${triangleWidth / 2},0 0,50 ${triangleWidth},50`} fill="none" stroke="black" strokeWidth="1.2" />
               </svg>
               <div className={`node-label triangle-label ${hasTriangleSublabels ? 'has-triangle-sublabels' : ''}`}>
-                {editTri ? (
+                <div
+                  className={`node-display ${(editTri ? editBaseTriRef.current : tVal) === '...' ? 'placeholder' : ''}`}
+                  onClick={handleTriClick}
+                  dangerouslySetInnerHTML={{ __html: formatLabel(editTri ? editBaseTriRef.current : tVal) || '...' }}
+                />
+                {editTri && (
                   <input
+                    className="label-input-overlay"
                     autoFocus
                     value={tVal}
                     onChange={e => setTVal(e.target.value)}
-                    size={Math.max(tVal.length, 1)}
-                    onBlur={() => { updateNode(node.id, { triangleText: tVal || '...' }); setEditTri(false); }}
+                    onBlur={() => { updateNode(node.id, { triangleText: tVal || '...' }); setEditTri(false); onEditEnd(); }}
                     onKeyDown={e => {
                       if (e.key === 'Enter') e.currentTarget.blur();
-                      if (e.key === 'Escape') { setTVal(node.triangleText || ''); setEditTri(false); }
+                      if (e.key === 'Escape') { setTVal(node.triangleText || ''); setEditTri(false); onEditEnd(); }
                     }}
                   />
-                ) : (
-                  <div className={`node-display ${tVal === '...' ? 'placeholder' : ''}`} onClick={handleTriClick} dangerouslySetInnerHTML={{ __html: formatLabel(tVal) || '...' }} />
                 )}
-
                 {hasTriangleSublabels && (
                   <div className="node-sublabels">
                     {triangleSublabels.map((s, idx) => (
                       <div className="sublabel-pill" key={`${node.id}-trisub-${idx}`}>
-                        {editTriSubIdx === idx ? (
+                        {/* Keep display in-flow to stabilize layout; place the input as an overlay */}
+                        <div
+                          className={`node-display ${(editTriSubIdx === idx ? editBaseTriSubRef.current : s) === '...' ? 'placeholder' : ''}`}
+                          onClick={() => startEditTriangleSublabel(idx)}
+                          dangerouslySetInnerHTML={{ __html: formatLabel(editTriSubIdx === idx ? editBaseTriSubRef.current : s) || '...' }}
+                        />
+                        {editTriSubIdx === idx && (
                           <input
+                            className="sublabel-input-overlay"
                             autoFocus
                             value={triSubEditVal}
                             onChange={e => setTriSubEditVal(e.target.value)}
-                            size={Math.max(triSubEditVal.length, 1)}
-                            onBlur={() => {
-                              updateTriangleSublabel(node.id, idx, triSubEditVal || '...');
-                              setEditTriSubIdx(null);
-                              setTriSubEditVal('');
-                            }}
-                            onKeyDown={e => {
-                              if (e.key === 'Enter') e.currentTarget.blur();
-                              if (e.key === 'Escape') { setEditTriSubIdx(null); setTriSubEditVal(''); }
-                            }}
-                          />
-                        ) : (
-                          <div
-                            className={`node-display ${s === '...' ? 'placeholder' : ''}`}
-                            onClick={() => startEditTriangleSublabel(idx)}
-                            dangerouslySetInnerHTML={{ __html: formatLabel(s) || '...' }}
+                            onBlur={() => { updateTriangleSublabel(node.id, idx, triSubEditVal || '...'); setEditTriSubIdx(null); setTriSubEditVal(''); onEditEnd(); }}
+                            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { setEditTriSubIdx(null); setTriSubEditVal(''); onEditEnd(); } }}
                           />
                         )}
-
-                        {!isSpecialMode && (
-                          <button
-                            className="pill-x"
-                            title="Remove this secondary label"
-                            onClick={(e) => { e.stopPropagation(); removeTriangleSublabel(node.id, idx); }}
-                          >
-                            ×
-                          </button>
-                        )}
+                        {!isSpecialMode && (<button className="pill-x" title="Remove this secondary label" onClick={(e) => { e.stopPropagation(); removeTriangleSublabel(node.id, idx); }}>×</button>)}
                       </div>
                     ))}
                   </div>
                 )}
-
                 {!isSpecialMode && (
                   <div className="node-actions">
-                    <button
-                      className={`action-btn ${hasTriangleSublabels ? 'active' : ''}`}
-                      onClick={() => addTriangleSublabel(node.id)}
-                      disabled={triangleSublabels.length >= 4}
-                      title={triangleSublabels.length >= 4 ? 'Maximum: 4 secondary labels' : 'Add a secondary label (max 4)'}
-                    >
-                      +₂
-                    </button>
+                    <button className={`action-btn ${hasTriangleSublabels ? 'active' : ''}`} onClick={() => addTriangleSublabel(node.id)} disabled={triangleSublabels.length >= 4} title={triangleSublabels.length >= 4 ? 'Maximum: 4 secondary labels' : 'Add a secondary label (max 4)'}>+₂</button>
                     <button className="action-btn danger" onClick={() => toggleTri(node.id, 'topdown')} title="Remove triangle">✕</button>
                   </div>
                 )}
@@ -843,30 +937,7 @@
           {node.children && (
             <div className="node-children">
               {node.children.map(c => (
-                <TreeNode
-                  key={c.id}
-                  node={c}
-                  isRoot={false}
-                  {...{
-                    updateNode,
-                    addNode,
-                    addParent,
-                    addSublabel,
-                    updateSublabel,
-                    removeSublabel,
-                    addTriangleSublabel,
-                    updateTriangleSublabel,
-                    removeTriangleSublabel,
-                    buildMode,
-                    toggleTri,
-                    delNode,
-                    isMoveMode,
-                    isPhaseMode,
-                    sourceId,
-                    onNodeClick,
-                    onPhaseClick
-                  }}
-                />
+                <TreeNode key={c.id} node={c} isRoot={false} {...{updateNode, addNode, addParent, addSublabel, updateSublabel, removeSublabel, addTriangleSublabel, updateTriangleSublabel, removeTriangleSublabel, buildMode, toggleTri, delNode, isMoveMode, isPhaseMode, sourceId, onNodeClick, onPhaseClick, onEditStart, onEditEnd}} />
               ))}
             </div>
           )}
@@ -875,14 +946,13 @@
     };
 
     const KilmerApp = () => {
-      // History management for undo/redo
       const [history, setHistory] = useState([]);
       const [historyIndex, setHistoryIndex] = useState(-1);
       const isUndoRedo = useRef(false);
       
       const [tree, setTreeInternal] = useState(null);
       const [moves, setMovesInternal] = useState([]);
-      const [phases, setPhasesInternal] = useState(new Set()); // Node IDs that are phase boundaries
+      const [phases, setPhasesInternal] = useState(new Set());
       const [dottedLines, setDottedLinesInternal] = useState(new Set());
       const [isMoveMode, setIsMoveMode] = useState(false);
       const [isPhaseMode, setIsPhaseMode] = useState(false);
@@ -890,10 +960,49 @@
       const [sourceId, setSourceId] = useState(null);
       const [svgLines, setSvgLines] = useState(null);
       const [showInstructions, setShowInstructions] = useState(false);
+      const [zoomLevel, setZoomLevel] = useState(100);
+      const isEditingRef = useRef(false);
       const canvasRef = useRef(null);
+      const zoomContainerRef = useRef(null);
       const fileRef = useRef(null);
 
-      // Create a snapshot of current state
+      const [contentSize, setContentSize] = useState({ w: 0, h: 0 });
+      const [minCanvas, setMinCanvas] = useState({ w: 0, h: 0 });
+
+      const ZOOM_MIN = 40;
+      const ZOOM_MAX = 200;
+      const ZOOM_STEP = 20;
+
+      const zoomIn = useCallback(() => { setZoomLevel(prev => Math.min(prev + ZOOM_STEP, ZOOM_MAX)); }, []);
+      const zoomOut = useCallback(() => { setZoomLevel(prev => Math.max(prev - ZOOM_STEP, ZOOM_MIN)); }, []);
+      const zoomReset = useCallback(() => { setZoomLevel(100); }, []);
+
+
+// Capture the original canvas size as a minimum (so the canvas can grow and shrink but never below this).
+useLayoutEffect(() => {
+  const c = canvasRef.current;
+  if (!c) return;
+  const rect = c.getBoundingClientRect();
+  setMinCanvas({ w: Math.ceil(rect.width), h: Math.ceil(rect.height) });
+}, []);
+// Canvas sizing: grow/shrink with the rendered tree (including zoom), but never below the original canvas size.
+const PAD_X = 120; // extra horizontal breathing room inside the scroll stage
+const PAD_Y = 80;  // extra vertical breathing room inside the scroll stage
+const minW = minCanvas.w || 900;
+const minH = minCanvas.h || 267;
+const stageW = Math.max(minW, (contentSize.w || 0) + PAD_X);
+const stageH = Math.max(minH, (contentSize.h || 0) + PAD_Y);
+
+// SVG needs a real (UNSCALED) box size for reliable PNG export (html2canvas can clip if it's too small).
+// We compute it from the scaled bounds by dividing by zoom.
+const zoomScaleForSvg = Math.max(0.01, zoomLevel / 100);
+const svgPadX = 240;
+const svgPadY = 250; // Moderate padding for arrows
+const svgW = Math.max(1, Math.ceil(((contentSize.w || 0) / zoomScaleForSvg) + svgPadX));
+const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + svgPadY));
+
+
+
       const createSnapshot = useCallback(() => ({
         tree: tree ? JSON.parse(JSON.stringify(tree)) : null,
         moves: JSON.parse(JSON.stringify(moves)),
@@ -901,7 +1010,6 @@
         dottedLines: Array.from(dottedLines)
       }), [tree, moves, phases, dottedLines]);
 
-      // Restore state from snapshot
       const restoreSnapshot = useCallback((snapshot) => {
         isUndoRedo.current = true;
         setTreeInternal(snapshot.tree);
@@ -911,63 +1019,32 @@
         setTimeout(() => { isUndoRedo.current = false; }, 0);
       }, []);
 
-      // Push current state to history
       const pushHistory = useCallback(() => {
         if (isUndoRedo.current) return;
         const snapshot = createSnapshot();
         setHistory(prev => {
           const newHistory = prev.slice(0, historyIndex + 1);
           newHistory.push(snapshot);
-          // Limit history to 50 states
           if (newHistory.length > 50) newHistory.shift();
           return newHistory;
         });
         setHistoryIndex(prev => Math.min(prev + 1, 49));
       }, [createSnapshot, historyIndex]);
 
-      // Wrapped setters that track history
-      const setTree = useCallback((updater) => {
-        setTreeInternal(prev => {
-          const newVal = typeof updater === 'function' ? updater(prev) : updater;
-          return newVal;
-        });
-      }, []);
+      const setTree = useCallback((updater) => { setTreeInternal(prev => typeof updater === 'function' ? updater(prev) : updater); }, []);
+      const setMoves = useCallback((updater) => { setMovesInternal(prev => typeof updater === 'function' ? updater(prev) : updater); }, []);
+      const setDottedLines = useCallback((updater) => { setDottedLinesInternal(prev => typeof updater === 'function' ? updater(prev) : updater); }, []);
+      const setPhases = useCallback((updater) => { setPhasesInternal(prev => typeof updater === 'function' ? updater(prev) : updater); }, []);
 
-      const setMoves = useCallback((updater) => {
-        setMovesInternal(prev => {
-          const newVal = typeof updater === 'function' ? updater(prev) : updater;
-          return newVal;
-        });
-      }, []);
-
-      const setDottedLines = useCallback((updater) => {
-        setDottedLinesInternal(prev => {
-          const newVal = typeof updater === 'function' ? updater(prev) : updater;
-          return newVal;
-        });
-      }, []);
-
-      const setPhases = useCallback((updater) => {
-        setPhasesInternal(prev => {
-          const newVal = typeof updater === 'function' ? updater(prev) : updater;
-          return newVal;
-        });
-      }, []);
-
-      // Toggle phase boundary on a node
       const togglePhase = useCallback((nodeId) => {
         setPhases(prev => {
           const newSet = new Set(prev);
-          if (newSet.has(nodeId)) {
-            newSet.delete(nodeId);
-          } else {
-            newSet.add(nodeId);
-          }
+          if (newSet.has(nodeId)) newSet.delete(nodeId);
+          else newSet.add(nodeId);
           return newSet;
         });
       }, []);
 
-      // Track changes and push to history
       useEffect(() => {
         if (!isUndoRedo.current && tree !== null) {
           const timeoutId = setTimeout(pushHistory, 100);
@@ -975,7 +1052,6 @@
         }
       }, [tree, moves, phases, dottedLines]);
 
-      // Undo function
       const undo = useCallback(() => {
         if (historyIndex > 0) {
           const newIndex = historyIndex - 1;
@@ -984,7 +1060,6 @@
         }
       }, [history, historyIndex, restoreSnapshot]);
 
-      // Redo function
       const redo = useCallback(() => {
         if (historyIndex < history.length - 1) {
           const newIndex = historyIndex + 1;
@@ -996,7 +1071,6 @@
       const canUndo = historyIndex > 0;
       const canRedo = historyIndex < history.length - 1;
 
-      // Save function for keyboard shortcut
       const saveTree = useCallback(() => {
         if (!tree) return;
         const filename = (prompt('Enter filename:', 'tree') || 'tree').replace(/\s+/g, '_');
@@ -1006,51 +1080,29 @@
         a.click();
       }, [tree, moves, phases, dottedLines]);
 
-      // Keyboard shortcuts
       useEffect(() => {
         const handleKeyDown = (e) => {
-          // Check if we're in an input field
           if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-          
-          // Ctrl+Z or Cmd+Z: Undo
-          if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-            e.preventDefault();
-            undo();
-          }
-          // Ctrl+Y or Cmd+Y or Ctrl+Shift+Z: Redo
-          if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey) || (e.key === 'Z' && e.shiftKey))) {
-            e.preventDefault();
-            redo();
-          }
-          // Ctrl+S or Cmd+S: Save
-          if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-            e.preventDefault();
-            saveTree();
-          }
-          // Escape: Exit move mode or phase mode
+          if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+          if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey) || (e.key === 'Z' && e.shiftKey))) { e.preventDefault(); redo(); }
+          if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveTree(); }
           if (e.key === 'Escape') {
-            if (isMoveMode) {
-              setIsMoveMode(false);
-              setSourceId(null);
-            }
-            if (isPhaseMode) {
-              setIsPhaseMode(false);
-            }
+            if (isMoveMode) { setIsMoveMode(false); setSourceId(null); }
+            if (isPhaseMode) { setIsPhaseMode(false); }
           }
+          if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '=')) { e.preventDefault(); zoomIn(); }
+          if ((e.ctrlKey || e.metaKey) && e.key === '-') { e.preventDefault(); zoomOut(); }
+          if ((e.ctrlKey || e.metaKey) && e.key === '0') { e.preventDefault(); zoomReset(); }
         };
-
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-      }, [undo, redo, saveTree, isMoveMode, isPhaseMode]);
+      }, [undo, redo, saveTree, isMoveMode, isPhaseMode, zoomIn, zoomOut, zoomReset]);
 
       const toggleDottedLine = (lineKey) => {
         setDottedLines(prev => {
           const newSet = new Set(prev);
-          if (newSet.has(lineKey)) {
-            newSet.delete(lineKey);
-          } else {
-            newSet.add(lineKey);
-          }
+          if (newSet.has(lineKey)) newSet.delete(lineKey);
+          else newSet.add(lineKey);
           return newSet;
         });
       };
@@ -1067,56 +1119,48 @@
           return { ...n, children: n.children.filter(c => c.id !== id).length > 0 ? n.children.filter(c => c.id !== id) : null };
         }
         return { ...n, children: n.children.map(c => findAndRemove(c, id)) };
-      };      const makeBlankNode = () => ({ id: generateId(), label: '...', children: null, triangleText: null, triangleSublabels: [], sublabels: [], terminalLocked: false });
-
+      };
       
+      const makeBlankNode = () => ({ id: generateId(), label: '...', children: null, triangleText: null, triangleSublabels: [], sublabels: [], terminalLocked: false });
 
       const normalizeNode = (n) => {
         if (!n) return null;
-        const sublabels = Array.isArray(n.sublabels)
-          ? n.sublabels.slice(0, 4)
-          : (n.sublabel !== null && n.sublabel !== undefined ? [n.sublabel] : []);
-        const triangleSublabels = Array.isArray(n.triangleSublabels)
-          ? n.triangleSublabels.slice(0, 4)
-          : [];
+        const sublabels = Array.isArray(n.sublabels) ? n.sublabels.slice(0, 4) : (n.sublabel !== null && n.sublabel !== undefined ? [n.sublabel] : []);
+        const triangleSublabels = Array.isArray(n.triangleSublabels) ? n.triangleSublabels.slice(0, 4) : [];
         const locked = !!n.terminalLocked || sublabels.length >= 2;
-
         return {
           id: n.id || generateId(),
           label: n.label !== undefined && n.label !== null ? n.label : '...',
           children: n.children ? n.children.map(normalizeNode) : null,
           triangleText: (n.triangleText !== undefined ? n.triangleText : null),
-          triangleSublabels,
-          sublabels,
-          terminalLocked: locked
+          triangleSublabels, sublabels, terminalLocked: locked
         };
       };
-const updateNode = (id, up) => setTree(prev => findAndUpdate(prev, id, up));
-      const addNode = (id, count) => {
-  const rec = (n) => {
-    if (!n) return null;
-    if (n.id === id) {
-      if (n.terminalLocked) return n; // terminal nodes cannot receive daughters
-      return { ...n, children: Array.from({ length: count }, makeBlankNode) };
-    }
-    return { ...n, children: n.children ? n.children.map(rec) : null };
-  };
-  setTree(prev => rec(prev));
-};
 
-const addParent =
- (id, arity, side = 'left') => {
+      const updateNode = (id, up) => setTree(prev => findAndUpdate(prev, id, up));
+      
+      const addNode = (id, count) => {
+        const rec = (n) => {
+          if (!n) return null;
+          if (n.id === id) {
+            if (n.terminalLocked) return n;
+            return { ...n, children: Array.from({ length: count }, makeBlankNode) };
+          }
+          return { ...n, children: n.children ? n.children.map(rec) : null };
+        };
+        setTree(prev => rec(prev));
+      };
+
+      const addParent = (id, arity, side = 'left') => {
         const wrapWithParent = (child) => {
           const parent = makeBlankNode();
-          if (arity === 1) {
-            parent.children = [child];
-          } else {
+          if (arity === 1) { parent.children = [child]; }
+          else {
             const sibling = makeBlankNode();
             parent.children = side === 'right' ? [sibling, child] : [child, sibling];
           }
           return parent;
         };
-
         const rec = (n) => {
           if (!n) return [n, false];
           if (n.id === id) return [wrapWithParent(n), true];
@@ -1130,68 +1174,44 @@ const addParent =
           if (!changed) return [n, false];
           return [{ ...n, children: newChildren }, true];
         };
-
-        setTree(prev => {
-          const [next, changed] = rec(prev);
-          return changed ? next : prev;
-        });
+        setTree(prev => { const [next, changed] = rec(prev); return changed ? next : prev; });
       };
-const delNode = (id) => {
-        if (tree.id === id) {
-          setTree(prev => ({...prev, children: null, triangleText: null, sublabels: [], terminalLocked: false}));
-        } else {
-          setTree(prev => findAndRemove(prev, id));
-        }
+
+      const delNode = (id) => {
+        if (tree.id === id) { setTree(prev => ({...prev, children: null, triangleText: null, sublabels: [], terminalLocked: false})); }
+        else { setTree(prev => findAndRemove(prev, id)); }
         setMoves(prev => prev.filter(m => m.from !== id && m.to !== id));
       };
 
       const toggleTri = (id, mode = 'topdown') => {
         if (mode === 'bottomup') {
-          // In bottom-up mode, create a parent node with triangle above the current node
-          // The current node becomes the triangle text (no intermediate branch)
           const wrapWithTriangleParent = (child) => {
             const parent = makeBlankNode();
             parent.triangleText = child.label !== '...' ? child.label : '...';
-            // Copy sublabels to triangle if present, then clear the child
             parent.children = null;
-            // The child node is "absorbed" into the triangle text
             return parent;
           };
-
           const rec = (n) => {
             if (!n) return [n, false];
             if (n.id === id) {
-              // If node already has a triangle, remove it (toggle off)
-              if (n.triangleText !== null) {
-                return [{ ...n, triangleText: null }, true];
-              }
-              // Otherwise, replace with a parent that has the node's label as triangle text
+              if (n.triangleText !== null) return [{ ...n, triangleText: null }, true];
               return [wrapWithTriangleParent(n), true];
             }
             if (!n.children) return [n, false];
             let changed = false;
-            const newChildren = n.children.map(c => {
-              const [nextChild, didChange] = rec(c);
-              changed = changed || didChange;
-              return nextChild;
-            });
+            const newChildren = n.children.map(c => { const [nextChild, didChange] = rec(c); changed = changed || didChange; return nextChild; });
             if (!changed) return [n, false];
             return [{ ...n, children: newChildren }, true];
           };
-
           setTree(prev => {
-            // Special case: if the target is the root node
             if (prev.id === id) {
-              if (prev.triangleText !== null) {
-                return { ...prev, triangleText: null };
-              }
+              if (prev.triangleText !== null) return { ...prev, triangleText: null };
               return wrapWithTriangleParent(prev);
             }
             const [next, changed] = rec(prev);
             return changed ? next : prev;
           });
         } else {
-          // Top-down mode: original behavior - add triangle below
           const rec = (n) => {
             if (!n) return null;
             if (n.id === id) return n.triangleText !== null ? { ...n, triangleText: null } : { ...n, triangleText: '...', children: null };
@@ -1207,16 +1227,9 @@ const delNode = (id) => {
           if (n.id === id) {
             const current = Array.isArray(n.sublabels) ? n.sublabels : [];
             if (current.length >= 4) return n;
-
             const nextSublabels = [...current, '...'];
             const nextLocked = n.terminalLocked || nextSublabels.length >= 2;
-
-            return {
-              ...n,
-              sublabels: nextSublabels,
-              terminalLocked: nextLocked,
-              children: nextLocked ? null : n.children
-            };
+            return { ...n, sublabels: nextSublabels, terminalLocked: nextLocked, children: nextLocked ? null : n.children };
           }
           return { ...n, children: n.children ? n.children.map(rec) : null };
         };
@@ -1230,13 +1243,7 @@ const delNode = (id) => {
             const current = Array.isArray(n.sublabels) ? n.sublabels : [];
             const nextSublabels = current.map((s, i) => (i === idx ? (value || '...') : s));
             const nextLocked = n.terminalLocked || nextSublabels.length >= 2;
-
-            return {
-              ...n,
-              sublabels: nextSublabels,
-              terminalLocked: nextLocked,
-              children: nextLocked ? null : n.children
-            };
+            return { ...n, sublabels: nextSublabels, terminalLocked: nextLocked, children: nextLocked ? null : n.children };
           }
           return { ...n, children: n.children ? n.children.map(rec) : null };
         };
@@ -1249,22 +1256,14 @@ const delNode = (id) => {
           if (n.id === id) {
             const current = Array.isArray(n.sublabels) ? n.sublabels : [];
             const nextSublabels = current.filter((_, i) => i !== idx);
-            // Keep terminal lock sticky once it was triggered (matches "applied more than once blocks")
             const nextLocked = n.terminalLocked || nextSublabels.length >= 2;
-
-            return {
-              ...n,
-              sublabels: nextSublabels,
-              terminalLocked: nextLocked,
-              children: nextLocked ? null : n.children
-            };
+            return { ...n, sublabels: nextSublabels, terminalLocked: nextLocked, children: nextLocked ? null : n.children };
           }
           return { ...n, children: n.children ? n.children.map(rec) : null };
         };
         setTree(prev => rec(prev));
       };
 
-      // Triangle sublabel functions
       const addTriangleSublabel = (id) => {
         const rec = (n) => {
           if (!n) return null;
@@ -1302,49 +1301,62 @@ const delNode = (id) => {
         setTree(prev => rec(prev));
       };
 
+      // Edit state management - prevents line jumping during editing
+      const onEditStart = useCallback(() => { isEditingRef.current = true; }, []);
+      const onEditEnd = useCallback(() => { 
+        isEditingRef.current = false; 
+        // Redraw after editing ends
+        setTimeout(() => draw(), 0);
+      }, [draw]);
+
       const draw = useCallback(() => {
-        if (!canvasRef.current || !tree) return;
-        const canvas = canvasRef.current;
-        const rect = canvas.getBoundingClientRect();
+        if (!zoomContainerRef.current || !tree) return;
+        if (isEditingRef.current) return; // Don't redraw while editing
+        const container = zoomContainerRef.current;
+        const rect = container.getBoundingClientRect();
+        const zoomScale = zoomLevel / 100;
         
         const getPos = (id) => {
-          const nodeEl = canvas.querySelector(`[data-node-id="${id}"]`);
+          const nodeEl = container.querySelector(`[data-node-id="${id}"]`);
           if (!nodeEl) return null;
           
           const hasSublabel = nodeEl.getAttribute('data-has-sublabel') === 'true';
           const hasTriangle = nodeEl.querySelector(':scope > .triangle-container') !== null;
           
-          // For line start point: use triangle text if present, then sublabel, otherwise main label
           let bottomEl;
           if (hasTriangle) {
-            bottomEl = nodeEl.querySelector(':scope > .triangle-container > .node-label .node-display');
+            // For triangle: prefer .node-display, fallback to input if editing
+            bottomEl = nodeEl.querySelector(':scope > .triangle-container > .node-label .node-display') 
+                    || nodeEl.querySelector(':scope > .triangle-container > .node-label input');
           } else if (hasSublabel) {
             const subs = nodeEl.querySelectorAll(':scope > .node-wrapper .node-sublabels .node-display');
-            bottomEl = subs && subs.length ? subs[subs.length - 1] : null;
+            const subInputs = nodeEl.querySelectorAll(':scope > .node-wrapper .node-sublabels input');
+            // Use last visible element (display or input)
+            bottomEl = subs && subs.length ? subs[subs.length - 1] : (subInputs && subInputs.length ? subInputs[subInputs.length - 1] : null);
           } else {
-            bottomEl = nodeEl.querySelector(':scope > .node-wrapper .node-content > .node-label .node-display');
+            bottomEl = nodeEl.querySelector(':scope > .node-wrapper .node-content > .node-label .node-display')
+                    || nodeEl.querySelector(':scope > .node-wrapper .node-content > .node-label input');
           }
           
-          // For line end point (top): always use main label
-          const topEl = nodeEl.querySelector(':scope > .node-wrapper .node-content > .node-label .node-display');
-          
+          // For top element: prefer .node-display, fallback to input if editing
+          const topEl = nodeEl.querySelector(':scope > .node-wrapper .node-content > .node-label .node-display')
+                     || nodeEl.querySelector(':scope > .node-wrapper .node-content > .node-label input');
           if (!bottomEl || !topEl) return null;
           
           const bottomR = bottomEl.getBoundingClientRect();
           const topR = topEl.getBoundingClientRect();
           
           return { 
-            x: topR.left + topR.width/2 - rect.left + canvas.scrollLeft, 
-            y: topR.top - rect.top + canvas.scrollTop, 
-            topR,
-            bottomR,
-            hasSublabel,
-            hasTriangle
+            x: (topR.left + topR.width/2 - rect.left) / zoomScale, 
+            y: (topR.top - rect.top) / zoomScale, 
+            topR: { top: (topR.top - rect.top) / zoomScale, bottom: (topR.bottom - rect.top) / zoomScale },
+            bottomR: { top: (bottomR.top - rect.top) / zoomScale, bottom: (bottomR.bottom - rect.top) / zoomScale },
+            hasSublabel, hasTriangle
           };
         };
 
         const lines = [];
-        const allNodes = canvas.querySelectorAll('[data-node-id]');
+        const allNodes = container.querySelectorAll('[data-node-id]');
         allNodes.forEach(nodeEl => {
           const id = nodeEl.getAttribute('data-node-id');
           const pPos = getPos(id);
@@ -1355,33 +1367,14 @@ const delNode = (id) => {
               const cId = childEl.getAttribute('data-node-id');
               const cPos = getPos(cId);
               if (cPos) {
-                // Line starts from bottom of parent's bottommost element (sublabel or label)
-                const startY = pPos.bottomR.bottom - rect.top;
-                // Line ends at top of child's main label
-                const endY = cPos.topR.top - rect.top;
+                const startY = pPos.bottomR.bottom;
+                const endY = cPos.topR.top;
                 const lineKey = `${id}-${cId}`;
                 const isDotted = dottedLines.has(lineKey);
                 lines.push(
-                  <g key={lineKey} style={{cursor: 'pointer'}} onDoubleClick={() => toggleDottedLine(lineKey)}>
-                    <line 
-                      x1={pPos.x} 
-                      y1={startY} 
-                      x2={cPos.x} 
-                      y2={endY} 
-                      stroke="transparent" 
-                      strokeWidth="15"
-                      style={{pointerEvents: 'stroke'}}
-                    />
-                    <line 
-                      x1={pPos.x} 
-                      y1={startY} 
-                      x2={cPos.x} 
-                      y2={endY} 
-                      stroke="black" 
-                      strokeWidth="1.2"
-                      strokeDasharray={isDotted ? "5,4" : "none"}
-                      style={{pointerEvents: 'none'}}
-                    />
+                  <g key={lineKey} style={{cursor: 'pointer'}} onDoubleClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleDottedLine(lineKey); }}>
+                    <line x1={pPos.x} y1={startY} x2={cPos.x} y2={endY} stroke="transparent" strokeWidth="15" style={{pointerEvents: 'stroke'}} />
+                    <line x1={pPos.x} y1={startY} x2={cPos.x} y2={endY} stroke="black" strokeWidth="1.2" strokeDasharray={isDotted ? "5,4" : "none"} style={{pointerEvents: 'none'}} />
                   </g>
                 );
               }
@@ -1394,8 +1387,8 @@ const delNode = (id) => {
           if (!s || !e) return null;
           const midX = (s.x + e.x) / 2;
           const curve = Math.max(70, Math.abs(e.x - s.x)/2.2);
-          const ctrlY = Math.max(s.bottomR.bottom, e.bottomR.bottom) - rect.top + curve;
-          const sy = s.bottomR.bottom - rect.top; const ey = e.bottomR.bottom - rect.top;
+          const ctrlY = Math.max(s.bottomR.bottom, e.bottomR.bottom) + curve;
+          const sy = s.bottomR.bottom; const ey = e.bottomR.bottom;
           const path = `M ${s.x} ${sy} Q ${midX} ${ctrlY} ${e.x} ${ey}`;
           const t = 0.5;
           const bx = (1-t)**2 * s.x + 2*(1-t)*t*midX + t**2 * e.x;
@@ -1404,24 +1397,8 @@ const delNode = (id) => {
           const isDotted = dottedLines.has(arrowKey);
           return (
             <g key={m.id}>
-              <path 
-                d={path} 
-                fill="none" 
-                stroke="transparent" 
-                strokeWidth="15"
-                style={{cursor: 'pointer', pointerEvents: 'stroke'}}
-                onDoubleClick={() => toggleDottedLine(arrowKey)}
-              />
-              <path 
-                d={path} 
-                fill="none" 
-                stroke="black" 
-                strokeWidth="1.5" 
-                markerEnd="url(#head)" 
-                opacity="0.8"
-                strokeDasharray={isDotted ? "5,4" : "none"}
-                style={{pointerEvents: 'none'}}
-              />
+              <path d={path} fill="none" stroke="transparent" strokeWidth="15" style={{cursor: 'pointer', pointerEvents: 'stroke'}} onDoubleClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleDottedLine(arrowKey); }} />
+              <path d={path} fill="none" stroke="black" strokeWidth="1.5" markerEnd="url(#head)" opacity="0.8" strokeDasharray={isDotted ? "5,4" : "none"} style={{pointerEvents: 'none'}} />
               <g className="arrow-delete-btn" onClick={() => setMoves(prev => prev.filter(x => x.id !== m.id))} transform={`translate(${bx-10},${by-10})`}>
                 <rect width="20" height="20" fill="white" stroke="#e0ddd8" /><text x="10" y="15" textAnchor="middle" fontSize="14" fill="#dc2626">×</text>
               </g>
@@ -1429,21 +1406,17 @@ const delNode = (id) => {
           );
         });
 
-        // Draw phase boundary arcs
         const phaseArcs = Array.from(phases).map(nodeId => {
-          const nodeEl = canvas.querySelector(`[data-node-id="${nodeId}"]`);
+          const nodeEl = container.querySelector(`[data-node-id="${nodeId}"]`);
           if (!nodeEl) return null;
-          
-          // Get the main label element for precise positioning
           const labelEl = nodeEl.querySelector(':scope > .node-wrapper .node-content > .node-label .node-display');
           if (!labelEl) return null;
           
           const labelRect = labelEl.getBoundingClientRect();
-          const x = labelRect.left - rect.left + canvas.scrollLeft;
-          const y = labelRect.top - rect.top + canvas.scrollTop;
-          const width = labelRect.width;
+          const x = (labelRect.left - rect.left) / zoomScale;
+          const y = (labelRect.top - rect.top) / zoomScale;
+          const width = labelRect.width / zoomScale;
           
-          // Create an arc that sits just above the node label
           const padding = 14;
           const arcHeight = 15;
           const startX = x - padding;
@@ -1454,27 +1427,12 @@ const delNode = (id) => {
           
           const path = `M ${startX} ${startY} Q ${x + width/2} ${controlY} ${endX} ${endY}`;
           const phaseKey = `phase-${nodeId}`;
-          const isDotted = !dottedLines.has(phaseKey); // Default is dotted, toggle to solid
+          const isDotted = !dottedLines.has(phaseKey);
           
           return (
             <g key={phaseKey}>
-              <path 
-                d={path} 
-                fill="none" 
-                stroke="transparent" 
-                strokeWidth="12"
-                style={{cursor: 'pointer', pointerEvents: 'stroke'}}
-                onDoubleClick={() => toggleDottedLine(phaseKey)}
-              />
-              <path 
-                d={path} 
-                fill="none" 
-                stroke="black" 
-                strokeWidth="1.5" 
-                strokeDasharray={isDotted ? "5,3" : "none"}
-                opacity="0.8"
-                style={{pointerEvents: 'none'}}
-              />
+              <path d={path} fill="none" stroke="transparent" strokeWidth="12" style={{cursor: 'pointer', pointerEvents: 'stroke'}} onDoubleClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleDottedLine(phaseKey); }} />
+              <path d={path} fill="none" stroke="black" strokeWidth="1.5" strokeDasharray={isDotted ? "5,3" : "none"} opacity="0.8" style={{pointerEvents: 'none'}} />
               <g className="arrow-delete-btn" onClick={() => togglePhase(nodeId)} transform={`translate(${x + width/2 - 10},${controlY - 18})`}>
                 <rect width="20" height="20" fill="white" stroke="#e0ddd8" /><text x="10" y="15" textAnchor="middle" fontSize="14" fill="#dc2626">×</text>
               </g>
@@ -1482,10 +1440,46 @@ const delNode = (id) => {
           );
         });
 
-        setSvgLines(<><defs><marker id="head" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" /></marker></defs>{lines}{arrows}{phaseArcs}</>);
-      }, [tree, moves, phases, dottedLines]);
+        // --- Measure rendered tree bounds (in container coords) to size the scroll stage correctly ---
+        try {
+          let minLeft = Infinity, minTop = Infinity, maxRight = -Infinity, maxBottom = -Infinity;
 
-      useLayoutEffect(() => { draw(); }, [tree, moves, phases, dottedLines, draw]);
+          const nodesForBounds = container.querySelectorAll('[data-node-id]');
+          nodesForBounds.forEach(nodeEl => {
+            const wrapper = nodeEl.querySelector(':scope > .node-wrapper');
+            if (wrapper) {
+              const r = wrapper.getBoundingClientRect();
+              minLeft = Math.min(minLeft, r.left);
+              minTop = Math.min(minTop, r.top);
+              maxRight = Math.max(maxRight, r.right);
+              maxBottom = Math.max(maxBottom, r.bottom);
+            }
+            const tri = nodeEl.querySelector(':scope > .triangle-container');
+            if (tri) {
+              const tr = tri.getBoundingClientRect();
+              minLeft = Math.min(minLeft, tr.left);
+              minTop = Math.min(minTop, tr.top);
+              maxRight = Math.max(maxRight, tr.right);
+              maxBottom = Math.max(maxBottom, tr.bottom);
+            }
+          });
+
+          if (minLeft !== Infinity) {
+            const wScaled = Math.max(0, Math.ceil((maxRight - minLeft)));  // already includes zoom because rects are in CSS pixels
+            const hScaled = Math.max(0, Math.ceil((maxBottom - minTop)));
+            setContentSize({ w: wScaled, h: hScaled });
+          } else {
+            setContentSize({ w: 0, h: 0 });
+          }
+        } catch (err) {
+          // In case of any DOM measurement issue, don't block rendering
+        }
+        // --- End bounds measurement ---
+
+        setSvgLines(<><defs><marker id="head" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="black" /></marker></defs>{lines}{arrows}{phaseArcs}</>);
+      }, [tree, moves, phases, dottedLines, zoomLevel]);
+
+      useLayoutEffect(() => { draw(); }, [tree, moves, phases, dottedLines, zoomLevel, draw]);
       useEffect(() => { window.addEventListener('resize', draw); return () => window.removeEventListener('resize', draw); }, [draw]);
 
       const load = (e) => {
@@ -1523,108 +1517,78 @@ const delNode = (id) => {
             <button className="btn" onClick={saveTree} disabled={!tree} title="Save (Ctrl+S)">Save .kilmer</button>
             <button className="btn" onClick={async () => {
               const filename = (prompt('Enter filename:', 'syntax_tree') || 'syntax_tree').replace(/\s+/g, '_');
-              const el = canvasRef.current;
+              if (!filename) return;
               
-              // Function to copy computed styles to inline styles
+              const savedZoom = zoomLevel;
+              setZoomLevel(100);
+              
+              await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+              await new Promise(resolve => setTimeout(resolve, 100));
+              
+              const el = zoomContainerRef.current;
+              if (!el) { setZoomLevel(savedZoom); return; }
+              
               const copyComputedStyles = (source, target, skipBorderStyles = false) => {
                 const computed = window.getComputedStyle(source);
                 for (let i = 0; i < computed.length; i++) {
                   const prop = computed[i];
-                  // Skip border-related styles if requested
-                  if (skipBorderStyles && (prop.startsWith('border') || prop === 'box-shadow' || prop === 'outline')) {
-                    continue;
-                  }
+                  if (skipBorderStyles && (prop.startsWith('border') || prop === 'box-shadow' || prop === 'outline')) continue;
                   target.style.setProperty(prop, computed.getPropertyValue(prop));
                 }
               };
               
-              // Deep clone with computed styles
               const cloneWithStyles = (element) => {
                 const clone = element.cloneNode(false);
                 const isPill = element.classList && element.classList.contains('sublabel-pill');
                 copyComputedStyles(element, clone, isPill);
-                
                 for (let child of element.childNodes) {
-                  if (child.nodeType === Node.ELEMENT_NODE) {
-                    clone.appendChild(cloneWithStyles(child));
-                  } else {
-                    clone.appendChild(child.cloneNode(true));
-                  }
+                  if (child.nodeType === Node.ELEMENT_NODE) clone.appendChild(cloneWithStyles(child));
+                  else clone.appendChild(child.cloneNode(true));
                 }
                 return clone;
               };
               
               const clone = cloneWithStyles(el);
+              setZoomLevel(savedZoom);
               
-              // Remove UI elements from clone
               clone.querySelectorAll('.node-actions, .arrow-delete-btn').forEach(x => x.remove());
-              
-              // Remove pill delete buttons
               clone.querySelectorAll('.pill-x').forEach(x => x.remove());
-              
-              // Ensure pills have clean styling and proper alignment
               clone.querySelectorAll('.sublabel-pill').forEach(pill => {
-                pill.style.border = 'none';
-                pill.style.borderWidth = '0';
-                pill.style.borderStyle = 'none';
-                pill.style.borderRadius = '0';
-                pill.style.background = 'transparent';
-                pill.style.backgroundColor = 'transparent';
-                pill.style.padding = '0';
-                pill.style.boxShadow = 'none';
-                pill.style.outline = 'none';
-                pill.style.display = 'flex';
-                pill.style.alignItems = 'center';
-                pill.style.justifyContent = 'center';
+                pill.style.border = 'none'; pill.style.borderWidth = '0'; pill.style.borderStyle = 'none';
+                pill.style.borderRadius = '0'; pill.style.background = 'transparent';
+                pill.style.backgroundColor = 'transparent'; pill.style.padding = '0';
+                pill.style.boxShadow = 'none'; pill.style.outline = 'none';
+                pill.style.display = 'flex'; pill.style.alignItems = 'center'; pill.style.justifyContent = 'center';
               });
+              clone.style.transform = 'none';
               
-              // Create container for the clone
+              // Force explicit height on clone to include all content including arrows
+              const svgEl = clone.querySelector('svg');
+              if (svgEl) {
+                const svgHeight = parseInt(svgEl.getAttribute('height'));
+                clone.style.minHeight = (svgHeight - 175) + 'px'; // Reduce bottom margin in export
+              }
+              
               const container = document.createElement('div');
-              container.style.cssText = `
-                position: fixed;
-                left: 0;
-                top: 0;
-                z-index: -9999;
-                pointer-events: none;
-                overflow: visible;
-                background: white;
-              `;
+              container.style.cssText = 'position: fixed; left: 0; top: 0; z-index: -9999; pointer-events: none; overflow: visible; background: white; padding: 40px;';
               container.appendChild(clone);
               document.body.appendChild(container);
               
-              // Wait for rendering
               await new Promise(resolve => setTimeout(resolve, 150));
               
               try {
-                const cv = await html2canvas(clone, {
-                  backgroundColor: '#ffffff',
-                  scale: 2,
-                  useCORS: true,
-                  logging: false
-                });
+                const cv = await html2canvas(clone, { backgroundColor: null, scale: 3, useCORS: true, logging: false });
                 const a = document.createElement('a'); 
                 a.download = `${filename}.png`; 
                 a.href = cv.toDataURL('image/png'); 
                 a.click();
-              } finally {
-                document.body.removeChild(container);
-              }
+              } finally { document.body.removeChild(container); }
             }} disabled={!tree}>Export PNG</button>
 
             <div className="toolbar-divider" />
             <div className="segmented-control" title="Build direction">
-              <button 
-                className={buildMode === 'topdown' ? 'active' : ''} 
-                onClick={() => setBuildMode('topdown')}
-              >
-                Top-down
-              </button>
-              <button 
-                className={buildMode === 'bottomup' ? 'active' : ''} 
-                onClick={() => setBuildMode('bottomup')}
-              >
-                Bottom-up
-              </button>
+              <button className={buildMode === 'topdown' ? 'active' : ''} onClick={() => setBuildMode('topdown')}>Top-down</button>
+              <button className={buildMode === 'bottomup' ? 'active' : ''} onClick={() => setBuildMode('bottomup')}>Bottom-up</button>
             </div>
 
             <div className="toolbar-divider" />
@@ -1641,18 +1605,37 @@ const delNode = (id) => {
           </div>
 
           <div className="tree-canvas" ref={canvasRef}>
-            <svg width="100%" height="100%" style={{position:'absolute', top:0, left:0, pointerEvents:'none', zIndex:1, overflow:'visible'}}>{svgLines}</svg>
-            {tree ? <TreeNode node={tree} isRoot={true} {...{updateNode, addNode, addParent, buildMode, toggleTri, addSublabel, updateSublabel, removeSublabel, addTriangleSublabel, updateTriangleSublabel, removeTriangleSublabel, delNode, isMoveMode, isPhaseMode, sourceId, onNodeClick: (id) => {
-              if (!sourceId) setSourceId(id);
-              else if (sourceId === id) setSourceId(null);
-              else { setMoves(p => [...p, {id: generateId(), from: sourceId, to: id}]); setSourceId(null); setIsMoveMode(false); }
-            }, onPhaseClick: (id) => {
-              togglePhase(id);
-              setIsPhaseMode(false);
-            }}} /> : <div style={{color:'#999'}}>Click <strong>New Tree</strong> to start a new diagram or <strong>Load a .kilmer file</strong> to continue editing a previous one.</div>}
+            <div className={`zoom-controls ${tree ? 'visible' : ''}`}>
+              <button className="zoom-btn" onClick={zoomOut} disabled={zoomLevel <= ZOOM_MIN} title="Zoom out (Ctrl/⌘ + −)">−</button>
+              <div className="zoom-indicator" onClick={zoomReset} title="Reset zoom (Ctrl/⌘ + 0)">{zoomLevel}%</div>
+              <button className="zoom-btn" onClick={zoomIn} disabled={zoomLevel >= ZOOM_MAX} title="Zoom in (Ctrl/⌘ + +)">+</button>
+            </div>
+
+            <div className="zoom-wrapper" style={{ width: stageW, height: stageH }}>
+              <div className="zoom-stage" style={{ width: stageW, height: stageH }}>
+              <div className="zoom-container" ref={zoomContainerRef} style={{ transform: `translateX(-50%) scale(${zoomLevel / 100})`, transformOrigin: 'top center' }}>
+                <svg width={svgW} height={svgH} style={{position:'absolute', top:0, left:0, pointerEvents:'none', zIndex:1, overflow:'visible'}}>{svgLines}</svg>
+                {tree ? <TreeNode node={tree} isRoot={true} {...{updateNode, addNode, addParent, buildMode, toggleTri, addSublabel, updateSublabel, removeSublabel, addTriangleSublabel, updateTriangleSublabel, removeTriangleSublabel, delNode, isMoveMode, isPhaseMode, sourceId, onEditStart, onEditEnd, onNodeClick: (id) => {
+                  if (!sourceId) setSourceId(id);
+                  else if (sourceId === id) setSourceId(null);
+                  else {
+                    const newMoveId = generateId();
+                    setMoves(p => [...p, {id: newMoveId, from: sourceId, to: id}]);
+                    // Make movement arrows dotted by default
+                    setDottedLines(prev => {
+                      const s = new Set(prev);
+                      s.add(`arrow-${newMoveId}`);
+                      return s;
+                    });
+                    setSourceId(null);
+                    setIsMoveMode(false);
+                  }
+                }, onPhaseClick: (id) => { togglePhase(id); setIsPhaseMode(false); }}} /> : <div style={{color:'#999'}}>Click <strong>New Tree</strong> to start a new diagram or <strong>Load a .kilmer file</strong> to continue editing a previous one.</div>}
+              </div>
+              </div>
+            </div>
           </div>
 
-          {/* Redesigned Instructions Panel - Collapsible */}
           <div className="instructions-panel">
             <button className="instructions-header" onClick={() => setShowInstructions(prev => !prev)}>
               <span>Instructions</span>
@@ -1764,6 +1747,16 @@ const delNode = (id) => {
               </div>
 
               <div className="instruction-card">
+                <h4><span className="icon">⌕</span> Zoom Controls</h4>
+                <ul>
+                  <li>Use the <code>[−]</code> and <code>[+]</code> buttons in the top-right corner to zoom in/out.</li>
+                  <li>Click the percentage indicator to reset to 100%.</li>
+                  <li>Zoom range: 40% to 200% in 20% increments.</li>
+                  <li>Controls appear when a tree is present.</li>
+                </ul>
+              </div>
+
+              <div className="instruction-card">
                 <h4><span className="icon">⌨</span> Keyboard Shortcuts</h4>
                 <div style={{ display: 'flex', justifyContent: 'flex-start', gap: '40px' }}>
                   <ul className="shortcut-list" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
@@ -1771,6 +1764,9 @@ const delNode = (id) => {
                     <li><span className="key">Ctrl</span>+<span className="key">Z</span> Undo</li>
                     <li><span className="key">Ctrl</span>+<span className="key">Y</span> Redo</li>
                     <li><span className="key">Ctrl</span>+<span className="key">S</span> Save</li>
+                    <li><span className="key">Ctrl</span>+<span className="key">+</span> Zoom in</li>
+                    <li><span className="key">Ctrl</span>+<span className="key">−</span> Zoom out</li>
+                    <li><span className="key">Ctrl</span>+<span className="key">0</span> Reset zoom</li>
                   </ul>
 
                   <ul className="shortcut-list" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
@@ -1778,6 +1774,9 @@ const delNode = (id) => {
                     <li><span className="key">⌘</span>+<span className="key">Z</span> Undo</li>
                     <li><span className="key">⌘</span>+<span className="key">Shift</span>+<span className="key">Z</span> Redo</li>
                     <li><span className="key">⌘</span>+<span className="key">S</span> Save</li>
+                    <li><span className="key">⌘</span>+<span className="key">+</span> Zoom in</li>
+                    <li><span className="key">⌘</span>+<span className="key">−</span> Zoom out</li>
+                    <li><span className="key">⌘</span>+<span className="key">0</span> Reset zoom</li>
                   </ul>
                 </div>
 
@@ -1791,20 +1790,17 @@ const delNode = (id) => {
           )}
         </div>
 
-        <footer className="footer">
-          <p>Carlos González Vergara (<strong><a href="mailto:cgonzalv@uc.cl">cgonzalv@uc.cl</a></strong>)</p>
-          <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" rel="noopener noreferrer">
-            <img 
-              src="https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by-nc-nd.svg" 
-              alt="CC BY-NC-ND 4.0" 
-            />
-          </a>
-        </footer>
-      </div>
-    );
-  };
+          <footer className="footer">
+            <p>Carlos González Vergara (<strong><a href="mailto:cgonzalv@uc.cl">cgonzalv@uc.cl</a></strong>)</p>
+            <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" rel="noopener noreferrer">
+              <img src="https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by-nc-nd.svg" alt="CC BY-NC-ND 4.0" />
+            </a>
+          </footer>
+        </div>
+      );
+    };
 
-  ReactDOM.createRoot(document.getElementById('root')).render(<KilmerApp />);
-</script>
+    ReactDOM.createRoot(document.getElementById('root')).render(<KilmerApp />);
+  </script>
 </body>
 </html>
