@@ -2839,6 +2839,8 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
                 <ul>
                   <li><strong>Save</strong> exports a <code>.kilmer</code> file for later editing.</li>
                   <li><strong>Export PNG</strong> generates a clean image for documents and presentations.</li>
+                  <li><strong>Auto-save:</strong> Kilmer auto-saves your work every few seconds after changes and can restore it if you accidentally close the browser (see the <code>☁ Saving...</code> / <code>✓ Auto-saved…</code> indicator).</li>
+                  <li><strong>Tip:</strong> auto-save is just a safety net—still save a <code>.kilmer</code> file when you finish.</li>
                 </ul>
               </div>
 
@@ -2849,18 +2851,6 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
                   <li>Click the percentage indicator to reset to 100%.</li>
                   <li>Zoom range: 40% to 200% in 20% increments.</li>
                   <li>Controls appear when a tree is present.</li>
-                </ul>
-              </div>
-
-              <div className="instruction-card">
-                <h4><span className="icon">☁</span> Auto-save</h4>
-                <ul>
-                  <li>Kilmer automatically saves your work every 3 seconds after making changes.</li>
-                  <li>If you accidentally close your browser, your work will be protected.</li>
-                  <li>When you reopen Kilmer, you'll see a dialog asking if you want to continue where you left off.</li>
-                  <li>The indicator in the top-left corner shows: <code>☁ Saving...</code> or <code>✓ Auto-saved X minutes ago</code></li>
-                  <li>Auto-save is automatically cleared when you manually save a <code>.kilmer</code> file.</li>
-                  <li><strong>Important:</strong> Auto-save is a safety net. Always save your work to <code>.kilmer</code> files when finished.</li>
                 </ul>
               </div>
 
