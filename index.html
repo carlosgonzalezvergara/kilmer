@@ -480,17 +480,22 @@
     /* Acciones de nodo */
     .node-actions {
       position: absolute; top: 65%; left: 50%; transform: translateX(-50%);
-      display: flex; gap: 4px; opacity: 0; pointer-events: none;
-      transition: opacity 0.2s; background: white; padding: 6px; border-radius: 8px;
+      display: flex; gap: 4px; opacity: 0; visibility: hidden;
+      transition: opacity 0.8s, visibility 0.8s; 
+      background: white; padding: 6px; border-radius: 8px;
       border: 1px solid var(--color-border); box-shadow: 0 4px 12px rgba(0,0,0,0.12); z-index: 50;
     }
 
     .node-content.has-sublabels .node-actions { top: 90%; }
-    .node-content:hover .node-actions, .node-actions:hover, .triangle-label:hover .node-actions { opacity: 1; pointer-events: auto; }
+    .node-content:hover .node-actions, .node-actions:hover, .triangle-label:hover .node-actions { 
+      opacity: 1; 
+      visibility: visible; 
+      transition: opacity 0.1s, visibility 0s; 
+    }
     .triangle-label .node-actions { top: 80%; }
     .triangle-label.has-triangle-sublabels .node-actions { top: 95%; }
     .node-content.bottomup .node-actions {
-      top: 10px;
+      top: 1px;
       left: 50%;
       transform: translate(-50%, -100%);
     }
@@ -2136,7 +2141,7 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
                   fontFamily="'Source Sans 3', system-ui, sans-serif"
                   fill={oval.color} style={{pointerEvents: 'none'}}
                 >
-                  <tspan style={{paintOrder: 'stroke', stroke: 'white', strokeWidth: 5, strokeLinecap: 'round', strokeLinejoin: 'round'}}>{oval.label}</tspan>
+                  <tspan style={{paintOrder: 'stroke', stroke: 'white', strokeWidth: 1, strokeLinecap: 'round', strokeLinejoin: 'round'}}>{oval.label}</tspan>
                 </text>
               )}
               {oval.label && (
