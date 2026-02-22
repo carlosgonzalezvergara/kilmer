@@ -1024,9 +1024,9 @@
         .replace(/_(.*?)(\s|$)/g, '<sub>$1</sub>$2');
     };
 
+    const _measureCanvas = document.createElement('canvas');
     const measureText = (text, font = "20px 'Crimson Pro', Georgia, serif") => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
+      const ctx = _measureCanvas.getContext('2d');
       ctx.font = font;
       const plainText = text
         .replace(/\*\*(.*?)\*\*/g, '$1')
@@ -1039,6 +1039,25 @@
         .replace(/_(.*?)_/g, '$1')
         .replace(/_(.*?)(\s|$)/g, '$1$2');
       return ctx.measureText(plainText).width;
+    };
+
+    const debounce = (func, delay) => {
+      let timeout;
+      return (...args) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func(...args), delay);
+      };
+    };
+
+    const formatTimeAgo = (date) => {
+      const seconds = Math.floor((Date.now() - date) / 1000);
+      if (seconds < 60) return 'just now';
+      const minutes = Math.floor(seconds / 60);
+      if (minutes === 1) return '1 minute ago';
+      if (minutes < 60) return `${minutes} minutes ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours === 1) return '1 hour ago';
+      return `${hours} hours ago`;
     };
 
     const TreeNode = ({
@@ -1287,10 +1306,10 @@
       const [historyIndex, setHistoryIndex] = useState(-1);
       const isUndoRedo = useRef(false);
 
-      const [tree, setTreeInternal] = useState(null);
-      const [moves, setMovesInternal] = useState([]);
-      const [phases, setPhasesInternal] = useState(new Set());
-      const [dottedLines, setDottedLinesInternal] = useState(new Set());
+      const [tree, setTree] = useState(null);
+      const [moves, setMoves] = useState([]);
+      const [phases, setPhases] = useState(new Set());
+      const [dottedLines, setDottedLines] = useState(new Set());
       const [isMoveMode, setIsMoveMode] = useState(false);
       const [isPhaseMode, setIsPhaseMode] = useState(false);
       const [isRegionMode, setIsRegionMode] = useState(false);
@@ -1303,14 +1322,13 @@
       const [lastSaved, setLastSaved] = useState(null);
       const [isSaving, setIsSaving] = useState(false);
       const isEditingRef = useRef(false);
+      const drawRef = useRef(null);
       const canvasRef = useRef(null);
       const zoomContainerRef = useRef(null);
       const fileRef = useRef(null);
 
       // Oval region highlights
-      const [ovalsInternal, setOvalsInternal] = useState([]);
-      const ovals = ovalsInternal;
-      const setOvals = useCallback((updater) => { setOvalsInternal(prev => typeof updater === 'function' ? updater(prev) : updater); }, []);
+      const [ovals, setOvals] = useState([]);
       const [ovalAction, setOvalAction] = useState(null); // {type:'create'|'move'|'resize', ...}
       const [selectedOvalId, setSelectedOvalId] = useState(null);
       const [editingOvalId, setEditingOvalId] = useState(null);
@@ -1329,26 +1347,6 @@
       const zoomIn = useCallback(() => { setZoomLevel(prev => Math.min(prev + ZOOM_STEP, ZOOM_MAX)); }, []);
       const zoomOut = useCallback(() => { setZoomLevel(prev => Math.max(prev - ZOOM_STEP, ZOOM_MIN)); }, []);
       const zoomReset = useCallback(() => { setZoomLevel(100); }, []);
-
-      // Auto-save functionality
-      const debounce = (func, delay) => {
-        let timeout;
-        return (...args) => {
-          clearTimeout(timeout);
-          timeout = setTimeout(() => func(...args), delay);
-        };
-      };
-
-      const formatTimeAgo = (date) => {
-        const seconds = Math.floor((Date.now() - date) / 1000);
-        if (seconds < 60) return 'just now';
-        const minutes = Math.floor(seconds / 60);
-        if (minutes === 1) return '1 minute ago';
-        if (minutes < 60) return `${minutes} minutes ago`;
-        const hours = Math.floor(minutes / 60);
-        if (hours === 1) return '1 hour ago';
-        return `${hours} hours ago`;
-      };
 
       const performAutoSave = useCallback(() => {
         if (!tree || isUndoRedo.current) return;
@@ -1379,28 +1377,29 @@
         autoSaveDebounced.current = debounce((saveFn) => saveFn(), 3000);
       }
 
-// Capture the original canvas size as a minimum (so the canvas can grow and shrink but never below this).
-useLayoutEffect(() => {
-  const c = canvasRef.current;
-  if (!c) return;
-  const rect = c.getBoundingClientRect();
-  setMinCanvas({ w: Math.ceil(rect.width), h: Math.ceil(rect.height) });
-}, []);
-// Canvas sizing: grow/shrink with the rendered tree (including zoom), but never below the original canvas size.
-const PAD_X = 120; // extra horizontal breathing room inside the scroll stage
-const PAD_Y = 80;  // extra vertical breathing room inside the scroll stage
-const minW = minCanvas.w || 900;
-const minH = minCanvas.h || 267;
-const stageW = Math.max(minW, (contentSize.w || 0) + PAD_X);
-const stageH = Math.max(minH, (contentSize.h || 0) + PAD_Y);
+      // Capture the original canvas size as a minimum (so the canvas can grow and shrink but never below this).
+      useLayoutEffect(() => {
+        const c = canvasRef.current;
+        if (!c) return;
+        const rect = c.getBoundingClientRect();
+        setMinCanvas({ w: Math.ceil(rect.width), h: Math.ceil(rect.height) });
+      }, []);
 
-// SVG needs a real (UNSCALED) box size for reliable PNG export (html2canvas can clip if it's too small).
-// We compute it from the scaled bounds by dividing by zoom.
-const zoomScaleForSvg = Math.max(0.01, zoomLevel / 100);
-const svgPadX = 240;
-const svgPadY = 250; // Moderate padding for arrows
-const svgW = Math.max(1, Math.ceil(((contentSize.w || 0) / zoomScaleForSvg) + svgPadX));
-const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + svgPadY));
+      // Canvas sizing: grow/shrink with the rendered tree (including zoom), but never below the original canvas size.
+      const PAD_X = 120; // extra horizontal breathing room inside the scroll stage
+      const PAD_Y = 80;  // extra vertical breathing room inside the scroll stage
+      const minW = minCanvas.w || 900;
+      const minH = minCanvas.h || 267;
+      const stageW = Math.max(minW, (contentSize.w || 0) + PAD_X);
+      const stageH = Math.max(minH, (contentSize.h || 0) + PAD_Y);
+
+      // SVG needs a real (UNSCALED) box size for reliable PNG export (html2canvas can clip if it's too small).
+      // We compute it from the scaled bounds by dividing by zoom.
+      const zoomScaleForSvg = Math.max(0.01, zoomLevel / 100);
+      const svgPadX = 240;
+      const svgPadY = 250; // Moderate padding for arrows
+      const svgW = Math.max(1, Math.ceil(((contentSize.w || 0) / zoomScaleForSvg) + svgPadX));
+      const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + svgPadY));
 
       const createSnapshot = useCallback(() => ({
         tree: tree ? JSON.parse(JSON.stringify(tree)) : null,
@@ -1412,11 +1411,11 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
 
       const restoreSnapshot = useCallback((snapshot) => {
         isUndoRedo.current = true;
-        setTreeInternal(snapshot.tree);
-        setMovesInternal(snapshot.moves);
-        setPhasesInternal(new Set(snapshot.phases || []));
-        setDottedLinesInternal(new Set(snapshot.dottedLines));
-        setOvalsInternal(snapshot.ovals || []);
+        setTree(snapshot.tree);
+        setMoves(snapshot.moves);
+        setPhases(new Set(snapshot.phases || []));
+        setDottedLines(new Set(snapshot.dottedLines));
+        setOvals(snapshot.ovals || []);
         setTimeout(() => { isUndoRedo.current = false; }, 0);
       }, []);
 
@@ -1431,11 +1430,6 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
         });
         setHistoryIndex(prev => Math.min(prev + 1, 49));
       }, [createSnapshot, historyIndex]);
-
-      const setTree = useCallback((updater) => { setTreeInternal(prev => typeof updater === 'function' ? updater(prev) : updater); }, []);
-      const setMoves = useCallback((updater) => { setMovesInternal(prev => typeof updater === 'function' ? updater(prev) : updater); }, []);
-      const setDottedLines = useCallback((updater) => { setDottedLinesInternal(prev => typeof updater === 'function' ? updater(prev) : updater); }, []);
-      const setPhases = useCallback((updater) => { setPhasesInternal(prev => typeof updater === 'function' ? updater(prev) : updater); }, []);
 
       const togglePhase = useCallback((nodeId) => {
         setPhases(prev => {
@@ -1477,11 +1471,11 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
             
             if (restore) {
               isUndoRedo.current = true;
-              setTreeInternal(normalizeNode(data.tree));
-              setMovesInternal(data.moves || []);
-              setPhasesInternal(new Set(data.phases || []));
-              setDottedLinesInternal(new Set(data.dottedLines || []));
-              setOvalsInternal(data.ovals || []);
+              setTree(normalizeNode(data.tree));
+              setMoves(data.moves || []);
+              setPhases(new Set(data.phases || []));
+              setDottedLines(new Set(data.dottedLines || []));
+              setOvals(data.ovals || []);
               setHistory([]);
               setHistoryIndex(-1);
               setTimeout(() => { isUndoRedo.current = false; }, 0);
@@ -1565,7 +1559,8 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
       const findAndRemove = (n, id) => {
         if (!n || !n.children) return n;
         if (n.children.some(c => c.id === id)) {
-          return { ...n, children: n.children.filter(c => c.id !== id).length > 0 ? n.children.filter(c => c.id !== id) : null };
+          const remaining = n.children.filter(c => c.id !== id);
+          return { ...n, children: remaining.length > 0 ? remaining : null };
         }
         return { ...n, children: n.children.map(c => findAndRemove(c, id)) };
       };
@@ -1754,9 +1749,9 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
       const onEditStart = useCallback(() => { isEditingRef.current = true; }, []);
       const onEditEnd = useCallback(() => {
         isEditingRef.current = false;
-        // Redraw after editing ends
-        setTimeout(() => draw(), 0);
-      }, [draw]);
+        // Redraw after editing ends (via ref to avoid draw dependency cascade)
+        setTimeout(() => drawRef.current && drawRef.current(), 0);
+      }, []);
 
       // --- Oval interaction handlers (create / move / resize / label) ---
       const getUnscaledPos = useCallback((e) => {
@@ -2197,6 +2192,8 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
         setSvgLines(<>{ovalElements}{dragPreview}{lines}{arrows}{phaseArcs}</>);
       }, [tree, moves, phases, dottedLines, ovals, ovalAction, selectedOvalId, editingOvalId, regionColor, zoomLevel]);
 
+      drawRef.current = draw;
+
       useLayoutEffect(() => { draw(); }, [tree, moves, phases, dottedLines, ovals, ovalAction, selectedOvalId, zoomLevel, draw]);
       useEffect(() => { window.addEventListener('resize', draw); return () => window.removeEventListener('resize', draw); }, [draw]);
 
@@ -2208,11 +2205,11 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
           try {
             const data = JSON.parse(ev.target.result);
             isUndoRedo.current = true;
-            setTreeInternal(normalizeNode(data.tree || data));
-            setMovesInternal(data.moves || []);
-            setPhasesInternal(new Set(data.phases || []));
-            setDottedLinesInternal(new Set(data.dottedLines || []));
-            setOvalsInternal(data.ovals || []);
+            setTree(normalizeNode(data.tree || data));
+            setMoves(data.moves || []);
+            setPhases(new Set(data.phases || []));
+            setDottedLines(new Set(data.dottedLines || []));
+            setOvals(data.ovals || []);
             setHistory([]);
             setHistoryIndex(-1);
             localStorage.removeItem('kilmer-autosave');
@@ -2222,6 +2219,308 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
         };
         reader.readAsText(file);
         e.target.value = "";
+      };
+
+      const handleExportPNG = async () => {
+        const filename = (prompt('Enter filename:', 'syntax_tree') || 'syntax_tree').replace(/\s+/g, '_');
+        if (!filename) return;
+
+        // ═══════════════════════════════════════════════════════════════
+        // COMPOSITE EXPORT v4
+        //
+        // Renders HTML (via html2canvas) and SVG (via XMLSerializer+Image)
+        // as separate layers, composited on a single canvas.
+        //
+        // KEY FIX: The clone uses position:static to eliminate ALL
+        // inherited positioning artifacts. Wrapper padding positions it.
+        // Clone width is locked to the original's measured width so
+        // internal flex/flow layout matches the SVG coordinates exactly.
+        // ═══════════════════════════════════════════════════════════════
+
+        const DEBUG_EXPORT = false;
+        const SCALE = 3;
+        const PAD = 40;
+
+        // ── 1. Force zoom=100, wait for complete layout ──
+        const savedZoom = zoomLevel;
+        setZoomLevel(100);
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+        await new Promise(r => setTimeout(r, 200));
+
+        const el = zoomContainerRef.current;
+        if (!el) { setZoomLevel(savedZoom); return; }
+
+        // ── 2. Measure ORIGINAL before cloning ──
+        const origW = el.offsetWidth;
+        const origH = el.offsetHeight;
+
+        // ── 3. Clone with computed styles ──
+        const copyCS = (src, tgt, skipBorder = false) => {
+          const cs = window.getComputedStyle(src);
+          for (let i = 0; i < cs.length; i++) {
+            const p = cs[i];
+            if (skipBorder && (p.startsWith('border') || p === 'box-shadow' || p === 'outline')) continue;
+            tgt.style.setProperty(p, cs.getPropertyValue(p));
+          }
+        };
+        const cloneDeep = (element) => {
+          const cl = element.cloneNode(false);
+          copyCS(element, cl, !!(element.classList && element.classList.contains('sublabel-pill')));
+          for (const ch of element.childNodes) {
+            cl.appendChild(ch.nodeType === Node.ELEMENT_NODE ? cloneDeep(ch) : ch.cloneNode(true));
+          }
+          return cl;
+        };
+
+        const clone = cloneDeep(el);
+        setZoomLevel(savedZoom);
+
+        // ── 4. Clean up UI-only elements ──
+        clone.querySelectorAll('.node-actions, .arrow-delete-btn').forEach(x => x.remove());
+        clone.querySelectorAll('[data-oval-handle]').forEach(x => x.remove());
+        clone.querySelectorAll('[data-oval-action]').forEach(x => x.remove());
+        clone.querySelectorAll('.oval-group ellipse').forEach(e => {
+          e.removeAttribute('stroke-dasharray');
+          e.style.strokeDasharray = 'none';
+        });
+        clone.querySelectorAll('.pill-x').forEach(x => x.remove());
+        clone.querySelectorAll('.sublabel-pill').forEach(pill => {
+          pill.style.border = 'none'; pill.style.borderWidth = '0'; pill.style.borderStyle = 'none';
+          pill.style.borderRadius = '0'; pill.style.background = 'transparent';
+          pill.style.backgroundColor = 'transparent'; pill.style.padding = '0';
+          pill.style.boxShadow = 'none'; pill.style.outline = 'none';
+          pill.style.display = 'flex'; pill.style.alignItems = 'center'; pill.style.justifyContent = 'center';
+        });
+
+        // ── 5. CRITICAL: Nuke ALL positioning on clone ──
+        clone.style.position = 'static';
+        clone.style.left = 'auto';
+        clone.style.right = 'auto';
+        clone.style.top = 'auto';
+        clone.style.bottom = 'auto';
+        clone.style.inset = 'auto';
+        clone.style.transform = 'none';
+        clone.style.webkitTransform = 'none';
+        clone.style.margin = '0';
+        // Lock dimensions to match original layout
+        clone.style.width = origW + 'px';
+        clone.style.minWidth = origW + 'px';
+        clone.style.maxWidth = origW + 'px';
+        clone.style.height = 'auto';
+        clone.style.minHeight = origH + 'px';
+        clone.style.overflow = 'visible';
+
+        // ── 6. Compute content bounds (from ovals + tree knowledge) ──
+        let minX = 0, minY = 0, maxX = origW, maxY = origH;
+
+        for (const o of ovals) {
+          minX = Math.min(minX, o.cx - o.rx - 8);
+          minY = Math.min(minY, o.cy - o.ry - (o.label ? 30 : 8));
+          maxX = Math.max(maxX, o.cx + o.rx + 8);
+          maxY = Math.max(maxY, o.cy + o.ry + 8);
+        }
+
+        // ── 7. Place clone in DOM for measurement + arrowhead baking ──
+        const offsetX = -minX + PAD;
+        const offsetY = -minY + PAD;
+        const totalW = (maxX - minX) + PAD * 2;
+        const totalH = (maxY - minY) + PAD * 2;
+
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = `
+          position: fixed; left: 0; top: 0; z-index: -9999;
+          pointer-events: none; background: transparent;
+          width: ${totalW}px; height: ${totalH}px;
+          padding: 0; margin: 0; overflow: hidden;
+          box-sizing: content-box;
+        `;
+
+        const spacer = document.createElement('div');
+        spacer.style.cssText = `
+          margin: 0; padding: ${offsetY}px 0 0 ${offsetX}px;
+          width: ${origW}px;
+        `;
+        spacer.appendChild(clone);
+        wrapper.appendChild(spacer);
+        document.body.appendChild(wrapper);
+        await new Promise(r => setTimeout(r, 120));
+
+        // ── 8. Bake arrowheads ──
+        const svgEl = clone.querySelector('svg');
+        if (svgEl) {
+          svgEl.querySelectorAll('path[marker-end]').forEach(path => {
+            try {
+              if (!path.ownerSVGElement || !path.getTotalLength) return;
+              const len = path.getTotalLength();
+              if (!isFinite(len) || len <= 0) return;
+              const pe = path.getPointAtLength(len);
+              const pp = path.getPointAtLength(Math.max(0, len - 8));
+              const ang = Math.atan2(pe.y - pp.y, pe.x - pp.x);
+              const hL = 12, hW = 8;
+              const bx = pe.x - hL * Math.cos(ang), by = pe.y - hL * Math.sin(ang);
+              const lx = bx + (hW/2)*Math.cos(ang+Math.PI/2), ly = by + (hW/2)*Math.sin(ang+Math.PI/2);
+              const rx = bx + (hW/2)*Math.cos(ang-Math.PI/2), ry = by + (hW/2)*Math.sin(ang-Math.PI/2);
+              const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+              poly.setAttribute('points', `${pe.x},${pe.y} ${lx},${ly} ${rx},${ry}`);
+              poly.setAttribute('fill', path.getAttribute('stroke') || path.style.stroke || '#000');
+              poly.setAttribute('stroke', 'none');
+              poly.setAttribute('opacity', path.getAttribute('opacity') || path.style.opacity || '1');
+              path.parentNode.appendChild(poly);
+              path.removeAttribute('marker-end');
+            } catch (_) {}
+          });
+        }
+
+        // ── 9. Measure actual bounds from the placed clone ──
+        await new Promise(r => requestAnimationFrame(r));
+        const cloneRect = clone.getBoundingClientRect();
+        const wrapperRect = wrapper.getBoundingClientRect();
+
+        const actualCloneX = cloneRect.left - wrapperRect.left;
+        const actualCloneY = cloneRect.top - wrapperRect.top;
+
+        let svgMinX = 0, svgMinY = 0, svgMaxX = origW, svgMaxY = origH;
+        if (svgEl) {
+          svgEl.querySelectorAll('path, ellipse, polygon, line, polyline, circle, text').forEach(el => {
+            try {
+              if (el.getAttribute('fill') === 'transparent' && el.getAttribute('stroke') === 'transparent') return;
+              const b = el.getBBox();
+              if (b.width === 0 && b.height === 0) return;
+              svgMinX = Math.min(svgMinX, b.x);
+              svgMinY = Math.min(svgMinY, b.y);
+              svgMaxX = Math.max(svgMaxX, b.x + b.width);
+              svgMaxY = Math.max(svgMaxY, b.y + b.height);
+            } catch(_) {}
+          });
+        }
+
+        const finalMinX = Math.min(minX, svgMinX);
+        const finalMinY = Math.min(minY, svgMinY);
+        const finalMaxX = Math.max(maxX, svgMaxX);
+        const finalMaxY = Math.max(maxY, svgMaxY);
+        const finalTotalW = (finalMaxX - finalMinX) + PAD * 2;
+        const finalTotalH = (finalMaxY - finalMinY) + PAD * 2;
+        const finalOffsetX = -finalMinX + PAD;
+        const finalOffsetY = -finalMinY + PAD;
+
+        wrapper.style.width = finalTotalW + 'px';
+        wrapper.style.height = finalTotalH + 'px';
+        spacer.style.padding = `${finalOffsetY}px 0 0 ${finalOffsetX}px`;
+        await new Promise(r => setTimeout(r, 50));
+
+        const finalCloneRect = clone.getBoundingClientRect();
+        const finalWrapperRect = wrapper.getBoundingClientRect();
+        const measuredOffX = finalCloneRect.left - finalWrapperRect.left;
+        const measuredOffY = finalCloneRect.top - finalWrapperRect.top;
+
+        if (DEBUG_EXPORT) {
+          console.group('🔍 Kilmer Export Debug v4');
+          console.log('savedZoom:', savedZoom, '| origW:', origW, 'origH:', origH);
+          console.log('cloneRect:', {w: finalCloneRect.width.toFixed(0), h: finalCloneRect.height.toFixed(0)});
+          console.log('intended offset:', {x: finalOffsetX.toFixed(0), y: finalOffsetY.toFixed(0)});
+          console.log('MEASURED offset:', {x: measuredOffX.toFixed(1), y: measuredOffY.toFixed(1)});
+          console.log('bounds:', {minX: finalMinX.toFixed(0), minY: finalMinY.toFixed(0), maxX: finalMaxX.toFixed(0), maxY: finalMaxY.toFixed(0)});
+          console.log('canvas:', {w: finalTotalW.toFixed(0), h: finalTotalH.toFixed(0)});
+          console.log('ovals:', ovals.length);
+        }
+
+        // ── 10. Rasterize SVG layer ──
+        let svgImg = null;
+        if (svgEl) {
+          const svgClone = svgEl.cloneNode(true);
+          svgClone.querySelectorAll('ellipse[fill="transparent"][stroke="transparent"]').forEach(e => e.remove());
+
+          svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+          svgClone.setAttribute('viewBox', `${-measuredOffX} ${-measuredOffY} ${finalTotalW} ${finalTotalH}`);
+          svgClone.setAttribute('width', Math.round(finalTotalW * SCALE));
+          svgClone.setAttribute('height', Math.round(finalTotalH * SCALE));
+          svgClone.removeAttribute('style');
+          svgClone.style.overflow = 'visible';
+
+          const fontStyle = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+          fontStyle.textContent = `@import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap');`;
+          svgClone.insertBefore(fontStyle, svgClone.firstChild);
+
+          const svgString = new XMLSerializer().serializeToString(svgClone);
+          const svgBlob = new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
+          const svgUrl = URL.createObjectURL(svgBlob);
+
+          try {
+            svgImg = await new Promise((resolve) => {
+              const img = new Image();
+              img.onload = () => resolve(img);
+              img.onerror = () => { console.warn('SVG rasterize failed'); resolve(null); };
+              img.src = svgUrl;
+            });
+          } finally {
+            URL.revokeObjectURL(svgUrl);
+          }
+
+          if (DEBUG_EXPORT) console.log('SVG:', svgImg ? `✅ ${svgImg.naturalWidth}×${svgImg.naturalHeight}` : '❌');
+        }
+
+        // ── 11. Render HTML layer (SVG removed) ──
+        if (svgEl) svgEl.remove();
+        await new Promise(r => setTimeout(r, 50));
+
+        let htmlCanvas;
+        try {
+          htmlCanvas = await html2canvas(wrapper, {
+            backgroundColor: null,
+            scale: SCALE,
+            useCORS: true,
+            logging: false,
+          });
+        } catch(err) {
+          console.error('html2canvas failed:', err);
+          document.body.removeChild(wrapper);
+          return;
+        }
+
+        if (DEBUG_EXPORT) console.log('HTML:', htmlCanvas.width, '×', htmlCanvas.height);
+
+        // ── 12. Composite ──
+        const finalPxW = Math.round(finalTotalW * SCALE);
+        const finalPxH = Math.round(finalTotalH * SCALE);
+        const finalCanvas = document.createElement('canvas');
+        finalCanvas.width = finalPxW;
+        finalCanvas.height = finalPxH;
+        const ctx = finalCanvas.getContext('2d');
+
+        ctx.drawImage(htmlCanvas, 0, 0, finalPxW, finalPxH);
+        if (svgImg) ctx.drawImage(svgImg, 0, 0, finalPxW, finalPxH);
+
+        if (DEBUG_EXPORT) {
+          console.log('Final:', finalPxW, '×', finalPxH);
+          console.groupEnd();
+          const dbg = document.createElement('div');
+          dbg.style.cssText = `position:fixed;left:10px;top:10px;z-index:99999;
+            background:#fff;border:2px solid red;padding:12px;border-radius:8px;
+            font:12px monospace;max-width:450px;box-shadow:0 4px 20px rgba(0,0,0,0.3);`;
+          dbg.innerHTML = `
+            <b style="color:red;">Export Debug v4</b><br>
+            origW: ${origW} | cloneW: ${finalCloneRect.width.toFixed(0)}<br>
+            intended offset: (${finalOffsetX.toFixed(0)}, ${finalOffsetY.toFixed(0)})<br>
+            <b>MEASURED offset: (${measuredOffX.toFixed(1)}, ${measuredOffY.toFixed(1)})</b><br>
+            bounds: (${finalMinX.toFixed(0)},${finalMinY.toFixed(0)})→(${finalMaxX.toFixed(0)},${finalMaxY.toFixed(0)})<br>
+            canvas: ${finalTotalW.toFixed(0)}×${finalTotalH.toFixed(0)}<br>
+            SVG viewBox: ${-measuredOffX.toFixed(1)} ${-measuredOffY.toFixed(1)} ${finalTotalW.toFixed(0)} ${finalTotalH.toFixed(0)}<br>
+            SVG: ${svgImg ? '✅' : '❌'} | HTML: ${htmlCanvas.width}×${htmlCanvas.height}<br>
+            <img src="${finalCanvas.toDataURL('image/png')}" style="max-width:420px;border:1px solid #ccc;margin-top:6px;"/>
+          `;
+          document.body.appendChild(dbg);
+          setTimeout(() => dbg.remove(), 12000);
+        }
+
+        // ── 13. Download ──
+        try {
+          const a = document.createElement('a');
+          a.download = `${filename}.png`;
+          a.href = finalCanvas.toDataURL('image/png');
+          a.click();
+        } finally {
+          document.body.removeChild(wrapper);
+        }
       };
 
       return (
@@ -2236,335 +2535,7 @@ const svgH = Math.max(1, Math.ceil(((contentSize.h || 0) / zoomScaleForSvg) + sv
             <button className="btn" onClick={() => fileRef.current.click()}>Load .kilmer</button>
             <input type="file" ref={fileRef} style={{display:'none'}} accept=".kilmer,.json,application/json,text/plain,*/*" onChange={load} />
             <button className="btn" onClick={saveTree} disabled={!tree} title="Save (Ctrl+S)">Save .kilmer</button>
-            <button className="btn" onClick={async () => {
-              const filename = (prompt('Enter filename:', 'syntax_tree') || 'syntax_tree').replace(/\s+/g, '_');
-              if (!filename) return;
-
-              // ═══════════════════════════════════════════════════════════════
-              // COMPOSITE EXPORT v4
-              //
-              // Renders HTML (via html2canvas) and SVG (via XMLSerializer+Image)
-              // as separate layers, composited on a single canvas.
-              //
-              // KEY FIX: The clone uses position:static to eliminate ALL
-              // inherited positioning artifacts. Wrapper padding positions it.
-              // Clone width is locked to the original's measured width so
-              // internal flex/flow layout matches the SVG coordinates exactly.
-              // ═══════════════════════════════════════════════════════════════
-
-              const DEBUG_EXPORT = false;
-              const SCALE = 3;
-              const PAD = 40;
-
-              // ── 1. Force zoom=100, wait for complete layout ──
-              const savedZoom = zoomLevel;
-              setZoomLevel(100);
-              await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-              await new Promise(r => setTimeout(r, 200));
-
-              const el = zoomContainerRef.current;
-              if (!el) { setZoomLevel(savedZoom); return; }
-
-              // ── 2. Measure ORIGINAL before cloning ──
-              const origW = el.offsetWidth;
-              const origH = el.offsetHeight;
-
-              // ── 3. Clone with computed styles ──
-              const copyCS = (src, tgt, skipBorder = false) => {
-                const cs = window.getComputedStyle(src);
-                for (let i = 0; i < cs.length; i++) {
-                  const p = cs[i];
-                  if (skipBorder && (p.startsWith('border') || p === 'box-shadow' || p === 'outline')) continue;
-                  tgt.style.setProperty(p, cs.getPropertyValue(p));
-                }
-              };
-              const cloneDeep = (element) => {
-                const cl = element.cloneNode(false);
-                copyCS(element, cl, !!(element.classList && element.classList.contains('sublabel-pill')));
-                for (const ch of element.childNodes) {
-                  cl.appendChild(ch.nodeType === Node.ELEMENT_NODE ? cloneDeep(ch) : ch.cloneNode(true));
-                }
-                return cl;
-              };
-
-              const clone = cloneDeep(el);
-              setZoomLevel(savedZoom);
-
-              // ── 4. Clean up UI-only elements ──
-              clone.querySelectorAll('.node-actions, .arrow-delete-btn').forEach(x => x.remove());
-              clone.querySelectorAll('[data-oval-handle]').forEach(x => x.remove());
-              clone.querySelectorAll('[data-oval-action]').forEach(x => x.remove());
-              clone.querySelectorAll('.oval-group ellipse').forEach(e => {
-                e.removeAttribute('stroke-dasharray');
-                e.style.strokeDasharray = 'none';
-              });
-              clone.querySelectorAll('.pill-x').forEach(x => x.remove());
-              clone.querySelectorAll('.sublabel-pill').forEach(pill => {
-                pill.style.border = 'none'; pill.style.borderWidth = '0'; pill.style.borderStyle = 'none';
-                pill.style.borderRadius = '0'; pill.style.background = 'transparent';
-                pill.style.backgroundColor = 'transparent'; pill.style.padding = '0';
-                pill.style.boxShadow = 'none'; pill.style.outline = 'none';
-                pill.style.display = 'flex'; pill.style.alignItems = 'center'; pill.style.justifyContent = 'center';
-              });
-
-              // ── 5. CRITICAL: Nuke ALL positioning on clone ──
-              // copyComputedStyles copies position:absolute, left:<px>, transform:matrix(...),
-              // -webkit-transform, inset, etc. Some of these survive individual overrides.
-              // The nuclear option: wipe clone.style.cssText entirely for positioning props,
-              // then re-set only what we need.
-              // We keep VISUAL styles (font, color, display, flex) but reset SPATIAL styles.
-              clone.style.position = 'static';
-              clone.style.left = 'auto';
-              clone.style.right = 'auto';
-              clone.style.top = 'auto';
-              clone.style.bottom = 'auto';
-              clone.style.inset = 'auto';
-              clone.style.transform = 'none';
-              clone.style.webkitTransform = 'none';
-              clone.style.margin = '0';
-              // Lock dimensions to match original layout
-              clone.style.width = origW + 'px';
-              clone.style.minWidth = origW + 'px';
-              clone.style.maxWidth = origW + 'px';
-              clone.style.height = 'auto';        // Let height flow naturally
-              clone.style.minHeight = origH + 'px';
-              clone.style.overflow = 'visible';
-
-              // ── 6. Compute content bounds (from ovals + tree knowledge) ──
-              // SVG coords are relative to the zoom-container origin (= clone origin).
-              // We need the full extent including negative coords (ovals above/left of tree).
-              let minX = 0, minY = 0, maxX = origW, maxY = origH;
-
-              // Include ovals
-              for (const o of ovals) {
-                minX = Math.min(minX, o.cx - o.rx - 8);
-                minY = Math.min(minY, o.cy - o.ry - (o.label ? 30 : 8));
-                maxX = Math.max(maxX, o.cx + o.rx + 8);
-                maxY = Math.max(maxY, o.cy + o.ry + 8);
-              }
-
-              // ── 7. Place clone in DOM for measurement + arrowhead baking ──
-              // Wrapper padding positions the clone at (offsetX, offsetY) so that
-              // clone origin (0,0) maps to the correct position in the final canvas.
-              const offsetX = -minX + PAD;
-              const offsetY = -minY + PAD;
-              const totalW = (maxX - minX) + PAD * 2;
-              const totalH = (maxY - minY) + PAD * 2;
-
-              const wrapper = document.createElement('div');
-              wrapper.style.cssText = `
-                position: fixed; left: 0; top: 0; z-index: -9999;
-                pointer-events: none; background: transparent;
-                width: ${totalW}px; height: ${totalH}px;
-                padding: 0; margin: 0; overflow: hidden;
-                box-sizing: content-box;
-              `;
-
-              // Inner spacer positions the clone using margin (more reliable than padding for html2canvas)
-              const spacer = document.createElement('div');
-              spacer.style.cssText = `
-                margin: 0; padding: ${offsetY}px 0 0 ${offsetX}px;
-                width: ${origW}px;
-              `;
-              spacer.appendChild(clone);
-              wrapper.appendChild(spacer);
-              document.body.appendChild(wrapper);
-              await new Promise(r => setTimeout(r, 120));
-
-              // ── 8. Bake arrowheads ──
-              const svgEl = clone.querySelector('svg');
-              if (svgEl) {
-                svgEl.querySelectorAll('path[marker-end]').forEach(path => {
-                  try {
-                    if (!path.ownerSVGElement || !path.getTotalLength) return;
-                    const len = path.getTotalLength();
-                    if (!isFinite(len) || len <= 0) return;
-                    const pe = path.getPointAtLength(len);
-                    const pp = path.getPointAtLength(Math.max(0, len - 8));
-                    const ang = Math.atan2(pe.y - pp.y, pe.x - pp.x);
-                    const hL = 12, hW = 8;
-                    const bx = pe.x - hL * Math.cos(ang), by = pe.y - hL * Math.sin(ang);
-                    const lx = bx + (hW/2)*Math.cos(ang+Math.PI/2), ly = by + (hW/2)*Math.sin(ang+Math.PI/2);
-                    const rx = bx + (hW/2)*Math.cos(ang-Math.PI/2), ry = by + (hW/2)*Math.sin(ang-Math.PI/2);
-                    const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-                    poly.setAttribute('points', `${pe.x},${pe.y} ${lx},${ly} ${rx},${ry}`);
-                    poly.setAttribute('fill', path.getAttribute('stroke') || path.style.stroke || '#000');
-                    poly.setAttribute('stroke', 'none');
-                    poly.setAttribute('opacity', path.getAttribute('opacity') || path.style.opacity || '1');
-                    path.parentNode.appendChild(poly);
-                    path.removeAttribute('marker-end');
-                  } catch (_) {}
-                });
-              }
-
-              // ── 9. Measure actual bounds from the placed clone ──
-              // This is the ground truth for both layers' alignment.
-              await new Promise(r => requestAnimationFrame(r));
-              const cloneRect = clone.getBoundingClientRect();
-              const wrapperRect = wrapper.getBoundingClientRect();
-
-              // Measure actual position of clone within wrapper
-              const actualCloneX = cloneRect.left - wrapperRect.left;
-              const actualCloneY = cloneRect.top - wrapperRect.top;
-
-              // Expand bounds using actual SVG element measurements
-              let svgMinX = 0, svgMinY = 0, svgMaxX = origW, svgMaxY = origH;
-              if (svgEl) {
-                svgEl.querySelectorAll('path, ellipse, polygon, line, polyline, circle, text').forEach(el => {
-                  try {
-                    if (el.getAttribute('fill') === 'transparent' && el.getAttribute('stroke') === 'transparent') return;
-                    const b = el.getBBox();
-                    if (b.width === 0 && b.height === 0) return;
-                    svgMinX = Math.min(svgMinX, b.x);
-                    svgMinY = Math.min(svgMinY, b.y);
-                    svgMaxX = Math.max(svgMaxX, b.x + b.width);
-                    svgMaxY = Math.max(svgMaxY, b.y + b.height);
-                  } catch(_) {}
-                });
-              }
-
-              // Recompute bounds with SVG measurements
-              const finalMinX = Math.min(minX, svgMinX);
-              const finalMinY = Math.min(minY, svgMinY);
-              const finalMaxX = Math.max(maxX, svgMaxX);
-              const finalMaxY = Math.max(maxY, svgMaxY);
-              const finalTotalW = (finalMaxX - finalMinX) + PAD * 2;
-              const finalTotalH = (finalMaxY - finalMinY) + PAD * 2;
-              const finalOffsetX = -finalMinX + PAD;
-              const finalOffsetY = -finalMinY + PAD;
-
-              // Update wrapper and spacer if bounds expanded
-              wrapper.style.width = finalTotalW + 'px';
-              wrapper.style.height = finalTotalH + 'px';
-              spacer.style.padding = `${finalOffsetY}px 0 0 ${finalOffsetX}px`;
-              await new Promise(r => setTimeout(r, 50));
-
-              // Re-measure after adjustment
-              const finalCloneRect = clone.getBoundingClientRect();
-              const finalWrapperRect = wrapper.getBoundingClientRect();
-              const measuredOffX = finalCloneRect.left - finalWrapperRect.left;
-              const measuredOffY = finalCloneRect.top - finalWrapperRect.top;
-
-              if (DEBUG_EXPORT) {
-                console.group('🔍 Kilmer Export Debug v4');
-                console.log('savedZoom:', savedZoom, '| origW:', origW, 'origH:', origH);
-                console.log('cloneRect:', {w: finalCloneRect.width.toFixed(0), h: finalCloneRect.height.toFixed(0)});
-                console.log('intended offset:', {x: finalOffsetX.toFixed(0), y: finalOffsetY.toFixed(0)});
-                console.log('MEASURED offset:', {x: measuredOffX.toFixed(1), y: measuredOffY.toFixed(1)});
-                console.log('bounds:', {minX: finalMinX.toFixed(0), minY: finalMinY.toFixed(0), maxX: finalMaxX.toFixed(0), maxY: finalMaxY.toFixed(0)});
-                console.log('canvas:', {w: finalTotalW.toFixed(0), h: finalTotalH.toFixed(0)});
-                console.log('ovals:', ovals.length);
-              }
-
-              // ── 10. Rasterize SVG layer ──
-              let svgImg = null;
-              if (svgEl) {
-                const svgClone = svgEl.cloneNode(true);
-                svgClone.querySelectorAll('ellipse[fill="transparent"][stroke="transparent"]').forEach(e => e.remove());
-
-                // CRITICAL: The SVG viewBox must match the clone's actual position.
-                // SVG coord (0,0) = clone origin. Clone is at measuredOffX in the wrapper.
-                // So SVG coord X maps to wrapper pixel (measuredOffX + X).
-                // The viewBox must produce the same mapping as the html2canvas render.
-                // viewBox origin: when SVG covers the entire wrapper (width=finalTotalW),
-                // SVG coord X → wrapper pixel ((X - vbX) / vbW * finalTotalW).
-                // We need (X - vbX) / vbW * finalTotalW = measuredOffX + X
-                // → vbX = X - (measuredOffX + X) / finalTotalW * vbW
-                // Simpler: vbX = -measuredOffX, vbW = finalTotalW
-                // Then SVG coord X → wrapper pixel (X + measuredOffX). ✓
-
-                svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-                svgClone.setAttribute('viewBox', `${-measuredOffX} ${-measuredOffY} ${finalTotalW} ${finalTotalH}`);
-                svgClone.setAttribute('width', Math.round(finalTotalW * SCALE));
-                svgClone.setAttribute('height', Math.round(finalTotalH * SCALE));
-                svgClone.removeAttribute('style');
-                svgClone.style.overflow = 'visible';
-
-                const fontStyle = document.createElementNS('http://www.w3.org/2000/svg', 'style');
-                fontStyle.textContent = `@import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap');`;
-                svgClone.insertBefore(fontStyle, svgClone.firstChild);
-
-                const svgString = new XMLSerializer().serializeToString(svgClone);
-                const svgBlob = new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
-                const svgUrl = URL.createObjectURL(svgBlob);
-
-                try {
-                  svgImg = await new Promise((resolve) => {
-                    const img = new Image();
-                    img.onload = () => resolve(img);
-                    img.onerror = () => { console.warn('SVG rasterize failed'); resolve(null); };
-                    img.src = svgUrl;
-                  });
-                } finally {
-                  URL.revokeObjectURL(svgUrl);
-                }
-
-                if (DEBUG_EXPORT) console.log('SVG:', svgImg ? `✅ ${svgImg.naturalWidth}×${svgImg.naturalHeight}` : '❌');
-              }
-
-              // ── 11. Render HTML layer (SVG removed) ──
-              if (svgEl) svgEl.remove();
-              await new Promise(r => setTimeout(r, 50));
-
-              let htmlCanvas;
-              try {
-                htmlCanvas = await html2canvas(wrapper, {
-                  backgroundColor: null,
-                  scale: SCALE,
-                  useCORS: true,
-                  logging: false,
-                });
-              } catch(err) {
-                console.error('html2canvas failed:', err);
-                document.body.removeChild(wrapper);
-                return;
-              }
-
-              if (DEBUG_EXPORT) console.log('HTML:', htmlCanvas.width, '×', htmlCanvas.height);
-
-              // ── 12. Composite ──
-              const finalPxW = Math.round(finalTotalW * SCALE);
-              const finalPxH = Math.round(finalTotalH * SCALE);
-              const finalCanvas = document.createElement('canvas');
-              finalCanvas.width = finalPxW;
-              finalCanvas.height = finalPxH;
-              const ctx = finalCanvas.getContext('2d');
-
-              ctx.drawImage(htmlCanvas, 0, 0, finalPxW, finalPxH);
-              if (svgImg) ctx.drawImage(svgImg, 0, 0, finalPxW, finalPxH);
-
-              if (DEBUG_EXPORT) {
-                console.log('Final:', finalPxW, '×', finalPxH);
-                console.groupEnd();
-                const dbg = document.createElement('div');
-                dbg.style.cssText = `position:fixed;left:10px;top:10px;z-index:99999;
-                  background:#fff;border:2px solid red;padding:12px;border-radius:8px;
-                  font:12px monospace;max-width:450px;box-shadow:0 4px 20px rgba(0,0,0,0.3);`;
-                dbg.innerHTML = `
-                  <b style="color:red;">Export Debug v4</b><br>
-                  origW: ${origW} | cloneW: ${finalCloneRect.width.toFixed(0)}<br>
-                  intended offset: (${finalOffsetX.toFixed(0)}, ${finalOffsetY.toFixed(0)})<br>
-                  <b>MEASURED offset: (${measuredOffX.toFixed(1)}, ${measuredOffY.toFixed(1)})</b><br>
-                  bounds: (${finalMinX.toFixed(0)},${finalMinY.toFixed(0)})→(${finalMaxX.toFixed(0)},${finalMaxY.toFixed(0)})<br>
-                  canvas: ${finalTotalW.toFixed(0)}×${finalTotalH.toFixed(0)}<br>
-                  SVG viewBox: ${-measuredOffX.toFixed(1)} ${-measuredOffY.toFixed(1)} ${finalTotalW.toFixed(0)} ${finalTotalH.toFixed(0)}<br>
-                  SVG: ${svgImg ? '✅' : '❌'} | HTML: ${htmlCanvas.width}×${htmlCanvas.height}<br>
-                  <img src="${finalCanvas.toDataURL('image/png')}" style="max-width:420px;border:1px solid #ccc;margin-top:6px;"/>
-                `;
-                document.body.appendChild(dbg);
-                setTimeout(() => dbg.remove(), 12000);
-              }
-
-              // ── 13. Download ──
-              try {
-                const a = document.createElement('a');
-                a.download = `${filename}.png`;
-                a.href = finalCanvas.toDataURL('image/png');
-                a.click();
-              } finally {
-                document.body.removeChild(wrapper);
-              }
-            }} disabled={!tree}>Export PNG</button>
+            <button className="btn" onClick={handleExportPNG} disabled={!tree}>Export PNG</button>
 
             <div className="toolbar-divider" />
             <div className="segmented-control" title="Build direction">
