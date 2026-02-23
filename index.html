@@ -2709,7 +2709,7 @@
                 <h4><span className="icon">⑃</span> Building the Tree</h4>
                 <ul>
                   <li>Hover over any node to reveal action buttons.</li>
-                  <li>Use <code>│</code> for a single daughter or <code>⑃</code> for binary branching.</li>
+                  <li>Use <code>⑃</code> for binary branching or <code>│</code> for a single daughter.</li>
                   <li>The <code>△</code> button creates a triangle for unanalyzed constituents.</li>
                   <li>Double-click any branch line to toggle dotted style.</li>
                 </ul>
@@ -2724,7 +2724,6 @@
                 </ul>
               </div>
 
-              {/* NEW: Build modes */}
               <div className="instruction-card">
                 <h4><span className="icon">⇅</span> Build Modes</h4>
                 <ul>
@@ -2736,11 +2735,10 @@
                 </ul>
               </div>
 
-              {/* NEW: Multiple bottom labels (secondary labels) */}
               <div className="instruction-card">
                 <h4><span className="icon">+₂</span> Multiple Bottom Labels</h4>
                 <ul>
-                  <li>Use <code>+₂</code> to add up to <strong>4</strong> bottom labels (“pills”) under a node.</li>
+                  <li>Use <code>+₂</code> to add up to <strong>4</strong> bottom labels under a node.</li>
                   <li>Each secondary label is <strong>editable</strong> (click to edit) and can be removed with its <code>×</code> (visible on hover).</li>
                   <li>If a node reaches <strong>2+</strong> bottom labels, it becomes <strong>terminal (locked)</strong>:
                   existing daughters (if any) are removed, and no new daughters can be added in Top-down mode.</li>
@@ -2776,7 +2774,7 @@
                 <ul>
                   <li>Activate <strong>Move</strong>, then click the source node (e.g., a trace) followed by the target.</li>
                   <li>Arrows curve beneath the tree.</li>
-                  <li>Double-click on the line to toggle dotted style.</li>
+                  <li>Double-click the line to toggle between dotted and continuous line styles.</li>
                   <li>Click <code>×</code> on any arrow to remove it.</li>
                   <li>Arrows can also represent Agree relations or other long-distance dependencies.</li>
                 </ul>
@@ -2798,7 +2796,6 @@
                   <li>A label input appears immediately — type a label or leave it empty (press <span className="keyboard-hint"><span class="key">Enter</span></span> or <span className="keyboard-hint"><span class="key">Esc</span></span>).</li>
                   <li>Click an oval to select it, edit its label, <strong>drag to move</strong> it, or <strong>drag a handle</strong> to resize.</li>
                   <li>Click <code>×</code> on any oval to remove it.</li>
-                  <li>Ovals are saved in <code>.kilmer</code> files and included in PNG exports.</li>
                 </ul>
               </div>
 
