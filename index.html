@@ -40,7 +40,7 @@
     .toolbar {
       background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;
       padding: 16px 24px; margin-bottom: 8px; display: flex; gap: 10px; flex-wrap: wrap;
-      align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); position: sticky; top: 20px; z-index: 100;
+      align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
       color: var(--color-text);
     }
 
@@ -2691,7 +2691,7 @@
                     setSourceId(null);
                     setIsMoveMode(false);
                   }
-                }, onPhaseClick: (id) => { togglePhase(id); setIsPhaseMode(false); }}} /> : <div style={{color:'#999'}}>Click <strong>New Tree</strong> to start a new diagram or <strong>Load .kilmer</strong> to edit a previously saved one</div>}
+                }, onPhaseClick: (id) => { togglePhase(id); setIsPhaseMode(false); }}} /> : <div style={{color:'#999'}}>Click <strong>New Tree</strong> to start a new diagram or <strong>Load .kilmer</strong> to edit a previously saved one.</div>}
               </div>
               </div>
             </div>
@@ -2777,6 +2777,7 @@
                   <li>Double-click the line to toggle between dotted and continuous line styles.</li>
                   <li>Click <code>×</code> on any arrow to remove it.</li>
                   <li>Arrows can also represent Agree relations or other long-distance dependencies.</li>
+                  <li>Click <span className="key">Esc</span> to exit Move Mode.</li>
                 </ul>
               </div>
 
@@ -2850,12 +2851,6 @@
                     <li><span className="key">⌘</span>+<span className="key">0</span> Reset zoom</li>
                   </ul>
                 </div>
-
-                <hr style={{ margin: '15px 0', border: '0', borderTop: '1px solid #eee' }} />
-
-                <ul className="shortcut-list" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                  <li><span className="key">Esc</span> Exit Move Mode</li>
-                </ul>
               </div>
             </div>
           )}
