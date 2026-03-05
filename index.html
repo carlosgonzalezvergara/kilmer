@@ -486,6 +486,15 @@
       border: 1px solid var(--color-border); box-shadow: 0 4px 12px rgba(0,0,0,0.12); z-index: 50;
     }
 
+    .node-actions-ipa-wrapper { position: relative; display: inline-flex; align-items: center; }
+    .node-actions-ipa-wrapper .btn-ipa {
+      width: 30px; height: 28px; border-radius: 8px;
+      border: 1px solid rgba(0,0,0,.15); background: #f7f7f7;
+      cursor: pointer; font-size: 16px; line-height: 1;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .node-actions-ipa-wrapper .btn-ipa:disabled { opacity: .4; cursor: default; }
+
     .node-content.has-sublabels .node-actions { top: 90%; }
     .node-content:hover .node-actions, .node-actions:hover, .triangle-label:hover .node-actions { 
       opacity: 1; 
@@ -998,6 +1007,52 @@
       .tree-canvas { width: 100%; }
     }
 
+
+    /* =================================
+       IPA TOOLBAR PICKER (editing only)
+       ================================= */
+    .toolbar-ipa-wrapper { position: relative; display: flex; align-items: center; }
+    .ipa-panel{
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 8px;
+      width: 340px;
+      max-height: 300px;
+      overflow: auto;
+      background: #fff;
+      border: 1px solid rgba(0,0,0,.15);
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.18);
+      padding: 10px;
+      z-index: 9999;
+    }
+
+    .ipa-cat{ margin-bottom: 10px; }
+    .ipa-cat-title{ font-weight: 600; font-size: 12px; opacity: .8; margin-bottom: 6px; }
+    .ipa-grid{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .ipa-char-btn{
+      min-width: 30px;
+      height: 28px;
+      border-radius: 8px;
+      border: 1px solid rgba(0,0,0,.15);
+      background: #f7f7f7;
+      cursor: pointer;
+      font-family: var(--font-display);
+      font-size: 16px;
+      line-height: 1;
+    }
+    .ipa-char-btn:hover{ border-color: rgba(0,0,0,.35); transform: translateY(-1px); }
+
+    .btn.disabled{
+      opacity: .45;
+      pointer-events: none;
+    }
+
 </style>
 </head>
 
@@ -1009,6 +1064,18 @@
 
     const LOGO_URL = "kilmer_logo.png";
     const generateId = () => Math.random().toString(36).substring(2, 11);
+
+    // IPA picker categories (used in toolbar while editing nodes)
+    const IPA_CATEGORIES = [
+      { name: 'Vowels', chars: ['i','y','ɨ','ʉ','ɯ','u','ɪ','ʏ','ʊ','e','ø','ɘ','ɵ','ɤ','o','ə','ɛ','œ','ɜ','ɞ','ʌ','ɔ','æ','ɐ','a','ɶ','ɑ','ɒ'] },
+      { name: 'Stops', chars: ['p','b','t','d','ʈ','ɖ','c','ɟ','k','g','q','ɢ','ʔ'] },
+      { name: 'Fricatives', chars: ['f','v','θ','ð','s','z','ʃ','ʒ','ʂ','ʐ','ç','ʝ','x','ɣ','χ','ʁ','ħ','ʕ','h','ɦ'] },
+      { name: 'Nasals', chars: ['m','ɱ','n','ɳ','ɲ','ŋ','ɴ'] },
+      { name: 'Approximants', chars: ['ʋ','ɹ','ɻ','j','ɰ','l','ɭ','ʎ','ʟ'] },
+      { name: 'Taps & Trills', chars: ['ɾ','ɽ','r','ʀ'] },
+      { name: 'Diacritics', chars: ['ˈ','ˌ','ː','ˑ','̆','̃','̥','̬','̩','̯','̪','̺','̻','̼','̹','̜','̟','̠','̈'] },
+    ];
+
 
     const formatLabel = (text) => {
       if (!text) return '';
@@ -1063,7 +1130,7 @@
     const TreeNode = ({
       node, isRoot, updateNode, addNode, addParent, addSublabel, updateSublabel, removeSublabel,
       addTriangleSublabel, updateTriangleSublabel, removeTriangleSublabel, buildMode, toggleTri,
-      delNode, isMoveMode, isPhaseMode, isRegionMode, sourceId, onNodeClick, onPhaseClick, onEditStart, onEditEnd
+      delNode, isMoveMode, isPhaseMode, isRegionMode, sourceId, onNodeClick, onPhaseClick, onEditStart, onEditEnd, isEditingNode, showIPAToolbar, setShowIPAToolbar, insertIPAIntoActiveInput
     }) => {
       const [editLabel, setEditLabel] = useState(false);
       const [editTri, setEditTri] = useState(false);
@@ -1225,7 +1292,49 @@
                   )}
                   <button className="action-btn" onClick={() => toggleTri(node.id, buildMode)} title={buildMode === 'bottomup' ? 'Add triangle parent' : 'Toggle triangle'}>△</button>
                   <button className={`action-btn ${hasSublabels ? 'active' : ''}`} onClick={() => addSublabel(node.id)} disabled={sublabels.length >= 4} title={sublabels.length >= 4 ? 'Maximum: 4 secondary labels' : 'Add a secondary label (max 4)'}>+₂</button>
+                                    {isEditingNode && (editLabel || editTri || editSubIdx !== null || editTriSubIdx !== null) && (
+                    <div className="node-actions-ipa-wrapper">
+                      <button
+                        className={`action-btn ${showIPAToolbar ? 'active' : ''}`}
+                        type="button"
+                        title="Insert IPA"
+                        onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                        onClick={() => { setShowIPAToolbar(v => !v); }}
+                      >
+                        ə
+                      </button>
+
+                      {showIPAToolbar && (
+                        <div
+                          className="ipa-panel"
+                          onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                        >
+                          {IPA_CATEGORIES.map(cat => (
+                            <div key={cat.name} className="ipa-cat">
+                              <div className="ipa-cat-title">{cat.name}</div>
+                              <div className="ipa-grid">
+                                {cat.chars.map(ch => (
+                                  <button
+                                    key={ch}
+                                    className="ipa-char-btn"
+                                    type="button"
+                                    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                    onClick={() => insertIPAIntoActiveInput(ch)}
+                                  >
+                                    {ch}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <button className="action-btn danger" onClick={() => delNode(node.id)} title="Delete node or descendants">✕</button>
+                  
+
                 </div>
               )}
             </div>
@@ -1293,7 +1402,7 @@
           {node.children && (
             <div className="node-children">
               {node.children.map(c => (
-                <TreeNode key={c.id} node={c} isRoot={false} {...{updateNode, addNode, addParent, addSublabel, updateSublabel, removeSublabel, addTriangleSublabel, updateTriangleSublabel, removeTriangleSublabel, buildMode, toggleTri, delNode, isMoveMode, isPhaseMode, isRegionMode, sourceId, onNodeClick, onPhaseClick, onEditStart, onEditEnd}} />
+                <TreeNode key={c.id} node={c} isRoot={false} {...{updateNode, addNode, addParent, addSublabel, updateSublabel, removeSublabel, addTriangleSublabel, updateTriangleSublabel, removeTriangleSublabel, buildMode, toggleTri, delNode, isMoveMode, isPhaseMode, isRegionMode, sourceId, onNodeClick, onPhaseClick, onEditStart, onEditEnd, isEditingNode, showIPAToolbar, setShowIPAToolbar, insertIPAIntoActiveInput}} />
               ))}
             </div>
           )}
@@ -1322,6 +1431,10 @@
       const [lastSaved, setLastSaved] = useState(null);
       const [isSaving, setIsSaving] = useState(false);
       const isEditingRef = useRef(false);
+
+      const [isEditingNode, setIsEditingNode] = useState(false);
+      const [showIPAToolbar, setShowIPAToolbar] = useState(false);
+      const activeEditInputRef = useRef(null);
       const drawRef = useRef(null);
       const canvasRef = useRef(null);
       const zoomContainerRef = useRef(null);
@@ -1745,15 +1858,59 @@
         setTree(prev => rec(prev));
       };
 
-      // Edit state management - prevents line jumping during editing
-      const onEditStart = useCallback(() => { isEditingRef.current = true; }, []);
-      const onEditEnd = useCallback(() => {
-        isEditingRef.current = false;
-        // Redraw after editing ends (via ref to avoid draw dependency cascade)
-        setTimeout(() => drawRef.current && drawRef.current(), 0);
-      }, []);
+      
+// Edit state management - prevents line jumping during editing
+const captureActiveEditInput = useCallback(() => {
+  // Wait a tick so the overlay input can autofocus
+  setTimeout(() => {
+    const el = document.activeElement;
+    if (el && el.tagName === 'INPUT') activeEditInputRef.current = el;
+  }, 0);
+}, []);
 
-      // --- Oval interaction handlers (create / move / resize / label) ---
+const onEditStart = useCallback(() => {
+  isEditingRef.current = true;
+  setIsEditingNode(true);
+  captureActiveEditInput();
+}, [captureActiveEditInput]);
+
+const onEditEnd = useCallback(() => {
+  isEditingRef.current = false;
+  setIsEditingNode(false);
+  setShowIPAToolbar(false);
+  activeEditInputRef.current = null;
+
+  // Redraw after editing ends (via ref to avoid draw dependency cascade)
+  setTimeout(() => drawRef.current && drawRef.current(), 0);
+}, []);
+function insertIPAIntoActiveInput(ch) {
+        let target = activeEditInputRef.current;
+
+        // If lost, try to recover from current focus
+        if (!target || target.tagName !== 'INPUT') {
+          const el = document.activeElement;
+          if (el && el.tagName === 'INPUT') {
+            activeEditInputRef.current = el;
+            target = el;
+          }
+        }
+        if (!target || target.tagName !== 'INPUT') return;
+
+        const start = (typeof target.selectionStart === 'number') ? target.selectionStart : target.value.length;
+        const end = (typeof target.selectionEnd === 'number') ? target.selectionEnd : target.value.length;
+
+        const next = target.value.slice(0, start) + ch + target.value.slice(end);
+        target.value = next;
+
+        // Let any listeners react (some overlays rely on native events)
+        target.dispatchEvent(new Event('input', { bubbles: true }));
+        target.dispatchEvent(new Event('change', { bubbles: true }));
+
+        target.focus();
+        try { target.setSelectionRange(start + ch.length, start + ch.length); } catch (_) {}
+      }
+
+// --- Oval interaction handlers (create / move / resize / label) ---
       const getUnscaledPos = useCallback((e) => {
         const container = zoomContainerRef.current;
         if (!container) return null;
@@ -2587,6 +2744,7 @@
             <div className="toolbar-divider" />
             <button className="btn" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)">↶</button>
             <button className="btn" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Y)">↷</button>
+
           </div>
 
           {/* Mode Status Bar */}
@@ -2676,7 +2834,7 @@
               <div className="zoom-stage" style={{ width: stageW, height: stageH }}>
               <div className="zoom-container" ref={zoomContainerRef} style={{ transform: `translateX(-50%) scale(${zoomLevel / 100})`, transformOrigin: 'top center' }}>
                 <svg width={svgW} height={svgH} style={{position:'absolute', top:0, left:0, pointerEvents:'none', zIndex:1, overflow:'visible'}}>{svgLines}</svg>
-                {tree ? <TreeNode node={tree} isRoot={true} {...{updateNode, addNode, addParent, buildMode, toggleTri, addSublabel, updateSublabel, removeSublabel, addTriangleSublabel, updateTriangleSublabel, removeTriangleSublabel, delNode, isMoveMode, isPhaseMode, isRegionMode, sourceId, onEditStart, onEditEnd, onNodeClick: (id) => {
+                {tree ? <TreeNode node={tree} isRoot={true} {...{updateNode, addNode, addParent, buildMode, toggleTri, addSublabel, updateSublabel, removeSublabel, addTriangleSublabel, updateTriangleSublabel, removeTriangleSublabel, delNode, isMoveMode, isPhaseMode, isRegionMode, sourceId, onEditStart, onEditEnd, isEditingNode, showIPAToolbar, setShowIPAToolbar, insertIPAIntoActiveInput, onNodeClick: (id) => {
                   if (!sourceId) setSourceId(id);
                   else if (sourceId === id) setSourceId(null);
                   else {
@@ -2720,6 +2878,7 @@
                 <ul>
                   <li>Click any label to edit.</li>
                   <li>Confirm with <span className="keyboard-hint"><span class="key">Enter</span></span> or cancel with <span className="keyboard-hint"><span class="key">Esc</span></span> to revert.</li>
+                  <li>While editing, use the <code>ə</code> button in the floating node toolbar (just left of <code>✕</code>) to open an IPA palette and insert symbols at the cursor position.</li>
                   <li>Use <code>+₂</code> to add a secondary label below the main one.</li>
                 </ul>
               </div>
