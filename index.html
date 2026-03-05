@@ -579,7 +579,7 @@
     }
 
     .collapse-icon {
-      font-size: 0.9rem;
+      font-size: 1.25rem;
       transition: transform 0.3s ease;
     }
 
@@ -1013,10 +1013,6 @@
        ================================= */
     .toolbar-ipa-wrapper { position: relative; display: flex; align-items: center; }
     .ipa-panel{
-      position: absolute;
-      top: 100%;
-      right: 0;
-      margin-top: 8px;
       width: 340px;
       max-height: 300px;
       overflow: auto;
@@ -1025,7 +1021,11 @@
       border-radius: 10px;
       box-shadow: 0 8px 24px rgba(0,0,0,.18);
       padding: 10px;
-      z-index: 9999;
+    }
+
+    .ipa-panel-portal{
+      position: fixed;
+      z-index: 999999;
     }
 
     .ipa-cat{ margin-bottom: 10px; }
@@ -1130,7 +1130,7 @@
     const TreeNode = ({
       node, isRoot, updateNode, addNode, addParent, addSublabel, updateSublabel, removeSublabel,
       addTriangleSublabel, updateTriangleSublabel, removeTriangleSublabel, buildMode, toggleTri,
-      delNode, isMoveMode, isPhaseMode, isRegionMode, sourceId, onNodeClick, onPhaseClick, onEditStart, onEditEnd, isEditingNode, showIPAToolbar, setShowIPAToolbar, insertIPAIntoActiveInput
+      delNode, isMoveMode, isPhaseMode, isRegionMode, sourceId, onNodeClick, onPhaseClick, onEditStart, onEditEnd, isEditingNode, showIPAToolbar, toggleIPAPanel, insertIPAIntoActiveInput
     }) => {
       const [editLabel, setEditLabel] = useState(false);
       const [editTri, setEditTri] = useState(false);
@@ -1299,37 +1299,11 @@
                         type="button"
                         title="Insert IPA"
                         onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                        onClick={() => { setShowIPAToolbar(v => !v); }}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleIPAPanel(e.currentTarget); }}
                       >
                         ə
                       </button>
-
-                      {showIPAToolbar && (
-                        <div
-                          className="ipa-panel"
-                          onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                        >
-                          {IPA_CATEGORIES.map(cat => (
-                            <div key={cat.name} className="ipa-cat">
-                              <div className="ipa-cat-title">{cat.name}</div>
-                              <div className="ipa-grid">
-                                {cat.chars.map(ch => (
-                                  <button
-                                    key={ch}
-                                    className="ipa-char-btn"
-                                    type="button"
-                                    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                                    onClick={() => insertIPAIntoActiveInput(ch)}
-                                  >
-                                    {ch}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+</div>
                   )}
 
                   <button className="action-btn danger" onClick={() => delNode(node.id)} title="Delete node or descendants">✕</button>
@@ -1392,6 +1366,19 @@
                 {!isSpecialMode && (
                   <div className="node-actions">
                     <button className={`action-btn ${hasTriangleSublabels ? 'active' : ''}`} onClick={() => addTriangleSublabel(node.id)} disabled={triangleSublabels.length >= 4} title={triangleSublabels.length >= 4 ? 'Maximum: 4 secondary labels' : 'Add a secondary label (max 4)'}>+₂</button>
+                    {isEditingNode && (editLabel || editTri || editSubIdx !== null || editTriSubIdx !== null) && (
+                      <div className="node-actions-ipa-wrapper">
+                        <button
+                          className={`action-btn ${showIPAToolbar ? 'active' : ''}`}
+                          type="button"
+                          title="Insert IPA"
+                          onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleIPAPanel(e.currentTarget); }}
+                        >
+                          ə
+                        </button>
+</div>
+                    )}
                     <button className="action-btn danger" onClick={() => toggleTri(node.id, 'topdown')} title="Remove triangle">✕</button>
                   </div>
                 )}
@@ -1402,7 +1389,7 @@
           {node.children && (
             <div className="node-children">
               {node.children.map(c => (
-                <TreeNode key={c.id} node={c} isRoot={false} {...{updateNode, addNode, addParent, addSublabel, updateSublabel, removeSublabel, addTriangleSublabel, updateTriangleSublabel, removeTriangleSublabel, buildMode, toggleTri, delNode, isMoveMode, isPhaseMode, isRegionMode, sourceId, onNodeClick, onPhaseClick, onEditStart, onEditEnd, isEditingNode, showIPAToolbar, setShowIPAToolbar, insertIPAIntoActiveInput}} />
+                <TreeNode key={c.id} node={c} isRoot={false} {...{updateNode, addNode, addParent, addSublabel, updateSublabel, removeSublabel, addTriangleSublabel, updateTriangleSublabel, removeTriangleSublabel, buildMode, toggleTri, delNode, isMoveMode, isPhaseMode, isRegionMode, sourceId, onNodeClick, onPhaseClick, onEditStart, onEditEnd, isEditingNode, showIPAToolbar, toggleIPAPanel, insertIPAIntoActiveInput}} />
               ))}
             </div>
           )}
@@ -1434,6 +1421,9 @@
 
       const [isEditingNode, setIsEditingNode] = useState(false);
       const [showIPAToolbar, setShowIPAToolbar] = useState(false);
+      const [ipaPortalPos, setIpaPortalPos] = useState({ x: 0, y: 0 });
+      const ipaAnchorElRef = useRef(null);
+      const ipaPanelRef = useRef(null);
       const activeEditInputRef = useRef(null);
       const drawRef = useRef(null);
       const canvasRef = useRef(null);
@@ -1878,6 +1868,7 @@ const onEditEnd = useCallback(() => {
   isEditingRef.current = false;
   setIsEditingNode(false);
   setShowIPAToolbar(false);
+  ipaAnchorElRef.current = null;
   activeEditInputRef.current = null;
 
   // Redraw after editing ends (via ref to avoid draw dependency cascade)
@@ -1909,6 +1900,86 @@ function insertIPAIntoActiveInput(ch) {
         target.focus();
         try { target.setSelectionRange(start + ch.length, start + ch.length); } catch (_) {}
       }
+
+      // ================================
+      // IPA portal dropdown (renders in document.body)
+      // ================================
+      const computeIPAPortalPos = useCallback((anchorEl) => {
+        if (!anchorEl) return { x: 0, y: 0 };
+        const rect = anchorEl.getBoundingClientRect();
+
+        // Match previous behavior: panel aligned to the right edge of the anchor
+        const PANEL_W = 340;
+        const PANEL_H = 300;
+        const GAP = 8;
+        const MARGIN = 8;
+
+        const vw = window.innerWidth || 1024;
+        const vh = window.innerHeight || 768;
+
+        let x = rect.right - PANEL_W;
+        x = Math.max(MARGIN, Math.min(x, vw - MARGIN - PANEL_W));
+
+        // Try bottom, flip to top if needed
+        let y = rect.bottom + GAP;
+        if (y + PANEL_H > vh - MARGIN) {
+          y = rect.top - GAP - PANEL_H;
+        }
+        y = Math.max(MARGIN, Math.min(y, vh - MARGIN - PANEL_H));
+
+        return { x, y };
+      }, []);
+
+      const toggleIPAPanel = useCallback((anchorEl) => {
+        if (!anchorEl) return;
+        const sameAnchor = ipaAnchorElRef.current === anchorEl;
+
+        if (showIPAToolbar && sameAnchor) {
+          setShowIPAToolbar(false);
+          ipaAnchorElRef.current = null;
+          return;
+        }
+
+        ipaAnchorElRef.current = anchorEl;
+        setIpaPortalPos(computeIPAPortalPos(anchorEl));
+        setShowIPAToolbar(true);
+      }, [showIPAToolbar, computeIPAPortalPos]);
+
+      // Close on click outside, scroll, or resize (keeps behavior predictable)
+      useEffect(() => {
+        if (!showIPAToolbar) return;
+
+        const onMouseDown = (e) => {
+          const panel = ipaPanelRef.current;
+          const anchor = ipaAnchorElRef.current;
+          if (panel && panel.contains(e.target)) return;
+          if (anchor && anchor.contains && anchor.contains(e.target)) return;
+          setShowIPAToolbar(false);
+          ipaAnchorElRef.current = null;
+        };
+
+        const onScrollOrResize = (e) => {
+          // Do NOT close when the user scrolls inside the IPA panel itself.
+          // (Scroll events are captured at window level in some browsers.)
+          const panel = ipaPanelRef.current;
+          const anchor = ipaAnchorElRef.current;
+          if (e && panel && panel.contains(e.target)) return;
+          if (e && anchor && anchor.contains && anchor.contains(e.target)) return;
+          setShowIPAToolbar(false);
+          ipaAnchorElRef.current = null;
+        };
+
+        // Capture phase helps when the canvas stops propagation
+        window.addEventListener('mousedown', onMouseDown, true);
+        window.addEventListener('scroll', onScrollOrResize, true);
+        window.addEventListener('resize', onScrollOrResize);
+
+        return () => {
+          window.removeEventListener('mousedown', onMouseDown, true);
+          window.removeEventListener('scroll', onScrollOrResize, true);
+          window.removeEventListener('resize', onScrollOrResize);
+        };
+      }, [showIPAToolbar]);
 
 // --- Oval interaction handlers (create / move / resize / label) ---
       const getUnscaledPos = useCallback((e) => {
@@ -2834,7 +2905,7 @@ function insertIPAIntoActiveInput(ch) {
               <div className="zoom-stage" style={{ width: stageW, height: stageH }}>
               <div className="zoom-container" ref={zoomContainerRef} style={{ transform: `translateX(-50%) scale(${zoomLevel / 100})`, transformOrigin: 'top center' }}>
                 <svg width={svgW} height={svgH} style={{position:'absolute', top:0, left:0, pointerEvents:'none', zIndex:1, overflow:'visible'}}>{svgLines}</svg>
-                {tree ? <TreeNode node={tree} isRoot={true} {...{updateNode, addNode, addParent, buildMode, toggleTri, addSublabel, updateSublabel, removeSublabel, addTriangleSublabel, updateTriangleSublabel, removeTriangleSublabel, delNode, isMoveMode, isPhaseMode, isRegionMode, sourceId, onEditStart, onEditEnd, isEditingNode, showIPAToolbar, setShowIPAToolbar, insertIPAIntoActiveInput, onNodeClick: (id) => {
+                {tree ? <TreeNode node={tree} isRoot={true} {...{updateNode, addNode, addParent, buildMode, toggleTri, addSublabel, updateSublabel, removeSublabel, addTriangleSublabel, updateTriangleSublabel, removeTriangleSublabel, delNode, isMoveMode, isPhaseMode, isRegionMode, sourceId, onEditStart, onEditEnd, isEditingNode, showIPAToolbar, toggleIPAPanel, insertIPAIntoActiveInput, onNodeClick: (id) => {
                   if (!sourceId) setSourceId(id);
                   else if (sourceId === id) setSourceId(null);
                   else {
@@ -2858,7 +2929,7 @@ function insertIPAIntoActiveInput(ch) {
           <div className="instructions-panel">
             <button className="instructions-header" onClick={() => setShowInstructions(prev => !prev)}>
               <span>Instructions</span>
-              <span className={`collapse-icon ${showInstructions ? 'expanded' : ''}`}>▶</span>
+              <span className={`collapse-icon ${showInstructions ? 'expanded' : ''}`}>›</span>
             </button>
             {showInstructions && (
               <div className="instructions-grid">
@@ -3021,6 +3092,36 @@ function insertIPAIntoActiveInput(ch) {
               <img src="https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by-nc-nd.svg" alt="CC BY-NC-ND 4.0" />
             </a>
           </footer>
+
+          {showIPAToolbar && ReactDOM.createPortal(
+            <div
+              ref={ipaPanelRef}
+              className="ipa-panel ipa-panel-portal"
+              style={{ left: ipaPortalPos.x, top: ipaPortalPos.y }}
+              onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            >
+              {IPA_CATEGORIES.map(cat => (
+                <div key={cat.name} className="ipa-cat">
+                  <div className="ipa-cat-title">{cat.name}</div>
+                  <div className="ipa-grid">
+                    {cat.chars.map(ch => (
+                      <button
+                        key={ch}
+                        className="ipa-char-btn"
+                        type="button"
+                        onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                        onClick={() => insertIPAIntoActiveInput(ch)}
+                      >
+                        {ch}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>,
+            document.body
+          )}
+
         </div>
       );
     };
