@@ -1230,7 +1230,7 @@
                     autoFocus
                     value={val}
                     onChange={e => setVal(e.target.value)}
-                    onBlur={() => { updateNode(node.id, { label: val || '...' }); setEditLabel(false); onEditEnd(); }}
+                    onBlur={(e) => { const final = e.target.value; updateNode(node.id, { label: final || '...' }); setVal(final); setEditLabel(false); onEditEnd(); }}
                     onKeyDown={e => {
                       if (e.key === 'Enter') e.currentTarget.blur();
                       if (e.key === 'Escape') { setVal(node.label); setEditLabel(false); onEditEnd(); }
@@ -1255,8 +1255,9 @@
                           autoFocus
                           value={subEditVal}
                           onChange={e => setSubEditVal(e.target.value)}
-                          onBlur={() => {
-                            updateSublabel(node.id, idx, subEditVal || '...');
+                          onBlur={(e) => {
+                            const final = e.target.value;
+                            updateSublabel(node.id, idx, final || '...');
                             setEditSubIdx(null);
                             setSubEditVal('');
                             onEditEnd();
@@ -1331,7 +1332,7 @@
                     autoFocus
                     value={tVal}
                     onChange={e => setTVal(e.target.value)}
-                    onBlur={() => { updateNode(node.id, { triangleText: tVal || '...' }); setEditTri(false); onEditEnd(); }}
+                    onBlur={(e) => { const final = e.target.value; updateNode(node.id, { triangleText: final || '...' }); setTVal(final); setEditTri(false); onEditEnd(); }}
                     onKeyDown={e => {
                       if (e.key === 'Enter') e.currentTarget.blur();
                       if (e.key === 'Escape') { setTVal(node.triangleText || ''); setEditTri(false); onEditEnd(); }
@@ -1354,7 +1355,7 @@
                             autoFocus
                             value={triSubEditVal}
                             onChange={e => setTriSubEditVal(e.target.value)}
-                            onBlur={() => { updateTriangleSublabel(node.id, idx, triSubEditVal || '...'); setEditTriSubIdx(null); setTriSubEditVal(''); onEditEnd(); }}
+                            onBlur={(e) => { const final = e.target.value; updateTriangleSublabel(node.id, idx, final || '...'); setEditTriSubIdx(null); setTriSubEditVal(''); onEditEnd(); }}
                             onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { setEditTriSubIdx(null); setTriSubEditVal(''); onEditEnd(); } }}
                           />
                         )}
@@ -1952,8 +1953,23 @@ function insertIPAIntoActiveInput(ch) {
         const onMouseDown = (e) => {
           const panel = ipaPanelRef.current;
           const anchor = ipaAnchorElRef.current;
+
+          // If the click is inside the IPA UI, do nothing.
           if (panel && panel.contains(e.target)) return;
           if (anchor && anchor.contains && anchor.contains(e.target)) return;
+
+          // If we're editing an overlay input, force a blur FIRST so the onBlur commit
+          // runs before any selection / canvas handlers can unmount the input.
+          const active = activeEditInputRef.current;
+          if (active && active.tagName === 'INPUT') {
+            if (active === e.target) return;
+            if (active.contains && active.contains(e.target)) return;
+            // Only blur if this input is currently focused
+            if (document.activeElement === active) {
+              try { active.blur(); } catch (_) {}
+            }
+          }
+
           setShowIPAToolbar(false);
           ipaAnchorElRef.current = null;
         };
