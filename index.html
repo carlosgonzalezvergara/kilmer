@@ -35,13 +35,161 @@
     .header-logo { max-width: 320px; height: auto; }
 
     /* =================================
-       TOOLBAR Y CONTROLES
+       TOP BAR (file management only)
        ================================= */
-    .toolbar {
+    .top-bar {
       background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;
-      padding: 16px 24px; margin-bottom: 8px; display: flex; gap: 10px; flex-wrap: wrap;
-      align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      padding: 10px 20px; margin-bottom: 8px; display: flex; gap: 10px; flex-wrap: wrap;
+      align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
       color: var(--color-text);
+    }
+    .top-bar-right {
+      margin-left: auto;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    /* =================================
+       WORKSPACE LAYOUT (sidebar + main)
+       ================================= */
+    .workspace {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    /* =================================
+       LEFT SIDEBAR (icon rail, expands on hover)
+       ================================= */
+    .sidebar {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      padding: 8px 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      align-items: stretch;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      flex-shrink: 0;
+      position: sticky;
+      top: 12px;
+      width: 44px;
+      overflow: hidden;
+      transition: width 0.2s ease;
+      z-index: 50;
+    }
+    .sidebar:hover {
+      width: 140px;
+      overflow: visible;
+    }
+
+    .sidebar-divider {
+      height: 1px;
+      background: var(--color-border);
+      margin: 3px 4px;
+    }
+
+    /* Sidebar button — icon + label */
+    .sb-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      padding: 7px 7px;
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text);
+      white-space: nowrap;
+      transition: background 0.15s;
+      min-height: 32px;
+    }
+    .sidebar:hover .sb-btn { justify-content: flex-start; }
+    .sb-btn:hover:not(:disabled):not(.active-mode) { background: rgba(0,0,0,0.06); }
+    .sb-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .sb-btn.active-mode { background: #16a34a; color: white; }
+    .sb-btn.active-mode:hover { background: #15803d; }
+
+    .sb-icon {
+      width: 18px;
+      flex-shrink: 0;
+      text-align: center;
+      font-size: 16px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 18px;
+    }
+    .sb-label {
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      overflow: hidden;
+    }
+    .sidebar:hover .sb-label { opacity: 1; }
+
+    /* Segmented control inside sidebar */
+    .sidebar .segmented-control {
+      display: flex;
+      flex-direction: column;
+      border: none;
+      background: none;
+      gap: 2px;
+      overflow: visible;
+    }
+    .sidebar .segmented-control .sb-btn.active {
+      background: var(--color-accent);
+      color: white;
+    }
+
+    /* Highlight in sidebar */
+    .sidebar .highlight-popover-wrapper {
+      width: 100%;
+    }
+    .sidebar .highlight-popover-trigger {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 7px 7px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+      min-height: 32px;
+    }
+    .sidebar:hover .highlight-popover-trigger { justify-content: flex-start; }
+    .sidebar .highlight-popover-trigger:hover:not(:disabled):not(.active-mode) { background: rgba(0,0,0,0.06); }
+    .sidebar .highlight-popover-trigger:disabled { opacity: 0.35; cursor: not-allowed; }
+    .sidebar .highlight-popover-trigger.active-mode { color: white; }
+    .sidebar .highlight-popover-trigger.active-mode:hover { filter: brightness(0.85); }
+    .sidebar .highlight-popover-trigger .sb-label { overflow: hidden; }
+    .sidebar .highlight-popover-trigger .caret {
+      font-size: 14px;
+      opacity: 0;
+      margin-left: auto;
+      transition: opacity 0.15s;
+      width: 0;
+      overflow: hidden;
+      padding: 0;
+    }
+    .sidebar:hover .highlight-popover-trigger .caret { opacity: 0.9; width: auto; }
+
+    .workspace-main {
+      flex: 1;
+      min-width: 0;
     }
 
     /* Barra de estado de modo (Move/Phase) */
@@ -127,13 +275,6 @@
     .btn-primary { background: var(--color-accent); color: white; border-color: var(--color-accent); }
     .btn.active-mode { background: #16a34a; color: white; border-color: #16a34a; }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    .toolbar-divider {
-      width: 1px;
-      height: 28px;
-      background: linear-gradient(to bottom, transparent 5%, #c0bdb8 20%, #c0bdb8 80%, transparent 95%);
-      margin: 0 10px;
-    }
 
     /* Control segmentado (Top-down/Bottom-up) */
     .segmented-control {
@@ -501,6 +642,11 @@
       visibility: visible; 
       transition: opacity 0.1s, visibility 0s; 
     }
+    .node-actions.suppressed {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
     .triangle-label .node-actions { top: 80%; }
     .triangle-label.has-triangle-sublabels .node-actions { top: 95%; }
     .node-content.bottomup .node-actions {
@@ -513,6 +659,7 @@
     .action-btn:hover { background: var(--color-accent); color: white; }
     .action-btn.danger:hover { background: #dc2626; border-color: #dc2626; color: white; }
     .action-btn.active { background: var(--color-accent); color: white; }
+    .li-special-btn { width: 26px; min-width: 26px; height: 26px; padding: 0; font-size: 14px; font-weight: 600; color: #1a472a; flex-shrink: 0; }
 
     .node-children { display: flex; justify-content: center; gap: 40px; padding-top: 40px; position: relative; }
     .node-wrapper.has-sublabels + .node-children { padding-top: 22px; }
@@ -536,10 +683,13 @@
     .arrow-group:hover .arrow-delete-btn,
     .phase-group:hover .arrow-delete-btn,
     .oval-group:hover .arrow-delete-btn,
+    .li-group:hover .arrow-delete-btn,
     .arrow-delete-btn:hover { opacity: 1; }
     /* Oval delete buttons fade out slowly */
     .oval-group .arrow-delete-btn { transition: opacity 0.6s 0.4s; }
     .oval-group:hover .arrow-delete-btn { transition: opacity 0.1s; }
+    .li-group .arrow-delete-btn { transition: opacity 0.6s 0.4s; }
+    .li-group:hover .arrow-delete-btn { transition: opacity 0.1s; }
 
     /* =================================
        PANEL DE INSTRUCCIONES
@@ -604,10 +754,32 @@
       .container { padding: 20px 12px; }
       .header { margin-bottom: 24px; }
       .header-logo { max-width: 240px; }
-      .toolbar {
-        padding: 12px 16px;
+      .top-bar {
+        padding: 10px 12px;
         gap: 8px;
+      }
+      .workspace {
+        flex-direction: column;
+      }
+      .sidebar {
+        flex-direction: row;
+        width: 100% !important;
+        overflow: visible;
         position: static;
+        padding: 6px 8px;
+        gap: 2px;
+      }
+      .sidebar .sb-label { display: none; }
+      .sidebar:hover .sb-label { display: none; }
+      .sidebar .highlight-popover-trigger .caret { opacity: 0.9; }
+      .sidebar-divider {
+        width: 1px;
+        height: 28px;
+        margin: 0 3px;
+        background: var(--color-border);
+      }
+      .sidebar .segmented-control {
+        flex-direction: row;
       }
     /* Botones principales */
       .btn {
@@ -871,96 +1043,33 @@
       box-shadow: 0 0 0 2px white, 0 0 0 4px var(--color-text);
     }
 
-    /* Highlight popover */
+    /* Highlight popover (lives inside sidebar) */
     .highlight-popover-wrapper {
       position: relative;
       display: inline-block;
     }
-    .highlight-popover-trigger {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 16px;
-      border: 1px solid var(--color-border);
-      border-radius: 8px;
-      background: var(--color-surface);
-      font-family: var(--font-body);
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .highlight-popover-trigger:hover:not(:disabled) { border-color: var(--color-text); transform: translateY(-1px); }
-    .highlight-popover-trigger:disabled { opacity: 0.4; cursor: not-allowed; }
-    .highlight-popover-trigger.active-mode {
-      background: #16a34a;
-      color: white;
-      border-color: #16a34a;
-    }
-    .highlight-popover-trigger .color-preview {
-      width: 13px; height: 13px;
-      border-radius: 50%;
-      border: 2px solid rgba(255,255,255,0.6);
-      flex-shrink: 0;
-    }
-    .highlight-popover-trigger .caret {
-      font-size: 16px;
-      opacity: 0.9;
-      
-      /* == AJUSTES DE POSICIÓN PARA PEGARLO AL BORDE == */
-      margin-left: 10px;      /* Separación del texto */
-      margin-right: -16px;    /* Negativo exacto al padding-right del padre */
-      margin-top: -8px;       /* Negativo exacto al padding-top del padre */
-      margin-bottom: -8px;    /* Negativo exacto al padding-bottom del padre */
-      align-self: stretch;    /* Fuerza que ocupe toda la altura */
-      
-      /* == AJUSTES INTERNOS == */
-      padding-left: 12px;     /* Área de clic cómoda */
-      padding-right: 12px;    /* Centrado visual */
-      
-      border-left: 1px solid rgba(255,255,255,0.4);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.2s;
-      
-      /* Radio coincidente con el botón principal (8px) */
-      border-radius: 0 8px 8px 0; 
-    }
-
-    .highlight-popover-trigger .caret:hover {
-      background-color: rgba(255,255,255,0.2); /* Fondo blanco translúcido al pasar el mouse */
-      opacity: 1;
-    }
     .highlight-popover-panel {
       position: absolute;
-      top: calc(100% + 7px);
-      left: 50%;
-      transform: translateX(-50%);
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
       background: white;
       border: 1px solid var(--color-border);
-      border-radius: 10px;
-      padding: 9px 14px;
+      border-radius: 8px;
+      padding: 8px;
       box-shadow: 0 8px 30px rgba(0,0,0,0.13);
       display: flex;
-      gap: 7px;
+      gap: 5px;
       align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
       z-index: 100;
-      white-space: nowrap;
     }
     .highlight-popover-panel::before {
-      content: '';
-      position: absolute;
-      top: -6px;
-      left: 50%;
-      transform: translateX(-50%) rotate(45deg);
-      width: 10px; height: 10px;
-      background: white;
-      border-left: 1px solid var(--color-border);
-      border-top: 1px solid var(--color-border);
+      display: none;
     }
     .highlight-popover-panel .oval-color-dot {
-      width: 22px; height: 22px;
+      width: 18px; height: 18px;
     }
 
     /* Oval label editing input */
@@ -1013,8 +1122,8 @@
        ================================= */
     .toolbar-ipa-wrapper { position: relative; display: flex; align-items: center; }
     .ipa-panel{
-      width: 340px;
-      max-height: 300px;
+      width: 380px;
+      max-height: 360px;
       overflow: auto;
       background: #fff;
       border: 1px solid rgba(0,0,0,.15);
@@ -1024,8 +1133,15 @@
     }
 
     .ipa-panel-portal{
-      position: fixed;
-      z-index: 999999;
+      position: absolute;
+      top: 48px;
+      right: 12px;
+      z-index: 201;
+      animation: ipaPanelIn 0.15s ease-out;
+    }
+    @keyframes ipaPanelIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
     .ipa-cat{ margin-bottom: 10px; }
@@ -1067,13 +1183,17 @@
 
     // IPA picker categories (used in toolbar while editing nodes)
     const IPA_CATEGORIES = [
-      { name: 'Vowels', chars: ['i','y','ɨ','ʉ','ɯ','u','ɪ','ʏ','ʊ','e','ø','ɘ','ɵ','ɤ','o','ə','ɛ','œ','ɜ','ɞ','ʌ','ɔ','æ','ɐ','a','ɶ','ɑ','ɒ'] },
-      { name: 'Stops', chars: ['p','b','t','d','ʈ','ɖ','c','ɟ','k','g','q','ɢ','ʔ'] },
-      { name: 'Fricatives', chars: ['f','v','θ','ð','s','z','ʃ','ʒ','ʂ','ʐ','ç','ʝ','x','ɣ','χ','ʁ','ħ','ʕ','h','ɦ'] },
-      { name: 'Nasals', chars: ['m','ɱ','n','ɳ','ɲ','ŋ','ɴ'] },
-      { name: 'Approximants', chars: ['ʋ','ɹ','ɻ','j','ɰ','l','ɭ','ʎ','ʟ'] },
-      { name: 'Taps & Trills', chars: ['ɾ','ɽ','r','ʀ'] },
-      { name: 'Diacritics', chars: ['ˈ','ˌ','ː','ˑ','̆','̃','̥','̬','̩','̯','̪','̺','̻','̼','̹','̜','̟','̠','̈'] },
+      { name: 'Common', chars: ['Ø','√','∅','≠','≈','≤','≥','±','∞','→','←','↔','⇒','⇐','⇔','¬','∧','∨','∀','∃','∈','∉','⊂','⊃','∪','∩','λ'] },
+      { name: 'Greek uppercase', chars: ['Α','Β','Γ','Δ','Ε','Ζ','Η','Θ','Ι','Κ','Λ','Μ','Ν','Ξ','Ο','Π','Ρ','Σ','Τ','Υ','Φ','Χ','Ψ','Ω'] },
+      { name: 'Greek lowercase', chars: ['α','β','γ','δ','ε','ζ','η','θ','ι','κ','λ','μ','ν','ξ','ο','π','ρ','σ','ς','τ','υ','φ','χ','ψ','ω'] },
+      { name: 'Math symbols', chars: ['×','÷','·','°','′','″','∑','∏','∂','∇','∫','√','∝','‰','†','‡','ℓ','ℕ','ℤ','ℚ','ℝ','ℂ'] },
+      { name: 'Vowels (IPA)', chars: ['i','y','ɨ','ʉ','ɯ','u','ɪ','ʏ','ʊ','e','ø','ɘ','ɵ','ɤ','o','ə','ɛ','œ','ɜ','ɞ','ʌ','ɔ','æ','ɐ','a','ɶ','ɑ','ɒ'] },
+      { name: 'Stops (IPA)', chars: ['p','b','t','d','ʈ','ɖ','c','ɟ','k','g','q','ɢ','ʔ'] },
+      { name: 'Fricatives (IPA)', chars: ['f','v','θ','ð','s','z','ʃ','ʒ','ʂ','ʐ','ç','ʝ','x','ɣ','χ','ʁ','ħ','ʕ','h','ɦ'] },
+      { name: 'Nasals (IPA)', chars: ['m','ɱ','n','ɳ','ɲ','ŋ','ɴ'] },
+      { name: 'Approximants (IPA)', chars: ['ʋ','ɹ','ɻ','j','ɰ','l','ɭ','ʎ','ʟ'] },
+      { name: 'Taps & Trills (IPA)', chars: ['ɾ','ɽ','r','ʀ'] },
+      { name: 'Diacritics (IPA)', chars: ['ˈ','ˌ','ː','ˑ','̆','̃','̥','̬','̩','̯','̪','̺','̻','̼','̹','̜','̟','̠','̈'] },
     ];
 
 
@@ -1108,6 +1228,29 @@
       return ctx.measureText(plainText).width;
     };
 
+    const ensureLateInsertionNodeClearance = (li, label) => {
+      const finalLabel = (label && label.trim()) ? label.trim() : '...';
+      const GAP = 8;
+      const RECT_ARROW_GAP = 10;
+      const NODE_ARROW_GAP = 10;
+      const HEAD_SHAFT_GAP = 0;
+      const AH_LEN = 15;
+      const MIN_SHAFT_VISIBLE = 20;
+      const TEXT_PAD = 4;
+      const textHalfW = measureText(finalLabel) / 2 + TEXT_PAD;
+      const rectMidX = li.x + li.w / 2;
+      const nodeIsRight = li.nodeX >= rectMidX;
+
+      if (nodeIsRight) {
+        const minNodeX = li.x + li.w + GAP + RECT_ARROW_GAP + AH_LEN + HEAD_SHAFT_GAP + MIN_SHAFT_VISIBLE + AH_LEN + NODE_ARROW_GAP + textHalfW;
+        return { ...li, label: finalLabel, nodeX: Math.max(li.nodeX, minNodeX) };
+      }
+
+      const maxNodeX = li.x - GAP - RECT_ARROW_GAP - AH_LEN - HEAD_SHAFT_GAP - MIN_SHAFT_VISIBLE - AH_LEN - NODE_ARROW_GAP - textHalfW;
+      return { ...li, label: finalLabel, nodeX: Math.min(li.nodeX, maxNodeX) };
+    };
+
+
     const debounce = (func, delay) => {
       let timeout;
       return (...args) => {
@@ -1138,6 +1281,7 @@
       const [subEditVal, setSubEditVal] = useState('');
       const [editTriSubIdx, setEditTriSubIdx] = useState(null);
       const [triSubEditVal, setTriSubEditVal] = useState('');
+      const [suppressActionButtons, setSuppressActionButtons] = useState(false);
       const [val, setVal] = useState(node.label);
       const [tVal, setTVal] = useState(node.triangleText || '');
 
@@ -1155,6 +1299,7 @@
         setSubEditVal('');
         setEditTriSubIdx(null);
         setTriSubEditVal('');
+        setSuppressActionButtons(false);
       }, [node.id, node.label, node.triangleText]);
 
       const sublabels = Array.isArray(node.sublabels) ? node.sublabels : [];
@@ -1169,6 +1314,7 @@
         else {
           const current = triangleSublabels[idx] ?? '...';
           editBaseTriSubRef.current = current || '...';
+          setSuppressActionButtons(false);
           setTriSubEditVal(current === '...' ? '' : current);
           setEditTriSubIdx(idx);
           onEditStart();
@@ -1180,6 +1326,7 @@
         else if (isPhaseMode) onPhaseClick(node.id);
         else {
           editBaseLabelRef.current = val || '...';
+          setSuppressActionButtons(false);
           if (val === '...') setVal('');
           setEditLabel(true);
           onEditStart();
@@ -1191,6 +1338,7 @@
         else if (isPhaseMode) onPhaseClick(node.id);
         else {
           editBaseTriRef.current = tVal || '...';
+          setSuppressActionButtons(false);
           if (tVal === '...') setTVal('');
           setEditTri(true);
           onEditStart();
@@ -1203,6 +1351,7 @@
         else {
           const current = sublabels[idx] ?? '...';
           editBaseSubRef.current = current || '...';
+          setSuppressActionButtons(false);
           setSubEditVal(current === '...' ? '' : current);
           setEditSubIdx(idx);
           onEditStart();
@@ -1216,7 +1365,7 @@
       return (
         <div className="tree-node" data-node-id={node.id} data-has-sublabel={hasSublabels}>
           <div className={`node-wrapper ${hasSublabels ? 'has-sublabels' : ''}`}>
-            <div className={`node-content ${hasSublabels ? 'has-sublabels' : ''} ${buildMode === 'bottomup' ? 'bottomup' : ''}`}>
+            <div className={`node-content ${hasSublabels ? 'has-sublabels' : ''} ${buildMode === 'bottomup' ? 'bottomup' : ''}`} onMouseLeave={() => setSuppressActionButtons(false)}>
               <div className={`node-label ${isSpecialMode ? 'move-mode' : ''} ${editLabel ? 'is-editing' : ''}`}>
                 {/* Keep display in-flow to stabilize layout; place the input as an overlay */}
                 <div
@@ -1230,10 +1379,10 @@
                     autoFocus
                     value={val}
                     onChange={e => setVal(e.target.value)}
-                    onBlur={(e) => { const final = e.target.value; updateNode(node.id, { label: final || '...' }); setVal(final); setEditLabel(false); onEditEnd(); }}
+                    onBlur={(e) => { const final = e.target.value; updateNode(node.id, { label: final || '...' }); setVal(final); setEditLabel(false); setSuppressActionButtons(true); onEditEnd(); }}
                     onKeyDown={e => {
                       if (e.key === 'Enter') e.currentTarget.blur();
-                      if (e.key === 'Escape') { setVal(node.label); setEditLabel(false); onEditEnd(); }
+                      if (e.key === 'Escape') { setVal(node.label); setEditLabel(false); setSuppressActionButtons(true); onEditEnd(); }
                     }}
                   />
                 )}
@@ -1260,11 +1409,12 @@
                             updateSublabel(node.id, idx, final || '...');
                             setEditSubIdx(null);
                             setSubEditVal('');
+                            setSuppressActionButtons(true);
                             onEditEnd();
                           }}
                           onKeyDown={e => {
                             if (e.key === 'Enter') e.currentTarget.blur();
-                            if (e.key === 'Escape') { setEditSubIdx(null); setSubEditVal(''); onEditEnd(); }
+                            if (e.key === 'Escape') { setEditSubIdx(null); setSubEditVal(''); setSuppressActionButtons(true); onEditEnd(); }
                           }}
                         />
                       )}
@@ -1277,7 +1427,7 @@
               )}
 
               {!isSpecialMode && (
-                <div className="node-actions">
+                <div className={`node-actions ${suppressActionButtons ? 'suppressed' : ''} `}>
                   {(buildMode === 'bottomup' || (!node.children && !node.triangleText && !node.terminalLocked)) && (
                     <>
                       <button className="action-btn" onClick={() => { if (buildMode === 'bottomup') addParent(node.id, 1); else addNode(node.id, 1); }} title={buildMode === 'bottomup' ? 'Add unary parent' : 'Add single daughter'}>│</button>
@@ -1298,11 +1448,11 @@
                       <button
                         className={`action-btn ${showIPAToolbar ? 'active' : ''}`}
                         type="button"
-                        title="Insert IPA"
+                        title="Insert special character"
                         onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleIPAPanel(e.currentTarget); }}
                       >
-                        ə
+                        Ω
                       </button>
 </div>
                   )}
@@ -1320,7 +1470,7 @@
               <svg className="triangle-svg" width={triangleWidth} height="50" style={{ overflow: 'visible' }}>
                 <polygon points={`${triangleWidth / 2},0 0,50 ${triangleWidth},50`} fill="none" stroke="black" strokeWidth="1.2" />
               </svg>
-              <div className={`node-label triangle-label ${hasTriangleSublabels ? 'has-triangle-sublabels' : ''}`}>
+              <div className={`node-label triangle-label ${hasTriangleSublabels ? 'has-triangle-sublabels' : ''}`} onMouseLeave={() => setSuppressActionButtons(false)}>
                 <div
                   className={`node-display ${(editTri ? editBaseTriRef.current : tVal) === '...' ? 'placeholder' : ''}`}
                   onClick={handleTriClick}
@@ -1332,10 +1482,10 @@
                     autoFocus
                     value={tVal}
                     onChange={e => setTVal(e.target.value)}
-                    onBlur={(e) => { const final = e.target.value; updateNode(node.id, { triangleText: final || '...' }); setTVal(final); setEditTri(false); onEditEnd(); }}
+                    onBlur={(e) => { const final = e.target.value; updateNode(node.id, { triangleText: final || '...' }); setTVal(final); setEditTri(false); setSuppressActionButtons(true); onEditEnd(); }}
                     onKeyDown={e => {
                       if (e.key === 'Enter') e.currentTarget.blur();
-                      if (e.key === 'Escape') { setTVal(node.triangleText || ''); setEditTri(false); onEditEnd(); }
+                      if (e.key === 'Escape') { setTVal(node.triangleText || ''); setEditTri(false); setSuppressActionButtons(true); onEditEnd(); }
                     }}
                   />
                 )}
@@ -1355,8 +1505,8 @@
                             autoFocus
                             value={triSubEditVal}
                             onChange={e => setTriSubEditVal(e.target.value)}
-                            onBlur={(e) => { const final = e.target.value; updateTriangleSublabel(node.id, idx, final || '...'); setEditTriSubIdx(null); setTriSubEditVal(''); onEditEnd(); }}
-                            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { setEditTriSubIdx(null); setTriSubEditVal(''); onEditEnd(); } }}
+                            onBlur={(e) => { const final = e.target.value; updateTriangleSublabel(node.id, idx, final || '...'); setEditTriSubIdx(null); setTriSubEditVal(''); setSuppressActionButtons(true); onEditEnd(); }}
+                            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { setEditTriSubIdx(null); setTriSubEditVal(''); setSuppressActionButtons(true); onEditEnd(); } }}
                           />
                         )}
                         {!isSpecialMode && (<button className="pill-x" title="Remove this secondary label" onClick={(e) => { e.stopPropagation(); removeTriangleSublabel(node.id, idx); }}>×</button>)}
@@ -1365,18 +1515,18 @@
                   </div>
                 )}
                 {!isSpecialMode && (
-                  <div className="node-actions">
+                  <div className={`node-actions ${suppressActionButtons ? 'suppressed' : ''} `}>
                     <button className={`action-btn ${hasTriangleSublabels ? 'active' : ''}`} onClick={() => addTriangleSublabel(node.id)} disabled={triangleSublabels.length >= 4} title={triangleSublabels.length >= 4 ? 'Maximum: 4 secondary labels' : 'Add a secondary label (max 4)'}>+₂</button>
                     {isEditingNode && (editLabel || editTri || editSubIdx !== null || editTriSubIdx !== null) && (
                       <div className="node-actions-ipa-wrapper">
                         <button
                           className={`action-btn ${showIPAToolbar ? 'active' : ''}`}
                           type="button"
-                          title="Insert IPA"
+                          title="Insert special character"
                           onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleIPAPanel(e.currentTarget); }}
                         >
-                          ə
+                          Ω
                         </button>
 </div>
                     )}
@@ -1422,7 +1572,7 @@
 
       const [isEditingNode, setIsEditingNode] = useState(false);
       const [showIPAToolbar, setShowIPAToolbar] = useState(false);
-      const [ipaPortalPos, setIpaPortalPos] = useState({ x: 0, y: 0 });
+
       const ipaAnchorElRef = useRef(null);
       const ipaPanelRef = useRef(null);
       const activeEditInputRef = useRef(null);
@@ -1439,7 +1589,16 @@
       const [highlightPopoverOpen, setHighlightPopoverOpen] = useState(false);
       const [editingOvalLabel, setEditingOvalLabel] = useState('');
       const ovalLabelInputRef = useRef(null);
-      const OVAL_COLORS = ['#ef4444', '#22c55e', '#3b82f6', '#f59e0b', '#a855f7'];
+      const OVAL_COLORS = ['#ef4444', '#22c55e', '#3b82f6', '#f59e0b'];
+
+      // Late Insertion annotations
+      const [lateInsertions, setLateInsertions] = useState([]);
+      const [isLateInsertionMode, setIsLateInsertionMode] = useState(false);
+      const [liAction, setLiAction] = useState(null); // {type:'create'|'move-node'|'move-rect', ...}
+      const [selectedLiId, setSelectedLiId] = useState(null);
+      const [editingLiId, setEditingLiId] = useState(null);
+      const [editingLiLabel, setEditingLiLabel] = useState('');
+      const liLabelInputRef = useRef(null);
 
       const [contentSize, setContentSize] = useState({ w: 0, h: 0 });
       const [minCanvas, setMinCanvas] = useState({ w: 0, h: 0 });
@@ -1462,6 +1621,7 @@
           phases: Array.from(phases),
           dottedLines: Array.from(dottedLines),
           ovals: ovals,
+          lateInsertions: lateInsertions,
           timestamp: new Date().toISOString(),
           version: '1.0'
         };
@@ -1474,7 +1634,7 @@
           console.error('Error auto-saving:', err);
           setIsSaving(false);
         }
-      }, [tree, moves, phases, dottedLines, ovals]);
+      }, [tree, moves, phases, dottedLines, ovals, lateInsertions]);
 
       const autoSaveDebounced = useRef(null);
       if (!autoSaveDebounced.current) {
@@ -1510,8 +1670,9 @@
         moves: JSON.parse(JSON.stringify(moves)),
         phases: Array.from(phases),
         dottedLines: Array.from(dottedLines),
-        ovals: JSON.parse(JSON.stringify(ovals))
-      }), [tree, moves, phases, dottedLines, ovals]);
+        ovals: JSON.parse(JSON.stringify(ovals)),
+        lateInsertions: JSON.parse(JSON.stringify(lateInsertions))
+      }), [tree, moves, phases, dottedLines, ovals, lateInsertions]);
 
       const restoreSnapshot = useCallback((snapshot) => {
         isUndoRedo.current = true;
@@ -1520,6 +1681,7 @@
         setPhases(new Set(snapshot.phases || []));
         setDottedLines(new Set(snapshot.dottedLines));
         setOvals(snapshot.ovals || []);
+        setLateInsertions(snapshot.lateInsertions || []);
         setTimeout(() => { isUndoRedo.current = false; }, 0);
       }, []);
 
@@ -1549,7 +1711,7 @@
           const timeoutId = setTimeout(pushHistory, 100);
           return () => clearTimeout(timeoutId);
         }
-      }, [tree, moves, phases, dottedLines, ovals]);
+      }, [tree, moves, phases, dottedLines, ovals, lateInsertions]);
 
       // Auto-save effect: save when tree/moves/phases/dottedLines/ovals change
       useEffect(() => {
@@ -1580,6 +1742,7 @@
               setPhases(new Set(data.phases || []));
               setDottedLines(new Set(data.dottedLines || []));
               setOvals(data.ovals || []);
+              setLateInsertions(data.lateInsertions || []);
               setHistory([]);
               setHistoryIndex(-1);
               setTimeout(() => { isUndoRedo.current = false; }, 0);
@@ -1616,14 +1779,14 @@
         if (!tree) return;
         const filename = (prompt('Enter filename:', 'tree') || 'tree').replace(/\s+/g, '_');
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([JSON.stringify({tree, moves, phases: Array.from(phases), dottedLines: Array.from(dottedLines), ovals})], {type:'application/json'}));
-        a.download = `${filename}.kilmer`;
+        a.href = URL.createObjectURL(new Blob([JSON.stringify({tree, moves, phases: Array.from(phases), dottedLines: Array.from(dottedLines), ovals, lateInsertions})], {type:'application/json'}));
+        a.download = `${filename}.json`;
         a.click();
         
         // Limpiar auto-guardado después de guardar manualmente
         localStorage.removeItem('kilmer-autosave');
         setLastSaved(null);
-      }, [tree, moves, phases, dottedLines, ovals]);
+      }, [tree, moves, phases, dottedLines, ovals, lateInsertions]);
 
       useEffect(() => {
         const handleKeyDown = (e) => {
@@ -1635,7 +1798,14 @@
             if (isMoveMode) { setIsMoveMode(false); setSourceId(null); }
             if (isPhaseMode) { setIsPhaseMode(false); }
             if (isRegionMode) { setIsRegionMode(false); setOvalAction(null); setSelectedOvalId(null); setHighlightPopoverOpen(false); }
+            if (isLateInsertionMode) { setIsLateInsertionMode(false); setLiAction(null); setSelectedLiId(null); setEditingLiId(null); setEditingLiLabel(''); }
             if (editingOvalId) { setEditingOvalId(null); setEditingOvalLabel(''); }
+            if (editingLiId) { setEditingLiId(null); setEditingLiLabel(''); }
+          }
+          if ((e.key === 'Delete' || e.key === 'Backspace') && selectedLiId && !editingLiId) {
+            e.preventDefault();
+            setLateInsertions(prev => prev.filter(li => li.id !== selectedLiId));
+            setSelectedLiId(null);
           }
           if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '=')) { e.preventDefault(); zoomIn(); }
           if ((e.ctrlKey || e.metaKey) && e.key === '-') { e.preventDefault(); zoomOut(); }
@@ -1643,7 +1813,7 @@
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-      }, [undo, redo, saveTree, isMoveMode, isPhaseMode, isRegionMode, editingOvalId, selectedOvalId, zoomIn, zoomOut, zoomReset]);
+      }, [undo, redo, saveTree, isMoveMode, isPhaseMode, isRegionMode, isLateInsertionMode, editingOvalId, editingLiId, selectedOvalId, selectedLiId, zoomIn, zoomOut, zoomReset]);
 
       const toggleDottedLine = (lineKey) => {
         setDottedLines(prev => {
@@ -1892,11 +2062,11 @@ function insertIPAIntoActiveInput(ch) {
         const end = (typeof target.selectionEnd === 'number') ? target.selectionEnd : target.value.length;
 
         const next = target.value.slice(0, start) + ch + target.value.slice(end);
-        target.value = next;
 
-        // Let any listeners react (some overlays rely on native events)
+        // Use native setter to bypass React's internal value tracking
+        const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+        nativeSetter.call(target, next);
         target.dispatchEvent(new Event('input', { bubbles: true }));
-        target.dispatchEvent(new Event('change', { bubbles: true }));
 
         target.focus();
         try { target.setSelectionRange(start + ch.length, start + ch.length); } catch (_) {}
@@ -1905,32 +2075,6 @@ function insertIPAIntoActiveInput(ch) {
       // ================================
       // IPA portal dropdown (renders in document.body)
       // ================================
-      const computeIPAPortalPos = useCallback((anchorEl) => {
-        if (!anchorEl) return { x: 0, y: 0 };
-        const rect = anchorEl.getBoundingClientRect();
-
-        // Match previous behavior: panel aligned to the right edge of the anchor
-        const PANEL_W = 340;
-        const PANEL_H = 300;
-        const GAP = 8;
-        const MARGIN = 8;
-
-        const vw = window.innerWidth || 1024;
-        const vh = window.innerHeight || 768;
-
-        let x = rect.right - PANEL_W;
-        x = Math.max(MARGIN, Math.min(x, vw - MARGIN - PANEL_W));
-
-        // Try bottom, flip to top if needed
-        let y = rect.bottom + GAP;
-        if (y + PANEL_H > vh - MARGIN) {
-          y = rect.top - GAP - PANEL_H;
-        }
-        y = Math.max(MARGIN, Math.min(y, vh - MARGIN - PANEL_H));
-
-        return { x, y };
-      }, []);
-
       const toggleIPAPanel = useCallback((anchorEl) => {
         if (!anchorEl) return;
         const sameAnchor = ipaAnchorElRef.current === anchorEl;
@@ -1942,9 +2086,8 @@ function insertIPAIntoActiveInput(ch) {
         }
 
         ipaAnchorElRef.current = anchorEl;
-        setIpaPortalPos(computeIPAPortalPos(anchorEl));
         setShowIPAToolbar(true);
-      }, [showIPAToolbar, computeIPAPortalPos]);
+      }, [showIPAToolbar]);
 
       // Close on click outside, scroll, or resize (keeps behavior predictable)
       useEffect(() => {
@@ -1975,12 +2118,16 @@ function insertIPAIntoActiveInput(ch) {
         };
 
         const onScrollOrResize = (e) => {
-          // Do NOT close when the user scrolls inside the IPA panel itself.
-          // (Scroll events are captured at window level in some browsers.)
+          // Do NOT close when the user scrolls inside the IPA panel itself
+          // or inside the tree-canvas (the panel is anchored there).
           const panel = ipaPanelRef.current;
           const anchor = ipaAnchorElRef.current;
           if (e && panel && panel.contains(e.target)) return;
           if (e && anchor && anchor.contains && anchor.contains(e.target)) return;
+          if (e && e.type === 'scroll' && panel) {
+            const canvas = panel.closest('.tree-canvas');
+            if (canvas && canvas.contains(e.target)) return;
+          }
           setShowIPAToolbar(false);
           ipaAnchorElRef.current = null;
         };
@@ -2149,6 +2296,156 @@ function insertIPAIntoActiveInput(ch) {
         setEditingOvalId(null);
         setEditingOvalLabel('');
       }, [editingOvalId, editingOvalLabel]);
+
+      // === Late Insertion canvas handlers ===
+      const getLiTarget = useCallback((e) => {
+        let el = e.target;
+        for (let i = 0; i < 5 && el; i++) {
+          const action = el.getAttribute && el.getAttribute('data-li-action');
+          const liId = el.getAttribute && el.getAttribute('data-li-id');
+          if (action && liId) return { type: action, liId };
+          el = el.parentElement;
+        }
+        return null;
+      }, []);
+
+      const handleLIMouseDown = useCallback((e) => {
+        if (!isLateInsertionMode || !tree) return;
+        if (e.target.closest('.action-btn, button, input, .ipa-panel')) return;
+
+        const target = getLiTarget(e);
+        const pos = getUnscaledPos(e);
+        if (!pos) return;
+
+        if (target) {
+          e.preventDefault(); e.stopPropagation();
+          const li = lateInsertions.find(l => l.id === target.liId);
+          if (!li) return;
+          if (target.type === 'move-node') {
+            setLiAction({ type: 'move-node', liId: li.id, startX: pos.x, startY: pos.y, origNodeX: li.nodeX, origNodeY: li.nodeY, moved: false });
+          } else if (target.type === 'move-rect') {
+            setLiAction({ type: 'move-rect', liId: li.id, startX: pos.x, startY: pos.y, origX: li.x, origY: li.y, moved: false });
+          } else if (target.type === 'select') {
+            setLiAction({ type: 'move-rect', liId: li.id, startX: pos.x, startY: pos.y, origX: li.x, origY: li.y, moved: false });
+          }
+          setSelectedLiId(li.id);
+          return;
+        }
+
+        // Hit-test rects
+        const hitLi = [...lateInsertions].reverse().find(li =>
+          pos.x >= li.x && pos.x <= li.x + li.w && pos.y >= li.y && pos.y <= li.y + li.h
+        );
+        if (hitLi) {
+          e.preventDefault();
+          setLiAction({ type: 'move-rect', liId: hitLi.id, startX: pos.x, startY: pos.y, origX: hitLi.x, origY: hitLi.y, moved: false });
+          setSelectedLiId(hitLi.id);
+          return;
+        }
+
+        // Hit-test nodes (within 40px)
+        const hitNode = [...lateInsertions].reverse().find(li => {
+          const dx = Math.abs(pos.x - li.nodeX);
+          const dy = Math.abs(pos.y - li.nodeY);
+          return dx < 50 && dy < 20;
+        });
+        if (hitNode) {
+          e.preventDefault();
+          setLiAction({ type: 'move-node', liId: hitNode.id, startX: pos.x, startY: pos.y, origNodeX: hitNode.nodeX, origNodeY: hitNode.nodeY, moved: false });
+          setSelectedLiId(hitNode.id);
+          return;
+        }
+
+        // Empty canvas → start creating
+        setSelectedLiId(null);
+        setEditingLiId(null);
+        e.preventDefault();
+        setLiAction({ type: 'create', startX: pos.x, startY: pos.y, currentX: pos.x, currentY: pos.y });
+      }, [isLateInsertionMode, tree, lateInsertions, getUnscaledPos, getLiTarget]);
+
+      const handleLIMouseMove = useCallback((e) => {
+        if (!liAction) return;
+        const pos = getUnscaledPos(e);
+        if (!pos) return;
+
+        if (liAction.type === 'create') {
+          setLiAction(prev => prev ? { ...prev, currentX: pos.x, currentY: pos.y } : null);
+          return;
+        }
+
+        const dx = pos.x - liAction.startX;
+        const dy = pos.y - liAction.startY;
+        const hasMoved = Math.abs(dx) > 3 || Math.abs(dy) > 3;
+
+        if (liAction.type === 'move-node' && hasMoved) {
+          setLiAction(prev => prev ? { ...prev, moved: true } : null);
+          setLateInsertions(prev => prev.map(li => li.id === liAction.liId ? { ...li, nodeX: liAction.origNodeX + dx, nodeY: liAction.origNodeY + dy } : li));
+        }
+        if (liAction.type === 'move-rect' && hasMoved) {
+          setLiAction(prev => prev ? { ...prev, moved: true } : null);
+          setLateInsertions(prev => prev.map(li => li.id === liAction.liId ? { ...li, x: liAction.origX + dx, y: liAction.origY + dy } : li));
+        }
+      }, [liAction, getUnscaledPos]);
+
+      const handleLIMouseUp = useCallback((e) => {
+        if (!liAction) return;
+        const pos = getUnscaledPos(e);
+
+        if (liAction.type === 'create' && pos) {
+          const x = Math.min(liAction.startX, pos.x);
+          const y = Math.min(liAction.startY, pos.y);
+          const w = Math.abs(pos.x - liAction.startX);
+          const h = Math.abs(pos.y - liAction.startY);
+          if (w > 15 && h > 15) {
+            const newId = generateId();
+            const nodeX = x + w + 120;
+            const nodeY = y + h / 2;
+            const newLi = { id: newId, x, y, w, h, label: '...', nodeX, nodeY };
+            setLateInsertions(prev => [...prev, newLi]);
+            setSelectedLiId(newId);
+            setTimeout(() => { setEditingLiId(newId); setEditingLiLabel(''); }, 50);
+          }
+          setLiAction(null);
+          return;
+        }
+
+        if ((liAction.type === 'move-node' || liAction.type === 'move-rect') && !liAction.moved) {
+          // Click without drag on a node → open editor
+          if (liAction.type === 'move-node') {
+            setEditingLiId(liAction.liId);
+            const li = lateInsertions.find(l => l.id === liAction.liId);
+            setEditingLiLabel(li ? (li.label === '...' ? '' : li.label || '') : '');
+          }
+        }
+
+        setLiAction(null);
+      }, [liAction, getUnscaledPos, lateInsertions]);
+
+      // Commit LI label edit
+      const commitLiLabel = useCallback(() => {
+        if (!editingLiId) return;
+        const liId = editingLiId;
+        const finalLabel = editingLiLabel.trim() || '...';
+        setLateInsertions(prev => prev.map(li => li.id === liId ? ensureLateInsertionNodeClearance(li, finalLabel) : li));
+        setSelectedLiId(liId);
+        setEditingLiId(null);
+        setEditingLiLabel('');
+        setShowIPAToolbar(false);
+        ipaAnchorElRef.current = null;
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (drawRef.current) drawRef.current();
+          });
+        });
+      }, [editingLiId, editingLiLabel]);
+
+      // Focus LI label input when it appears
+      useEffect(() => {
+        if (editingLiId && liLabelInputRef.current) {
+          liLabelInputRef.current.focus();
+          liLabelInputRef.current.select();
+        }
+      }, [editingLiId]);
 
       // Focus oval label input when it appears
       useEffect(() => {
@@ -2433,12 +2730,283 @@ function insertIPAIntoActiveInput(ch) {
           );
         })() : null;
 
-        setSvgLines(<>{ovalElements}{dragPreview}{lines}{arrows}{phaseArcs}</>);
-      }, [tree, moves, phases, dottedLines, ovals, ovalAction, selectedOvalId, editingOvalId, regionColor, zoomLevel]);
+        // --- Late Insertion elements ---
+        const liElements = lateInsertions.map(li => {
+          const isSelected = selectedLiId === li.id;
+          const nodeIsRight = li.nodeX > li.x + li.w / 2;
+
+          // Measure node text width to find edge
+          const textHalfW = measureText(li.label || '...') / 2 + 4;
+
+          // Arrow endpoints and spacing
+          const GAP = 8;
+          const RECT_ARROW_GAP = 10;
+          const NODE_ARROW_GAP = 10;
+          const HEAD_SHAFT_GAP = 0;
+          const rectEdgeX = nodeIsRight ? li.x + li.w + GAP : li.x - GAP;
+          const nodeEdgeX = nodeIsRight ? li.nodeX - textHalfW : li.nodeX + textHalfW;
+          const arrowY = Math.min(Math.max(li.nodeY, li.y), li.y + li.h);
+
+          // Arrowhead geometry
+          const AH_LEN = 15;
+          const AH_HALF = 7;
+
+          const rectTipX = rectEdgeX + (nodeIsRight ? RECT_ARROW_GAP : -RECT_ARROW_GAP);
+          const nodeTipX = nodeEdgeX + (nodeIsRight ? -NODE_ARROW_GAP : NODE_ARROW_GAP);
+          const shaftStartX = rectTipX + (nodeIsRight ? AH_LEN + HEAD_SHAFT_GAP : -AH_LEN - HEAD_SHAFT_GAP);
+          const shaftEndX = nodeTipX + (nodeIsRight ? -AH_LEN - HEAD_SHAFT_GAP : AH_LEN + HEAD_SHAFT_GAP);
+          const showArrow = Math.abs(shaftEndX - shaftStartX) > 0.5;
+
+          return (
+            <g key={li.id} className="li-group">
+              {/* Dashed rectangle */}
+              <rect x={li.x} y={li.y} width={li.w} height={li.h}
+                fill="none" stroke="#1a1a1a" strokeWidth={isSelected ? '2.2' : '1.5'}
+                strokeDasharray="8,5" style={{pointerEvents: 'none'}} />
+              {/* Invisible rect for interaction */}
+              <rect x={li.x - 4} y={li.y - 4} width={li.w + 8} height={li.h + 8}
+                fill="transparent" stroke="transparent" strokeWidth="8"
+                style={{pointerEvents: 'auto', cursor: isSelected ? 'move' : 'pointer'}}
+                data-li-action={isSelected ? 'move-rect' : 'select'} data-li-id={li.id} />
+              {/* Double-headed arrow */}
+              {showArrow && (
+                <g style={{pointerEvents: 'none'}}>
+                  {/* Double hollow shaft */}
+                  {(() => {
+                    const startX = shaftStartX;
+                    const startY = arrowY;
+                    const endX = shaftEndX;
+                    const endY = li.nodeY;
+
+                    const dx = endX - startX;
+                    const dy = endY - startY;
+                    const len = Math.hypot(dx, dy) || 1;
+
+                    const px = -dy / len;
+                    const py = dx / len;
+
+                    const SHAFT_GAP = 3.2;
+
+                    return (
+                      <>
+                        <line
+                          x1={startX + px * SHAFT_GAP}
+                          y1={startY + py * SHAFT_GAP}
+                          x2={endX + px * SHAFT_GAP}
+                          y2={endY + py * SHAFT_GAP}
+                          stroke="#1a1a1a"
+                          strokeWidth="1.6"
+                        />
+                        <line
+                          x1={startX - px * SHAFT_GAP}
+                          y1={startY - py * SHAFT_GAP}
+                          x2={endX - px * SHAFT_GAP}
+                          y2={endY - py * SHAFT_GAP}
+                          stroke="#1a1a1a"
+                          strokeWidth="1.6"
+                        />
+                      </>
+                    );
+                  })()}
+
+                  {/* Hollow arrowhead at rect side */}
+                  {(() => {
+                    const tipX = rectTipX;
+                    const tipY = arrowY;
+                    const baseX = tipX + (nodeIsRight ? AH_LEN : -AH_LEN);
+                    const topY = arrowY - AH_HALF;
+                    const botY = arrowY + AH_HALF;
+
+                    const OUTER_STROKE = 1.6;
+                    const SHAFT_GAP = 3.2;
+                    const CAP_GAP = 0.6;
+
+                    const upperStop = tipY - SHAFT_GAP - CAP_GAP;
+                    const lowerStart = tipY + SHAFT_GAP + CAP_GAP;
+
+                    const INNER_INSET = 3.2;
+                    const innerBaseX = tipX + (nodeIsRight ? AH_LEN - INNER_INSET : -AH_LEN + INNER_INSET);
+                    const innerTopY = arrowY - (AH_HALF - INNER_INSET * 0.55);
+                    const innerBotY = arrowY + (AH_HALF - INNER_INSET * 0.55);
+
+                    return (
+                      <>
+                        <line
+                          x1={tipX}
+                          y1={tipY}
+                          x2={baseX}
+                          y2={topY}
+                          stroke="#1a1a1a"
+                          strokeWidth={OUTER_STROKE}
+                          strokeLinecap="round"
+                        />
+                        <line
+                          x1={tipX}
+                          y1={tipY}
+                          x2={baseX}
+                          y2={botY}
+                          stroke="#1a1a1a"
+                          strokeWidth={OUTER_STROKE}
+                          strokeLinecap="round"
+                        />
+                        <line
+                          x1={baseX}
+                          y1={topY}
+                          x2={baseX}
+                          y2={upperStop}
+                          stroke="#1a1a1a"
+                          strokeWidth={OUTER_STROKE}
+                          strokeLinecap="round"
+                        />
+                        <line
+                          x1={baseX}
+                          y1={lowerStart}
+                          x2={baseX}
+                          y2={botY}
+                          stroke="#1a1a1a"
+                          strokeWidth={OUTER_STROKE}
+                          strokeLinecap="round"
+                        />
+
+                        <line
+                          x1={tipX}
+                          y1={tipY}
+                          x2={innerBaseX}
+                          y2={innerTopY}
+                          stroke="#1a1a1a"
+                          strokeWidth="1.1"
+                          strokeLinecap="round"
+                        />
+                        <line
+                          x1={tipX}
+                          y1={tipY}
+                          x2={innerBaseX}
+                          y2={innerBotY}
+                          stroke="#1a1a1a"
+                          strokeWidth="1.1"
+                          strokeLinecap="round"
+                        />
+                      </>
+                    );
+                  })()}
+
+                  {/* Hollow arrowhead at node side */}
+                  {(() => {
+                    const tipX = nodeTipX;
+                    const tipY = li.nodeY;
+                    const baseX = tipX + (nodeIsRight ? -AH_LEN : AH_LEN);
+                    const topY = li.nodeY - AH_HALF;
+                    const botY = li.nodeY + AH_HALF;
+
+                    const OUTER_STROKE = 1.6;
+                    const SHAFT_GAP = 3.2;
+                    const CAP_GAP = 0.6;
+
+                    const upperStop = tipY - SHAFT_GAP - CAP_GAP;
+                    const lowerStart = tipY + SHAFT_GAP + CAP_GAP;
+
+                    const INNER_INSET = 3.2;
+                    const innerBaseX = tipX + (nodeIsRight ? -AH_LEN + INNER_INSET : AH_LEN - INNER_INSET);
+                    const innerTopY = li.nodeY - (AH_HALF - INNER_INSET * 0.55);
+                    const innerBotY = li.nodeY + (AH_HALF - INNER_INSET * 0.55);
+
+                    return (
+                      <>
+                        <line
+                          x1={tipX}
+                          y1={tipY}
+                          x2={baseX}
+                          y2={topY}
+                          stroke="#1a1a1a"
+                          strokeWidth={OUTER_STROKE}
+                          strokeLinecap="round"
+                        />
+                        <line
+                          x1={tipX}
+                          y1={tipY}
+                          x2={baseX}
+                          y2={botY}
+                          stroke="#1a1a1a"
+                          strokeWidth={OUTER_STROKE}
+                          strokeLinecap="round"
+                        />
+                        <line
+                          x1={baseX}
+                          y1={topY}
+                          x2={baseX}
+                          y2={upperStop}
+                          stroke="#1a1a1a"
+                          strokeWidth={OUTER_STROKE}
+                          strokeLinecap="round"
+                        />
+                        <line
+                          x1={baseX}
+                          y1={lowerStart}
+                          x2={baseX}
+                          y2={botY}
+                          stroke="#1a1a1a"
+                          strokeWidth={OUTER_STROKE}
+                          strokeLinecap="round"
+                        />
+
+                        <line
+                          x1={tipX}
+                          y1={tipY}
+                          x2={innerBaseX}
+                          y2={innerTopY}
+                          stroke="#1a1a1a"
+                          strokeWidth="1.1"
+                          strokeLinecap="round"
+                        />
+                        <line
+                          x1={tipX}
+                          y1={tipY}
+                          x2={innerBaseX}
+                          y2={innerBotY}
+                          stroke="#1a1a1a"
+                          strokeWidth="1.1"
+                          strokeLinecap="round"
+                        />
+                      </>
+                    );
+                  })()}
+                </g>
+              )}
+              {/* Node label text */}
+              <text x={li.nodeX} y={li.nodeY + 5} textAnchor="middle" fontSize="20"
+                fontFamily="'Crimson Pro', Georgia, serif" fill="#1a1a1a"
+                style={{pointerEvents: 'auto', cursor: 'pointer'}}
+                data-li-action="move-node" data-li-id={li.id}
+              >{li.label}</text>
+              {/* Delete button: visible on hover over any part of the LIM once editing is finished */}
+              {editingLiId !== li.id && (
+                <g className="arrow-delete-btn"
+                  onClick={() => { setLateInsertions(prev => prev.filter(l => l.id !== li.id)); if (selectedLiId === li.id) setSelectedLiId(null); if (editingLiId === li.id) { setEditingLiId(null); setEditingLiLabel(''); } }}
+                  transform={`translate(${li.nodeX + textHalfW + 4},${li.nodeY - 16})`}>
+                  <rect width="20" height="20" fill="white" stroke="#e0ddd8" rx="4" />
+                  <text x="10" y="15" textAnchor="middle" fontSize="14" fill="#dc2626">×</text>
+                </g>
+              )}
+            </g>
+          );
+        });
+
+        const liDragPreview = liAction && liAction.type === 'create' && liAction.currentX != null ? (() => {
+          const x = Math.min(liAction.startX, liAction.currentX);
+          const y = Math.min(liAction.startY, liAction.currentY);
+          const w = Math.abs(liAction.currentX - liAction.startX);
+          const h = Math.abs(liAction.currentY - liAction.startY);
+          if (w < 5 || h < 5) return null;
+          return <rect key="li-drag-preview" x={x} y={y} width={w} height={h}
+            fill="none" stroke="#1a1a1a" strokeWidth="1.5" strokeDasharray="8,5" opacity="0.5" style={{pointerEvents: 'none'}} />;
+        })() : null;
+
+        setSvgLines(<>{ovalElements}{dragPreview}{liElements}{liDragPreview}{lines}{arrows}{phaseArcs}</>);
+      }, [tree, moves, phases, dottedLines, ovals, lateInsertions, liAction, ovalAction, selectedOvalId, selectedLiId, editingOvalId, editingLiId, regionColor, zoomLevel]);
 
       drawRef.current = draw;
 
-      useLayoutEffect(() => { draw(); }, [tree, moves, phases, dottedLines, ovals, ovalAction, selectedOvalId, zoomLevel, draw]);
+      useLayoutEffect(() => { draw(); }, [tree, moves, phases, dottedLines, ovals, lateInsertions, liAction, ovalAction, selectedOvalId, selectedLiId, zoomLevel, draw]);
       useEffect(() => { window.addEventListener('resize', draw); return () => window.removeEventListener('resize', draw); }, [draw]);
 
       const load = (e) => {
@@ -2454,6 +3022,7 @@ function insertIPAIntoActiveInput(ch) {
             setPhases(new Set(data.phases || []));
             setDottedLines(new Set(data.dottedLines || []));
             setOvals(data.ovals || []);
+            setLateInsertions(data.lateInsertions || []);
             setHistory([]);
             setHistoryIndex(-1);
             localStorage.removeItem('kilmer-autosave');
@@ -2523,6 +3092,7 @@ function insertIPAIntoActiveInput(ch) {
         clone.querySelectorAll('.node-actions, .arrow-delete-btn').forEach(x => x.remove());
         clone.querySelectorAll('[data-oval-handle]').forEach(x => x.remove());
         clone.querySelectorAll('[data-oval-action]').forEach(x => x.remove());
+        clone.querySelectorAll('[data-li-action]').forEach(x => { if (x.getAttribute('fill') === 'transparent') x.remove(); });
         clone.querySelectorAll('.oval-group ellipse').forEach(e => {
           e.removeAttribute('stroke-dasharray');
           e.style.strokeDasharray = 'none';
@@ -2773,66 +3343,20 @@ function insertIPAIntoActiveInput(ch) {
             <img src={LOGO_URL} alt="Kilmer" className="header-logo" onError={e => e.target.style.display='none'} />
           </header>
 
-          <div className="toolbar">
-            <button className="btn btn-primary" onClick={() => {setTree({id: generateId(), label: '...', children: null, triangleText: null, sublabels: [], terminalLocked: false}); setMoves([]); setPhases(new Set()); setDottedLines(new Set()); setOvals([]); setHistory([]); setHistoryIndex(-1); localStorage.removeItem('kilmer-autosave'); setLastSaved(null);}}>New Tree</button>
-            <div className="toolbar-divider" />
-            <button className="btn" onClick={() => fileRef.current.click()}>Load .kilmer</button>
-            <input type="file" ref={fileRef} style={{display:'none'}} accept=".kilmer,.json,application/json,text/plain,*/*" onChange={load} />
-            <button className="btn" onClick={saveTree} disabled={!tree} title="Save (Ctrl+S)">Save .kilmer</button>
-            <button className="btn" onClick={handleExportPNG} disabled={!tree}>Export PNG</button>
-
-            <div className="toolbar-divider" />
-            <div className="segmented-control" title="Build direction">
-              <button className={buildMode === 'topdown' ? 'active' : ''} onClick={() => setBuildMode('topdown')}>Top-down</button>
-              <button className={buildMode === 'bottomup' ? 'active' : ''} onClick={() => setBuildMode('bottomup')}>Bottom-up</button>
+          <div className="top-bar">
+            <button className="btn btn-primary" onClick={() => {setTree({id: generateId(), label: '...', children: null, triangleText: null, sublabels: [], terminalLocked: false}); setMoves([]); setPhases(new Set()); setDottedLines(new Set()); setOvals([]); setLateInsertions([]); setHistory([]); setHistoryIndex(-1); localStorage.removeItem('kilmer-autosave'); setLastSaved(null);}}>New Tree</button>
+            <div className="top-bar-right">
+              <button className="btn" onClick={() => fileRef.current.click()}>Load</button>
+              <input type="file" ref={fileRef} style={{display:'none'}} accept=".json,.kilmer,application/json,text/plain" onChange={load} />
+              <button className="btn" onClick={saveTree} disabled={!tree} title="Save (Ctrl+S)">Save</button>
+              <button className="btn" onClick={handleExportPNG} disabled={!tree}>Export as image</button>
             </div>
-
-            <div className="toolbar-divider" />
-            <button className={`btn ${isMoveMode ? 'active-mode' : ''}`} onClick={() => {setIsMoveMode(!isMoveMode); setIsPhaseMode(false); setIsRegionMode(false); setSourceId(null);}} disabled={!tree}>
-              Move
-            </button>
-            <button className={`btn ${isPhaseMode ? 'active-mode' : ''}`} onClick={() => {setIsPhaseMode(!isPhaseMode); setIsMoveMode(false); setIsRegionMode(false); setSourceId(null);}} disabled={!tree}>
-              Phase
-            </button>
-
-            <div className="toolbar-divider" />
-            <div className="highlight-popover-wrapper">
-              <button
-                className={`highlight-popover-trigger ${isRegionMode ? 'active-mode' : ''}`}
-                onClick={() => {
-                  const wasOn = isRegionMode;
-                  setIsRegionMode(!wasOn);
-                  setIsMoveMode(false); setIsPhaseMode(false); setSourceId(null);
-                  if (wasOn) { setSelectedOvalId(null); setHighlightPopoverOpen(false); }
-                }}
-                disabled={!tree}
-                title="Draw oval highlights for exposition"
-              >
-                {isRegionMode && <span className="color-preview" style={{background: regionColor}} />}
-                Highlight
-                {isRegionMode && (
-                  <span className="caret" onClick={(e) => { e.stopPropagation(); setHighlightPopoverOpen(p => !p); }}>▾</span>
-                )}
-              </button>
-              {isRegionMode && highlightPopoverOpen && (
-                <div className="highlight-popover-panel">
-                  {OVAL_COLORS.map(c => (
-                    <span
-                      key={c}
-                      className={`oval-color-dot ${regionColor === c ? 'active' : ''}`}
-                      style={{background: c}}
-                      onClick={() => { setRegionColor(c); setHighlightPopoverOpen(false); }}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="toolbar-divider" />
-            <button className="btn" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)">↶</button>
-            <button className="btn" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Y)">↷</button>
-
           </div>
+
+          <div className="workspace">
+
+            {/* Main content area */}
+            <div className="workspace-main">
 
           {/* Mode Status Bar */}
           {isMoveMode && (
@@ -2866,13 +3390,20 @@ function insertIPAIntoActiveInput(ch) {
               <button onClick={() => { setIsRegionMode(false); setOvalAction(null); setSelectedOvalId(null); setHighlightPopoverOpen(false); }}>Finish (Esc)</button>
             </div>
           )}
+          {isLateInsertionMode && (
+            <div className="mode-status-bar">
+              <span className="status-icon">⇔</span>
+              <span><strong>Drag</strong> to draw dashed rectangle · Click node to edit label · Drag node or rectangle to reposition</span>
+              <button onClick={() => { setIsLateInsertionMode(false); setLiAction(null); setSelectedLiId(null); }}>Finish (Esc)</button>
+            </div>
+          )}
 
           <div className="tree-canvas" ref={canvasRef}
-            style={isRegionMode ? {cursor: 'crosshair'} : undefined}
-            onMouseDown={handleCanvasMouseDown}
-            onMouseMove={handleCanvasMouseMove}
-            onMouseUp={handleCanvasMouseUp}
-            onMouseLeave={handleCanvasMouseUp}
+            style={(isRegionMode || isLateInsertionMode) ? {cursor: 'crosshair'} : undefined}
+            onMouseDown={(e) => { if (isRegionMode) handleCanvasMouseDown(e); else if (isLateInsertionMode) handleLIMouseDown(e); }}
+            onMouseMove={(e) => { if (isRegionMode) handleCanvasMouseMove(e); else if (isLateInsertionMode) handleLIMouseMove(e); }}
+            onMouseUp={(e) => { if (isRegionMode) handleCanvasMouseUp(e); else if (isLateInsertionMode) handleLIMouseUp(e); }}
+            onMouseLeave={(e) => { if (isRegionMode) handleCanvasMouseUp(e); else if (isLateInsertionMode) handleLIMouseUp(e); }}
           >
             {/* Oval label editing input */}
             {editingOvalId && (() => {
@@ -2899,11 +3430,72 @@ function insertIPAIntoActiveInput(ch) {
                 />
               );
             })()}
+            {/* Late Insertion label editing input */}
+            {editingLiId && (() => {
+              const li = lateInsertions.find(l => l.id === editingLiId);
+              if (!li || !zoomContainerRef.current) return null;
+              const container = zoomContainerRef.current;
+              const rect = container.getBoundingClientRect();
+              const zoomScale = zoomLevel / 100;
+              const screenX = rect.left + li.nodeX * zoomScale;
+              const screenY = rect.top + li.nodeY * zoomScale;
+              return (
+                <div style={{position: 'fixed', left: screenX, top: screenY, transform: 'translate(-50%, -50%)', zIndex: 9999, display: 'flex', gap: '4px', alignItems: 'center'}}>
+                  <input
+                    ref={(el) => { liLabelInputRef.current = el; activeEditInputRef.current = el; }}
+                    className="oval-label-input"
+                    style={{ position: 'static', transform: 'none', minWidth: '80px' }}
+                    value={editingLiLabel}
+                    placeholder="Label"
+                    onChange={e => setEditingLiLabel(e.target.value)}
+                    onBlur={commitLiLabel}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') { e.currentTarget.blur(); }
+                      if (e.key === 'Escape') { setEditingLiId(null); setEditingLiLabel(''); }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className={`action-btn li-special-btn ${showIPAToolbar ? 'active' : ''}`}
+                    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleIPAPanel(e.currentTarget); }}
+                    title="Insert special character"
+                  >Ω</button>
+                </div>
+              );
+            })()}
             <div className={`zoom-controls ${tree ? 'visible' : ''}`}>
               <button className="zoom-btn" onClick={zoomOut} disabled={zoomLevel <= ZOOM_MIN} title="Zoom out (Ctrl/⌘ + −)">−</button>
               <div className="zoom-indicator" onClick={zoomReset} title="Reset zoom (Ctrl/⌘ + 0)">{zoomLevel}%</div>
               <button className="zoom-btn" onClick={zoomIn} disabled={zoomLevel >= ZOOM_MAX} title="Zoom in (Ctrl/⌘ + +)">+</button>
             </div>
+
+            {showIPAToolbar && (
+              <div
+                ref={ipaPanelRef}
+                className="ipa-panel ipa-panel-portal"
+                onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+              >
+                {IPA_CATEGORIES.map(cat => (
+                  <div key={cat.name} className="ipa-cat">
+                    <div className="ipa-cat-title">{cat.name}</div>
+                    <div className="ipa-grid">
+                      {cat.chars.map(ch => (
+                        <button
+                          key={ch}
+                          className="ipa-char-btn"
+                          type="button"
+                          onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                          onClick={() => insertIPAIntoActiveInput(ch)}
+                        >
+                          {ch}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Auto-save indicator - top left corner */}
             <div className={`autosave-indicator ${(isSaving || lastSaved) && tree ? 'visible' : ''}`}>
@@ -2936,11 +3528,83 @@ function insertIPAIntoActiveInput(ch) {
                     setSourceId(null);
                     setIsMoveMode(false);
                   }
-                }, onPhaseClick: (id) => { togglePhase(id); setIsPhaseMode(false); }}} /> : <div style={{color:'#999'}}>Click <strong>New Tree</strong> to start a new diagram or <strong>Load .kilmer</strong> to edit a previously saved one.</div>}
+                }, onPhaseClick: (id) => { togglePhase(id); setIsPhaseMode(false); }}} /> : <div style={{color:'#999'}}>Click <strong>New Tree</strong> to start a new diagram or <strong>Load</strong> to edit a previously saved one.</div>}
               </div>
               </div>
             </div>
           </div>
+
+            </div>{/* end workspace-main */}
+
+            {/* Right sidebar — icon rail, expands on hover */}
+            <div className="sidebar">
+              <button className="sb-btn" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)">
+                <span className="sb-icon">↶</span><span className="sb-label">Undo</span>
+              </button>
+              <button className="sb-btn" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Y)">
+                <span className="sb-icon">↷</span><span className="sb-label">Redo</span>
+              </button>
+
+              <div className="sidebar-divider" />
+
+              <div className="segmented-control" title="Build direction">
+                <button className={`sb-btn ${buildMode === 'topdown' ? 'active' : ''}`} onClick={() => setBuildMode('topdown')} title="Top-down">
+                  <span className="sb-icon">↧</span><span className="sb-label">Top-down</span>
+                </button>
+                <button className={`sb-btn ${buildMode === 'bottomup' ? 'active' : ''}`} onClick={() => setBuildMode('bottomup')} title="Bottom-up">
+                  <span className="sb-icon">↥</span><span className="sb-label">Bottom-up</span>
+                </button>
+              </div>
+
+              <div className="sidebar-divider" />
+
+              <button className={`sb-btn ${isMoveMode ? 'active-mode' : ''}`} onClick={() => {setIsMoveMode(!isMoveMode); setIsPhaseMode(false); setIsRegionMode(false); setIsLateInsertionMode(false); setSourceId(null);}} disabled={!tree} title="Move">
+                <span className="sb-icon">⤳</span><span className="sb-label">Move</span>
+              </button>
+              <button className={`sb-btn ${isPhaseMode ? 'active-mode' : ''}`} onClick={() => {setIsPhaseMode(!isPhaseMode); setIsMoveMode(false); setIsRegionMode(false); setIsLateInsertionMode(false); setSourceId(null);}} disabled={!tree} title="Phase">
+                <span className="sb-icon">◠</span><span className="sb-label">Phase</span>
+              </button>
+              <button className={`sb-btn ${isLateInsertionMode ? 'active-mode' : ''}`} onClick={() => {setIsLateInsertionMode(!isLateInsertionMode); setIsMoveMode(false); setIsPhaseMode(false); setIsRegionMode(false); setSourceId(null); if (isLateInsertionMode) { setSelectedLiId(null); setLiAction(null); }}} disabled={!tree} title="Late Insertion">
+                <span className="sb-icon">⇔</span><span className="sb-label">LIM</span>
+              </button>
+
+              <div className="sidebar-divider" />
+
+              <div className="highlight-popover-wrapper">
+                <button
+                  className={`highlight-popover-trigger ${isRegionMode ? 'active-mode' : ''}`}
+                  style={isRegionMode ? {background: regionColor, borderColor: regionColor} : undefined}
+                  onClick={() => {
+                    const wasOn = isRegionMode;
+                    setIsRegionMode(!wasOn);
+                    setIsMoveMode(false); setIsPhaseMode(false); setIsLateInsertionMode(false); setSourceId(null);
+                    if (wasOn) { setSelectedOvalId(null); setHighlightPopoverOpen(false); }
+                  }}
+                  disabled={!tree}
+                  title="Draw oval highlights"
+                >
+                  <span className="sb-icon">⬭</span>
+                  <span className="sb-label">Highlight</span>
+                  {isRegionMode && (
+                    <span className="caret" onClick={(e) => { e.stopPropagation(); setHighlightPopoverOpen(p => !p); }}>▾</span>
+                  )}
+                </button>
+                {isRegionMode && highlightPopoverOpen && (
+                  <div className="highlight-popover-panel">
+                    {OVAL_COLORS.map(c => (
+                      <span
+                        key={c}
+                        className={`oval-color-dot ${regionColor === c ? 'active' : ''}`}
+                        style={{background: c}}
+                        onClick={() => { setRegionColor(c); setHighlightPopoverOpen(false); }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </div>{/* end workspace */}
 
           <div className="instructions-panel">
             <button className="instructions-header" onClick={() => setShowInstructions(prev => !prev)}>
@@ -2949,6 +3613,15 @@ function insertIPAIntoActiveInput(ch) {
             </button>
             {showInstructions && (
               <div className="instructions-grid">
+
+              <div className="instruction-card">
+                <h4><span className="icon">▤</span> Interface Layout</h4>
+                <ul>
+                  <li>The <strong>top bar</strong> contains file management: <strong>New Tree</strong> (left), and <strong>Load</strong>, <strong>Save</strong>, <strong>Export as image</strong> (right).</li>
+                  <li>The <strong>right sidebar</strong> contains diagramming tools: Undo/Redo, build direction, Move, Phase, and Highlight.</li>
+                  <li>The sidebar shows only icons by default — hover over it to expand and reveal labels.</li>
+                </ul>
+              </div>
 
               <div className="instruction-card">
                 <h4><span className="icon">⑃</span> Building the Tree</h4>
@@ -2965,7 +3638,7 @@ function insertIPAIntoActiveInput(ch) {
                 <ul>
                   <li>Click any label to edit.</li>
                   <li>Confirm with <span className="keyboard-hint"><span class="key">Enter</span></span> or cancel with <span className="keyboard-hint"><span class="key">Esc</span></span> to revert.</li>
-                  <li>While editing, use the <code>ə</code> button in the floating node toolbar (just left of <code>✕</code>) to open an IPA palette and insert symbols at the cursor position.</li>
+                  <li>While editing, use the <code>Ω</code> button in the floating node toolbar (just left of <code>✕</code>) to open a special character palette. The palette includes IPA symbols, Greek letters, and mathematical symbols, and appears in the top-right corner of the canvas below the zoom controls.</li>
                   <li>Use <code>+₂</code> to add a secondary label below the main one.</li>
                 </ul>
               </div>
@@ -2973,11 +3646,11 @@ function insertIPAIntoActiveInput(ch) {
               <div className="instruction-card">
                 <h4><span className="icon">⇅</span> Build Modes</h4>
                 <ul>
-                  <li>Select <strong>Top-down</strong> or <strong>Bottom-up</strong> in the top toolbar to change the construction mode at any time.</li>
+                  <li>Select <strong>Top-down</strong> (<code>↧</code>) or <strong>Bottom-up</strong> (<code>↥</code>) in the right sidebar to change the construction mode.</li>
                   <li><strong>Top-down</strong>: <code>│</code>, <code>⑃</code>, and <code>△</code> create <strong>daughters</strong> from the selected node.</li>
                   <li><strong>Bottom-up</strong>: <code>│</code>, <code>→⑃</code>/<code>⑃←</code>, and <code>△</code> create a <strong>parent</strong> above the selected node.</li>
                   <li>The arrows in <code>→⑃</code> and <code>⑃←</code> indicate where the <strong>sibling</strong> will appear (left or right).</li>
-                  <li>In Bottom-up mode, the node tools appear <strong>above</strong> the node. In Top-down mode, the node tools appear <strong>below</strong>.</li>
+                  <li>In Bottom-up mode, node tools appear <strong>above</strong> the node; in Top-down, <strong>below</strong>.</li>
                 </ul>
               </div>
 
@@ -3018,7 +3691,7 @@ function insertIPAIntoActiveInput(ch) {
               <div className="instruction-card">
                 <h4><span className="icon">⤳</span> Movement Arrows</h4>
                 <ul>
-                  <li>Activate <strong>Move</strong>, then click the source node (e.g., a trace) followed by the target.</li>
+                  <li>Click <strong>Move</strong> (<code>⤳</code>) in the right sidebar, then click the source node (e.g., a trace) followed by the target.</li>
                   <li>Arrows curve beneath the tree.</li>
                   <li>Double-click the line to toggle between dotted and continuous line styles.</li>
                   <li>Click <code>×</code> on any arrow to remove it.</li>
@@ -3030,17 +3703,31 @@ function insertIPAIntoActiveInput(ch) {
               <div className="instruction-card">
                 <h4><span className="icon">◠</span> Phase Boundaries</h4>
                 <ul>
-                  <li>Activate <strong>Phase</strong>, then click a phase head (vP, CP).</li>
+                  <li>Click <strong>Phase</strong> (<code>◠</code>) in the right sidebar, then click a phase head (vP, CP).</li>
                   <li>A dashed arc marks the phase boundary. Double-click to make it solid.</li>
                   <li>Click <code>×</code> on the arc to remove it.</li>
                 </ul>
               </div>
 
               <div className="instruction-card">
+                <h4><span className="icon">⇔</span> Late Insertion Model (LIM)</h4>
+                <ul>
+                  <li>Click <strong>LIM</strong> (<code>⇔</code>) in the right sidebar to activate Late Insertion mode.</li>
+                  <li><strong>Drag</strong> on the canvas to draw a dashed rectangle around a region of the tree.</li>
+                  <li>A node label appears to the right, connected by a double-headed arrow. An input opens immediately — type the label (e.g., a phonological form).</li>
+                  <li>Use the <code>Ω</code> button next to the input while editing the node to insert special characters.</li>
+                  <li><strong>Drag the node</strong> to reposition it; the arrow follows automatically.</li>
+                  <li><strong>Drag the rectangle</strong> to move it independently.</li>
+                  <li>Click <code>×</code> on the node or press <span className="keyboard-hint"><span class="key">Delete</span></span> to remove the entire annotation (rectangle + node + arrow).</li>
+                </ul>
+              </div>
+
+              <div className="instruction-card">
                 <h4><span className="icon">⬭</span> Oval Highlights</h4>
                 <ul>
-                  <li>Activate <strong>Highlight</strong>, pick a color, then <strong>drag</strong> on the canvas to draw an oval.</li>
-                  <li>A label input appears immediately — type a label or leave it empty (press <span className="keyboard-hint"><span class="key">Enter</span></span> or <span className="keyboard-hint"><span class="key">Esc</span></span>).</li>
+                  <li>Click <strong>Highlight</strong> (<code>⬭</code>) in the right sidebar to activate highlight mode. The button changes to the active drawing color.</li>
+                  <li>To change the color, expand the sidebar and click the <code>▾</code> chevron next to "Highlight" to open the color picker. Four colors are available: red, green, blue, and yellow.</li>
+                  <li><strong>Drag</strong> on the canvas to draw an oval. A label input appears immediately — type a label or leave it empty.</li>
                   <li>Click an oval to select it, edit its label, <strong>drag to move</strong> it, or <strong>drag a handle</strong> to resize.</li>
                   <li>Click <code>×</code> on any oval to remove it.</li>
                 </ul>
@@ -3057,17 +3744,16 @@ function insertIPAIntoActiveInput(ch) {
               <div className="instruction-card">
                 <h4><span className="icon">◰</span> Saving Your Work</h4>
                 <ul>
-                  <li><strong>Save</strong> exports a <code>.kilmer</code> file for later editing.</li>
-                  <li><strong>Export PNG</strong> generates a clean image for documents and presentations.</li>
+                  <li>Use the buttons in the top bar: <strong>Save</strong> exports a <code>.json</code> file for later editing; <strong>Export as image</strong> generates a clean image for documents and presentations.</li>
                   <li><strong>Auto-save:</strong> Kilmer auto-saves your work every few seconds after changes and can restore it if you accidentally close the browser (see the <code>☁ Saving...</code> / <code>✓ Auto-saved…</code> indicator).</li>
-                  <li><strong>Tip:</strong> auto-save is just a safety net—still save a <code>.kilmer</code> file when you finish.</li>
+                  <li><strong>Tip:</strong> auto-save is just a safety net—still save a <code>.json</code> file when you finish.</li>
                 </ul>
               </div>
 
               <div className="instruction-card">
                 <h4><span className="icon">⌕</span> Zoom Controls</h4>
                 <ul>
-                  <li>Use the <code>[−]</code> and <code>[+]</code> buttons in the top-right corner to zoom in/out.</li>
+                  <li>Use the <code>[−]</code> and <code>[+]</code> buttons in the top-right corner of the canvas to zoom in/out.</li>
                   <li>Click the percentage indicator to reset to 100%.</li>
                   <li>Zoom range: 40% to 200% in 20% increments.</li>
                   <li>Controls appear when a tree is present.</li>
@@ -3109,34 +3795,6 @@ function insertIPAIntoActiveInput(ch) {
             </a>
           </footer>
 
-          {showIPAToolbar && ReactDOM.createPortal(
-            <div
-              ref={ipaPanelRef}
-              className="ipa-panel ipa-panel-portal"
-              style={{ left: ipaPortalPos.x, top: ipaPortalPos.y }}
-              onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-            >
-              {IPA_CATEGORIES.map(cat => (
-                <div key={cat.name} className="ipa-cat">
-                  <div className="ipa-cat-title">{cat.name}</div>
-                  <div className="ipa-grid">
-                    {cat.chars.map(ch => (
-                      <button
-                        key={ch}
-                        className="ipa-char-btn"
-                        type="button"
-                        onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                        onClick={() => insertIPAIntoActiveInput(ch)}
-                      >
-                        {ch}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>,
-            document.body
-          )}
 
         </div>
       );
