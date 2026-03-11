@@ -29,163 +29,97 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: var(--font-body); background-color: var(--color-bg); color: var(--color-text); min-height: 100vh; overflow-x: hidden; }
-    .container { max-width: 1300px; margin: 0 auto; padding: 40px 24px; }
+    .container { max-width: 1300px; margin: 0 auto; padding: 20px 24px; }
 
-    .header { text-align: center; margin-bottom: 24px; }
-    .header-logo { max-width: 320px; height: auto; }
-
-    /* =================================
-       TOP BAR (file management only)
-       ================================= */
-    .top-bar {
-      background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;
-      padding: 10px 20px; margin-bottom: 8px; display: flex; gap: 10px; flex-wrap: wrap;
-      align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-      color: var(--color-text);
-    }
-    .top-bar-right {
-      margin-left: auto;
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
+    .header { text-align: center; margin-bottom: 12px; }
+    .header-logo { max-width: 230px; height: auto; }
 
     /* =================================
-       WORKSPACE LAYOUT (sidebar + main)
+       WORKSPACE LAYOUT (left panel + main)
        ================================= */
     .workspace {
       display: flex;
-      gap: 8px;
+      gap: 12px;
       align-items: flex-start;
     }
 
     /* =================================
-       LEFT SIDEBAR (icon rail, expands on hover)
+       LEFT PANEL (unified controls)
        ================================= */
-    .sidebar {
+    .left-panel {
+      width: 176px;
+      flex-shrink: 0;
       background: var(--color-surface);
       border: 1px solid var(--color-border);
       border-radius: 12px;
-      padding: 8px 6px;
       display: flex;
       flex-direction: column;
-      gap: 2px;
-      align-items: stretch;
       box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-      flex-shrink: 0;
       position: sticky;
       top: 12px;
-      width: 44px;
       overflow: hidden;
-      transition: width 0.2s ease;
-      z-index: 50;
-    }
-    .sidebar:hover {
-      width: 140px;
-      overflow: visible;
+      height: fit-content;
     }
 
-    .sidebar-divider {
-      height: 1px;
-      background: var(--color-border);
-      margin: 3px 4px;
+    .panel-section {
+      padding: 10px 8px 8px;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .panel-section:last-child {
+      border-bottom: none;
     }
 
-    /* Sidebar button — icon + label */
-    .sb-btn {
+    .panel-section-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--color-text-muted);
+      padding: 0 6px;
+      margin-bottom: 5px;
+    }
+
+    .panel-btn {
       display: flex;
       align-items: center;
-      justify-content: center;
       gap: 8px;
+      width: 100%;
+      padding: 7px 10px;
       border: none;
       background: transparent;
-      border-radius: 6px;
-      padding: 7px 7px;
+      border-radius: 7px;
       cursor: pointer;
       font-family: var(--font-body);
       font-size: 13px;
       font-weight: 600;
       color: var(--color-text);
-      white-space: nowrap;
+      text-align: left;
       transition: background 0.15s;
-      min-height: 32px;
+      white-space: nowrap;
     }
-    .sidebar:hover .sb-btn { justify-content: flex-start; }
-    .sb-btn:hover:not(:disabled):not(.active-mode) { background: rgba(0,0,0,0.06); }
-    .sb-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-    .sb-btn.active-mode { background: #16a34a; color: white; }
-    .sb-btn.active-mode:hover { background: #15803d; }
-
-    .sb-icon {
-      width: 18px;
-      flex-shrink: 0;
-      text-align: center;
-      font-size: 16px;
-      line-height: 1;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      height: 18px;
+    .panel-btn:hover:not(:disabled) { background: rgba(0,0,0,0.06); }
+    .panel-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .panel-btn.primary {
+      background: var(--color-accent);
+      color: white;
+      margin-bottom: 2px;
     }
-    .sb-label {
-      opacity: 0;
-      transition: opacity 0.15s ease;
-      overflow: hidden;
-    }
-    .sidebar:hover .sb-label { opacity: 1; }
-
-    /* Segmented control inside sidebar */
-    .sidebar .segmented-control {
-      display: flex;
-      flex-direction: column;
-      border: none;
-      background: none;
-      gap: 2px;
-      overflow: visible;
-    }
-    .sidebar .segmented-control .sb-btn.active {
+    .panel-btn.primary:hover:not(:disabled) { background: #15803d; }
+    .panel-btn.active-mode { background: #16a34a; color: white; }
+    .panel-btn.active-mode:hover:not(:disabled) { background: #15803d; }
+    .panel-btn.dir-active {
       background: var(--color-accent);
       color: white;
     }
+    .panel-btn.dir-active:hover:not(:disabled) { background: #15803d; }
 
-    /* Highlight in sidebar */
-    .sidebar .highlight-popover-wrapper {
-      width: 100%;
+    .pb-icon {
+      width: 18px;
+      flex-shrink: 0;
+      text-align: center;
+      font-size: 15px;
+      line-height: 1;
     }
-    .sidebar .highlight-popover-trigger {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      width: 100%;
-      padding: 7px 7px;
-      border: none;
-      border-radius: 6px;
-      background: transparent;
-      font-family: var(--font-body);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s;
-      white-space: nowrap;
-      min-height: 32px;
-    }
-    .sidebar:hover .highlight-popover-trigger { justify-content: flex-start; }
-    .sidebar .highlight-popover-trigger:hover:not(:disabled):not(.active-mode) { background: rgba(0,0,0,0.06); }
-    .sidebar .highlight-popover-trigger:disabled { opacity: 0.35; cursor: not-allowed; }
-    .sidebar .highlight-popover-trigger.active-mode { color: white; }
-    .sidebar .highlight-popover-trigger.active-mode:hover { filter: brightness(0.85); }
-    .sidebar .highlight-popover-trigger .sb-label { overflow: hidden; }
-    .sidebar .highlight-popover-trigger .caret {
-      font-size: 14px;
-      opacity: 0;
-      margin-left: auto;
-      transition: opacity 0.15s;
-      width: 0;
-      overflow: hidden;
-      padding: 0;
-    }
-    .sidebar:hover .highlight-popover-trigger .caret { opacity: 0.9; width: auto; }
 
     .workspace-main {
       flex: 1;
@@ -315,6 +249,7 @@
       background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;
       min-height: 267px; padding: 53px 40px; display: flex; align-items: flex-start; justify-content: flex-start;
       position: relative; overflow-x: auto; overflow-y: hidden;
+      box-sizing: border-box;
       }
 
     /* Controles de zoom */
@@ -695,7 +630,7 @@
        PANEL DE INSTRUCCIONES
        ================================= */
     .instructions-panel {
-      margin-top: 48px;
+      margin-top: 16px;
       background: linear-gradient(135deg, #fdfcfb 0%, #f7f6f3 100%);
       border: 1px solid var(--color-border);
       border-radius: 16px;
@@ -706,9 +641,9 @@
       background: var(--color-accent);
       color: white;
       border-radius: 12px;
-      padding: 16px 24px;
+      padding: 10px 24px;
       font-family: var(--font-display);
-      font-size: 1.25rem;
+      font-size: 1rem;
       font-weight: 600;
       letter-spacing: 0.02em;
       width: 100%;
@@ -739,7 +674,7 @@
 
     .instructions-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 1px;
       background: var(--color-border);
     }
@@ -761,26 +696,18 @@
       .workspace {
         flex-direction: column;
       }
-      .sidebar {
+      .left-panel {
+        width: 100%;
         flex-direction: row;
-        width: 100% !important;
-        overflow: visible;
+        flex-wrap: wrap;
         position: static;
-        padding: 6px 8px;
-        gap: 2px;
       }
-      .sidebar .sb-label { display: none; }
-      .sidebar:hover .sb-label { display: none; }
-      .sidebar .highlight-popover-trigger .caret { opacity: 0.9; }
-      .sidebar-divider {
-        width: 1px;
-        height: 28px;
-        margin: 0 3px;
-        background: var(--color-border);
+      .panel-section {
+        border-bottom: none;
+        border-right: 1px solid var(--color-border);
+        flex: 1 1 auto;
       }
-      .sidebar .segmented-control {
-        flex-direction: row;
-      }
+      .panel-section:last-child { border-right: none; }
     /* Botones principales */
       .btn {
         padding: 8px 12px;
@@ -998,7 +925,7 @@
        FOOTER
        ================================= */
     .footer {
-      margin-top: 48px;
+      margin-top: 16px;
       padding: 24px 0;
       text-align: center;
       border-top: 1px solid var(--color-border);
@@ -1014,7 +941,7 @@
       transition: opacity 0.2s;
       display: block;
       margin: 12px auto 0;
-      height: 31px;
+      height: 22px;
       width: auto;
     }
 
@@ -1122,14 +1049,14 @@
        ================================= */
     .toolbar-ipa-wrapper { position: relative; display: flex; align-items: center; }
     .ipa-panel{
-      width: 380px;
-      max-height: 360px;
+      width: 260px;
+      max-height: 240px;
       overflow: auto;
       background: #fff;
       border: 1px solid rgba(0,0,0,.15);
       border-radius: 10px;
       box-shadow: 0 8px 24px rgba(0,0,0,.18);
-      padding: 10px;
+      padding: 8px;
     }
 
     .ipa-panel-portal{
@@ -1144,23 +1071,24 @@
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    .ipa-cat{ margin-bottom: 10px; }
-    .ipa-cat-title{ font-weight: 600; font-size: 12px; opacity: .8; margin-bottom: 6px; }
+    .ipa-cat{ margin-bottom: 7px; }
+    .ipa-cat-title{ font-weight: 600; font-size: 10px; opacity: .8; margin-bottom: 4px; }
     .ipa-grid{
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 3px;
     }
     .ipa-char-btn{
-      min-width: 30px;
-      height: 28px;
-      border-radius: 8px;
+      min-width: 22px;
+      height: 22px;
+      border-radius: 5px;
       border: 1px solid rgba(0,0,0,.15);
       background: #f7f7f7;
       cursor: pointer;
       font-family: var(--font-display);
-      font-size: 16px;
+      font-size: 12px;
       line-height: 1;
+      padding: 0 2px;
     }
     .ipa-char-btn:hover{ border-color: rgba(0,0,0,.35); transform: translateY(-1px); }
 
@@ -1553,7 +1481,7 @@
       const [historyIndex, setHistoryIndex] = useState(-1);
       const isUndoRedo = useRef(false);
 
-      const [tree, setTree] = useState(null);
+      const [tree, setTree] = useState(() => ({id: generateId(), label: '...', children: null, triangleText: null, sublabels: [], terminalLocked: false}));
       const [moves, setMoves] = useState([]);
       const [phases, setPhases] = useState(new Set());
       const [dottedLines, setDottedLines] = useState(new Set());
@@ -3343,17 +3271,110 @@ function insertIPAIntoActiveInput(ch) {
             <img src={LOGO_URL} alt="Kilmer" className="header-logo" onError={e => e.target.style.display='none'} />
           </header>
 
-          <div className="top-bar">
-            <button className="btn btn-primary" onClick={() => {setTree({id: generateId(), label: '...', children: null, triangleText: null, sublabels: [], terminalLocked: false}); setMoves([]); setPhases(new Set()); setDottedLines(new Set()); setOvals([]); setLateInsertions([]); setHistory([]); setHistoryIndex(-1); localStorage.removeItem('kilmer-autosave'); setLastSaved(null);}}>New Tree</button>
-            <div className="top-bar-right">
-              <button className="btn" onClick={() => fileRef.current.click()}>Load</button>
-              <input type="file" ref={fileRef} style={{display:'none'}} accept=".json,.kilmer,application/json,text/plain" onChange={load} />
-              <button className="btn" onClick={saveTree} disabled={!tree} title="Save (Ctrl+S)">Save</button>
-              <button className="btn" onClick={handleExportPNG} disabled={!tree}>Export as image</button>
-            </div>
+          <div className="top-bar" style={{display:'none'}}>
+            {/* top-bar removed – controls moved to left panel */}
           </div>
 
           <div className="workspace">
+
+            {/* Left panel — unified controls */}
+            <div className="left-panel">
+
+              {/* General */}
+              <div className="panel-section">
+                <div className="panel-section-label">General</div>
+                <button className="panel-btn primary" onClick={() => {setTree({id: generateId(), label: '...', children: null, triangleText: null, sublabels: [], terminalLocked: false}); setMoves([]); setPhases(new Set()); setDottedLines(new Set()); setOvals([]); setLateInsertions([]); setHistory([]); setHistoryIndex(-1); localStorage.removeItem('kilmer-autosave'); setLastSaved(null);}}>
+                  <span className="pb-icon">✦</span>New Tree
+                </button>
+                <button className="panel-btn" onClick={() => window.open('manual.html', '_blank')}>
+                  <span className="pb-icon">◫</span>Manual
+                </button>
+              </div>
+
+              {/* Files */}
+              <div className="panel-section">
+                <div className="panel-section-label">Files</div>
+                <button className="panel-btn" onClick={() => fileRef.current.click()}>
+                  <span className="pb-icon">◰<span style={{fontSize:'9px', verticalAlign:'middle', margin:'0 1px'}}>→</span></span>Load
+                </button>
+                <input type="file" ref={fileRef} style={{display:'none'}} accept=".json,.kilmer,application/json,text/plain" onChange={load} />
+                <button className="panel-btn" onClick={saveTree} disabled={!tree} title="Save (Ctrl+S)">
+                  <span className="pb-icon"><span style={{fontSize:'9px', verticalAlign:'middle', margin:'0 1px'}}>→</span>◰</span>Save
+                </button>
+                <button className="panel-btn" onClick={handleExportPNG} disabled={!tree}>
+                  <span className="pb-icon">↗</span>Export as Image
+                </button>
+              </div>
+
+              {/* Building direction */}
+              <div className="panel-section">
+                <div className="panel-section-label">Building direction</div>
+                <button className={`panel-btn ${buildMode === 'topdown' ? 'dir-active' : ''}`} onClick={() => setBuildMode('topdown')} title="Top-down">
+                  <span className="pb-icon">↧</span>Top-down
+                </button>
+                <button className={`panel-btn ${buildMode === 'bottomup' ? 'dir-active' : ''}`} onClick={() => setBuildMode('bottomup')} title="Bottom-up">
+                  <span className="pb-icon">↥</span>Bottom-up
+                </button>
+              </div>
+
+              {/* Tools */}
+              <div className="panel-section">
+                <div className="panel-section-label">Tools</div>
+                <button className={`panel-btn ${isMoveMode ? 'active-mode' : ''}`} onClick={() => {setIsMoveMode(!isMoveMode); setIsPhaseMode(false); setIsRegionMode(false); setIsLateInsertionMode(false); setSourceId(null);}} disabled={!tree} title="Move">
+                  <span className="pb-icon">⤳</span>Move
+                </button>
+                <button className={`panel-btn ${isPhaseMode ? 'active-mode' : ''}`} onClick={() => {setIsPhaseMode(!isPhaseMode); setIsMoveMode(false); setIsRegionMode(false); setIsLateInsertionMode(false); setSourceId(null);}} disabled={!tree} title="Phase">
+                  <span className="pb-icon">◠</span>Phase
+                </button>
+                <button className={`panel-btn ${isLateInsertionMode ? 'active-mode' : ''}`} onClick={() => {setIsLateInsertionMode(!isLateInsertionMode); setIsMoveMode(false); setIsPhaseMode(false); setIsRegionMode(false); setSourceId(null); if (isLateInsertionMode) { setSelectedLiId(null); setLiAction(null); }}} disabled={!tree} title="Late Insertion">
+                  <span className="pb-icon">⇔</span>Late Insertion
+                </button>
+                <div className="highlight-popover-wrapper" style={{width:'100%'}}>
+                  <button
+                    className={`panel-btn ${isRegionMode ? 'active-mode' : ''}`}
+                    style={isRegionMode ? {background: regionColor, borderColor: regionColor} : undefined}
+                    onClick={() => {
+                      const wasOn = isRegionMode;
+                      setIsRegionMode(!wasOn);
+                      setIsMoveMode(false); setIsPhaseMode(false); setIsLateInsertionMode(false); setSourceId(null);
+                      if (wasOn) { setSelectedOvalId(null); setHighlightPopoverOpen(false); }
+                    }}
+                    disabled={!tree}
+                    title="Draw oval highlights"
+                  >
+                    <span className="pb-icon">⬭</span>
+                    <span style={{flex:1}}>Highlight</span>
+                    {isRegionMode && (
+                      <span style={{fontSize:'12px', opacity:0.9}} onClick={(e) => { e.stopPropagation(); setHighlightPopoverOpen(p => !p); }}>▾</span>
+                    )}
+                  </button>
+                  {isRegionMode && highlightPopoverOpen && (
+                    <div className="highlight-popover-panel">
+                      {OVAL_COLORS.map(c => (
+                        <span
+                          key={c}
+                          className={`oval-color-dot ${regionColor === c ? 'active' : ''}`}
+                          style={{background: c}}
+                          onClick={() => { setRegionColor(c); setHighlightPopoverOpen(false); }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* History */}
+              <div className="panel-section">
+                <div className="panel-section-label">History</div>
+                <button className="panel-btn" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)">
+                  <span className="pb-icon">↶</span>Undo
+                </button>
+                <button className="panel-btn" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Y)">
+                  <span className="pb-icon">↷</span>Redo
+                </button>
+              </div>
+
+            </div>{/* end left-panel */}
 
             {/* Main content area */}
             <div className="workspace-main">
@@ -3536,137 +3557,19 @@ function insertIPAIntoActiveInput(ch) {
 
             </div>{/* end workspace-main */}
 
-            {/* Right sidebar — icon rail, expands on hover */}
-            <div className="sidebar">
-              <button className="sb-btn" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)">
-                <span className="sb-icon">↶</span><span className="sb-label">Undo</span>
-              </button>
-              <button className="sb-btn" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Y)">
-                <span className="sb-icon">↷</span><span className="sb-label">Redo</span>
-              </button>
-
-              <div className="sidebar-divider" />
-
-              <div className="segmented-control" title="Build direction">
-                <button className={`sb-btn ${buildMode === 'topdown' ? 'active' : ''}`} onClick={() => setBuildMode('topdown')} title="Top-down">
-                  <span className="sb-icon">↧</span><span className="sb-label">Top-down</span>
-                </button>
-                <button className={`sb-btn ${buildMode === 'bottomup' ? 'active' : ''}`} onClick={() => setBuildMode('bottomup')} title="Bottom-up">
-                  <span className="sb-icon">↥</span><span className="sb-label">Bottom-up</span>
-                </button>
-              </div>
-
-              <div className="sidebar-divider" />
-
-              <button className={`sb-btn ${isMoveMode ? 'active-mode' : ''}`} onClick={() => {setIsMoveMode(!isMoveMode); setIsPhaseMode(false); setIsRegionMode(false); setIsLateInsertionMode(false); setSourceId(null);}} disabled={!tree} title="Move">
-                <span className="sb-icon">⤳</span><span className="sb-label">Move</span>
-              </button>
-              <button className={`sb-btn ${isPhaseMode ? 'active-mode' : ''}`} onClick={() => {setIsPhaseMode(!isPhaseMode); setIsMoveMode(false); setIsRegionMode(false); setIsLateInsertionMode(false); setSourceId(null);}} disabled={!tree} title="Phase">
-                <span className="sb-icon">◠</span><span className="sb-label">Phase</span>
-              </button>
-              <button className={`sb-btn ${isLateInsertionMode ? 'active-mode' : ''}`} onClick={() => {setIsLateInsertionMode(!isLateInsertionMode); setIsMoveMode(false); setIsPhaseMode(false); setIsRegionMode(false); setSourceId(null); if (isLateInsertionMode) { setSelectedLiId(null); setLiAction(null); }}} disabled={!tree} title="Late Insertion">
-                <span className="sb-icon">⇔</span><span className="sb-label">LIM</span>
-              </button>
-
-              <div className="sidebar-divider" />
-
-              <div className="highlight-popover-wrapper">
-                <button
-                  className={`highlight-popover-trigger ${isRegionMode ? 'active-mode' : ''}`}
-                  style={isRegionMode ? {background: regionColor, borderColor: regionColor} : undefined}
-                  onClick={() => {
-                    const wasOn = isRegionMode;
-                    setIsRegionMode(!wasOn);
-                    setIsMoveMode(false); setIsPhaseMode(false); setIsLateInsertionMode(false); setSourceId(null);
-                    if (wasOn) { setSelectedOvalId(null); setHighlightPopoverOpen(false); }
-                  }}
-                  disabled={!tree}
-                  title="Draw oval highlights"
-                >
-                  <span className="sb-icon">⬭</span>
-                  <span className="sb-label">Highlight</span>
-                  {isRegionMode && (
-                    <span className="caret" onClick={(e) => { e.stopPropagation(); setHighlightPopoverOpen(p => !p); }}>▾</span>
-                  )}
-                </button>
-                {isRegionMode && highlightPopoverOpen && (
-                  <div className="highlight-popover-panel">
-                    {OVAL_COLORS.map(c => (
-                      <span
-                        key={c}
-                        className={`oval-color-dot ${regionColor === c ? 'active' : ''}`}
-                        style={{background: c}}
-                        onClick={() => { setRegionColor(c); setHighlightPopoverOpen(false); }}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
           </div>{/* end workspace */}
 
           <div className="instructions-panel">
             <button className="instructions-header" onClick={() => setShowInstructions(prev => !prev)}>
-              <span>Instructions</span>
+              <span>Quick Guide</span>
               <span className={`collapse-icon ${showInstructions ? 'expanded' : ''}`}>›</span>
             </button>
             {showInstructions && (
               <div className="instructions-grid">
 
-              <div className="instruction-card">
-                <h4><span className="icon">▤</span> Interface Layout</h4>
-                <ul>
-                  <li>The <strong>top bar</strong> contains file management: <strong>New Tree</strong> (left), and <strong>Load</strong>, <strong>Save</strong>, <strong>Export as image</strong> (right).</li>
-                  <li>The <strong>right sidebar</strong> contains diagramming tools: Undo/Redo, build direction, Move, Phase, and Highlight.</li>
-                  <li>The sidebar shows only icons by default — hover over it to expand and reveal labels.</li>
-                </ul>
-              </div>
-
-              <div className="instruction-card">
-                <h4><span className="icon">⑃</span> Building the Tree</h4>
-                <ul>
-                  <li>Hover over any node to reveal action buttons.</li>
-                  <li>Use <code>⑃</code> for binary branching or <code>│</code> for a single daughter.</li>
-                  <li>The <code>△</code> button creates a triangle for unanalyzed constituents.</li>
-                  <li>Double-click any branch line to toggle dotted style.</li>
-                </ul>
-              </div>
-
-              <div className="instruction-card">
-                <h4><span className="icon">A</span> Editing Labels</h4>
-                <ul>
-                  <li>Click any label to edit.</li>
-                  <li>Confirm with <span className="keyboard-hint"><span class="key">Enter</span></span> or cancel with <span className="keyboard-hint"><span class="key">Esc</span></span> to revert.</li>
-                  <li>While editing, use the <code>Ω</code> button in the floating node toolbar (just left of <code>✕</code>) to open a special character palette. The palette includes IPA symbols, Greek letters, and mathematical symbols, and appears in the top-right corner of the canvas below the zoom controls.</li>
-                  <li>Use <code>+₂</code> to add a secondary label below the main one.</li>
-                </ul>
-              </div>
-
-              <div className="instruction-card">
-                <h4><span className="icon">⇅</span> Build Modes</h4>
-                <ul>
-                  <li>Select <strong>Top-down</strong> (<code>↧</code>) or <strong>Bottom-up</strong> (<code>↥</code>) in the right sidebar to change the construction mode.</li>
-                  <li><strong>Top-down</strong>: <code>│</code>, <code>⑃</code>, and <code>△</code> create <strong>daughters</strong> from the selected node.</li>
-                  <li><strong>Bottom-up</strong>: <code>│</code>, <code>→⑃</code>/<code>⑃←</code>, and <code>△</code> create a <strong>parent</strong> above the selected node.</li>
-                  <li>The arrows in <code>→⑃</code> and <code>⑃←</code> indicate where the <strong>sibling</strong> will appear (left or right).</li>
-                  <li>In Bottom-up mode, node tools appear <strong>above</strong> the node; in Top-down, <strong>below</strong>.</li>
-                </ul>
-              </div>
-
-              <div className="instruction-card">
-                <h4><span className="icon">+₂</span> Multiple Bottom Labels</h4>
-                <ul>
-                  <li>Use <code>+₂</code> to add up to <strong>4</strong> bottom labels under a node.</li>
-                  <li>Each secondary label is <strong>editable</strong> (click to edit) and can be removed with its <code>×</code> (visible on hover).</li>
-                  <li>If a node reaches <strong>2+</strong> bottom labels, it becomes <strong>terminal (locked)</strong>:
-                  existing daughters (if any) are removed, and no new daughters can be added in Top-down mode.</li>
-                  <li>Bottom-up wrapping still works on locked nodes (it adds a parent, not daughters).</li>
-                </ul>
-              </div>
-
+              {/* ── Text Formatting ── */}
               <div className="instruction-card text-formatting-card">
-                <h4><span className="icon">✦</span> Text Formatting</h4>
+                <h4><span className="icon"><i>A</i></span> Text Formatting</h4>
                 <div className="formatting-columns">
                   <ul>
                     <li><code>**text**</code> <span class="example"><span class="arrow">→</span> <span class="result"><b>bold</b></span></span></li>
@@ -3688,78 +3591,22 @@ function insertIPAIntoActiveInput(ch) {
                 </div>
               </div>
 
+              {/* ── Node toolbar icons ── */}
               <div className="instruction-card">
-                <h4><span className="icon">⤳</span> Movement Arrows</h4>
+                <h4><span className="icon">⑃</span> Node Toolbar Icons</h4>
                 <ul>
-                  <li>Click <strong>Move</strong> (<code>⤳</code>) in the right sidebar, then click the source node (e.g., a trace) followed by the target.</li>
-                  <li>Arrows curve beneath the tree.</li>
-                  <li>Double-click the line to toggle between dotted and continuous line styles.</li>
-                  <li>Click <code>×</code> on any arrow to remove it.</li>
-                  <li>Arrows can also represent Agree relations or other long-distance dependencies.</li>
-                  <li>Click <span className="key">Esc</span> to exit Move Mode.</li>
+                  <li><code>│</code> — single daughter (Top-down) · single parent (Bottom-up)</li>
+                  <li><code>⑃</code> — binary branching daughters (Top-down) · binary parent (Bottom-up)</li>
+                  <li><code>→⑃</code> / <code>⑃←</code> — binary parent with new sibling on the left or right (Bottom-up only)</li>
+                  <li><code>△</code> — triangle for unanalyzed constituents</li>
+                  <li><code>+₂</code> — add a secondary label below the node (up to 4; node becomes terminal at 2+)</li>
+                  <li><code>Ω</code> — open the special character picker (IPA, Greek, math symbols)</li>
+                  <li><code>✕</code> — delete node and all its descendants (on root: clears tree, preserves root label)</li>
                 </ul>
+                <p style={{marginTop: '8px', fontSize: '13px', color: '#888'}}>Double-click any branch line to toggle dotted style.</p>
               </div>
 
-              <div className="instruction-card">
-                <h4><span className="icon">◠</span> Phase Boundaries</h4>
-                <ul>
-                  <li>Click <strong>Phase</strong> (<code>◠</code>) in the right sidebar, then click a phase head (vP, CP).</li>
-                  <li>A dashed arc marks the phase boundary. Double-click to make it solid.</li>
-                  <li>Click <code>×</code> on the arc to remove it.</li>
-                </ul>
-              </div>
-
-              <div className="instruction-card">
-                <h4><span className="icon">⇔</span> Late Insertion Model (LIM)</h4>
-                <ul>
-                  <li>Click <strong>LIM</strong> (<code>⇔</code>) in the right sidebar to activate Late Insertion mode.</li>
-                  <li><strong>Drag</strong> on the canvas to draw a dashed rectangle around a region of the tree.</li>
-                  <li>A node label appears to the right, connected by a double-headed arrow. An input opens immediately — type the label (e.g., a phonological form).</li>
-                  <li>Use the <code>Ω</code> button next to the input while editing the node to insert special characters.</li>
-                  <li><strong>Drag the node</strong> to reposition it; the arrow follows automatically.</li>
-                  <li><strong>Drag the rectangle</strong> to move it independently.</li>
-                  <li>Click <code>×</code> on the node or press <span className="keyboard-hint"><span class="key">Delete</span></span> to remove the entire annotation (rectangle + node + arrow).</li>
-                </ul>
-              </div>
-
-              <div className="instruction-card">
-                <h4><span className="icon">⬭</span> Oval Highlights</h4>
-                <ul>
-                  <li>Click <strong>Highlight</strong> (<code>⬭</code>) in the right sidebar to activate highlight mode. The button changes to the active drawing color.</li>
-                  <li>To change the color, expand the sidebar and click the <code>▾</code> chevron next to "Highlight" to open the color picker. Four colors are available: red, green, blue, and yellow.</li>
-                  <li><strong>Drag</strong> on the canvas to draw an oval. A label input appears immediately — type a label or leave it empty.</li>
-                  <li>Click an oval to select it, edit its label, <strong>drag to move</strong> it, or <strong>drag a handle</strong> to resize.</li>
-                  <li>Click <code>×</code> on any oval to remove it.</li>
-                </ul>
-              </div>
-
-              <div className="instruction-card">
-                <h4><span className="icon">✕</span> Deleting Nodes</h4>
-                <ul>
-                  <li>The red <code>✕</code> removes a node and all its descendants.</li>
-                  <li>On the root node, it clears the entire structure while preserving the root label.</li>
-                </ul>
-              </div>
-
-              <div className="instruction-card">
-                <h4><span className="icon">◰</span> Saving Your Work</h4>
-                <ul>
-                  <li>Use the buttons in the top bar: <strong>Save</strong> exports a <code>.json</code> file for later editing; <strong>Export as image</strong> generates a clean image for documents and presentations.</li>
-                  <li><strong>Auto-save:</strong> Kilmer auto-saves your work every few seconds after changes and can restore it if you accidentally close the browser (see the <code>☁ Saving...</code> / <code>✓ Auto-saved…</code> indicator).</li>
-                  <li><strong>Tip:</strong> auto-save is just a safety net—still save a <code>.json</code> file when you finish.</li>
-                </ul>
-              </div>
-
-              <div className="instruction-card">
-                <h4><span className="icon">⌕</span> Zoom Controls</h4>
-                <ul>
-                  <li>Use the <code>[−]</code> and <code>[+]</code> buttons in the top-right corner of the canvas to zoom in/out.</li>
-                  <li>Click the percentage indicator to reset to 100%.</li>
-                  <li>Zoom range: 40% to 200% in 20% increments.</li>
-                  <li>Controls appear when a tree is present.</li>
-                </ul>
-              </div>
-
+              {/* ── Keyboard Shortcuts ── */}
               <div className="instruction-card">
                 <h4><span className="icon">⌨</span> Keyboard Shortcuts</h4>
                 <div style={{ display: 'flex', justifyContent: 'flex-start', gap: '40px' }}>
@@ -3771,8 +3618,8 @@ function insertIPAIntoActiveInput(ch) {
                     <li><span className="key">Ctrl</span>+<span className="key">+</span> Zoom in</li>
                     <li><span className="key">Ctrl</span>+<span className="key">−</span> Zoom out</li>
                     <li><span className="key">Ctrl</span>+<span className="key">0</span> Reset zoom</li>
+                    <li><span className="key">Esc</span> Exit active mode</li>
                   </ul>
-
                   <ul className="shortcut-list" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                     <li style={{ marginBottom: '5px', opacity: 0.7, fontSize: '0.8em' }}>macOS</li>
                     <li><span className="key">⌘</span>+<span className="key">Z</span> Undo</li>
@@ -3781,9 +3628,11 @@ function insertIPAIntoActiveInput(ch) {
                     <li><span className="key">⌘</span>+<span className="key">+</span> Zoom in</li>
                     <li><span className="key">⌘</span>+<span className="key">−</span> Zoom out</li>
                     <li><span className="key">⌘</span>+<span className="key">0</span> Reset zoom</li>
+                    <li><span className="key">Esc</span> Exit active mode</li>
                   </ul>
                 </div>
               </div>
+
             </div>
           )}
         </div>
@@ -3801,6 +3650,25 @@ function insertIPAIntoActiveInput(ch) {
     };
 
     ReactDOM.createRoot(document.getElementById('root')).render(<KilmerApp />);
+  </script>
+
+  <script>
+    function syncCanvasHeight() {
+      const panel = document.querySelector('.left-panel');
+      const canvas = document.querySelector('.tree-canvas');
+      if (!panel || !canvas) return;
+      const h = panel.offsetHeight;
+      canvas.style.minHeight = h + 'px';
+    }
+    // Run after React renders, then on every resize/DOM change
+    setTimeout(syncCanvasHeight, 200);
+    window.addEventListener('resize', syncCanvasHeight);
+    const _obs = new MutationObserver(syncCanvasHeight);
+    document.addEventListener('DOMContentLoaded', () => {
+      const panel = document.querySelector('.left-panel');
+      if (panel) _obs.observe(panel, { childList: true, subtree: true, attributes: true });
+    });
+    setInterval(syncCanvasHeight, 500);
   </script>
 </body>
 </html>

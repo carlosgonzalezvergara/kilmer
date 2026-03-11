@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>User Manual - Kilmer</title>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+    :root {
+      --bg-color: #ffffff;
+      --surface: #f5faf7;
+      --surface-warm: #eaf3ed;
+      --border: #dee2e6;
+      --text: #212529;
+      --text-secondary: #6c757d;
+      --accent: #0f5132;
+      --accent-hover: #198754;
+      --font-serif: 'Crimson Pro', Georgia, serif;
+      --font-sans: 'Source Sans 3', system-ui, sans-serif;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--surface);
+      color: var(--text);
+      line-height: 1.6;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      background: var(--bg-color);
+      padding: 40px 60px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+      border: 1px solid var(--border);
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid var(--surface);
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      color: var(--accent);
+      font-size: 2.5rem;
+      margin-bottom: 5px;
+    }
+
+    h2 {
+      font-family: var(--font-serif);
+      color: var(--accent-hover);
+      font-size: 1.8rem;
+      margin-top: 40px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+
+    h3 {
+      font-family: var(--font-sans);
+      color: var(--text);
+      font-size: 1.2rem;
+      margin-top: 25px;
+    }
+
+    p, li {
+      font-size: 1.05rem;
+      color: #495057;
+    }
+
+    ul, ol {
+      padding-left: 20px;
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    .ui-element {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 0.9em;
+      color: var(--accent);
+    }
+
+    .keyboard-shortcut {
+      background: #e9ecef;
+      border: 1px solid #ced4da;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.9em;
+      color: #495057;
+    }
+
+    code {
+      font-family: monospace;
+      background: var(--surface-warm);
+      padding: 2px 4px;
+      border-radius: 3px;
+      color: var(--accent);
+    }
+
+    .formatting-grid {
+      background: var(--surface);
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      border: 1px solid var(--border);
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    .formatting-grid td {
+      padding: 7px 20px 7px 0;
+      vertical-align: middle;
+    }
+
+    .formatting-grid td:first-child {
+      white-space: nowrap;
+      padding-right: 28px;
+    }
+
+    .note {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 14px 16px;
+      border-radius: 10px;
+      margin: 16px 0;
+      color: #495057;
+    }
+
+    .note strong {
+      color: var(--accent);
+    }
+
+    /* TOC */
+    .toc {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 28px;
+      margin: 32px 0;
+    }
+
+    .toc h3 {
+      margin-top: 0;
+      margin-bottom: 12px;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-secondary);
+    }
+
+    .toc ol {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .toc li {
+      margin-bottom: 4px;
+      font-size: 1rem;
+    }
+
+    .toc a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .toc a:hover {
+      color: var(--accent-hover);
+      text-decoration: underline;
+    }
+
+    /* Shortcut table */
+    .shortcut-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0 40px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin: 16px 0;
+    }
+
+    .shortcut-col-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+
+    .shortcut-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 1rem;
+      color: #495057;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 50px;
+      padding-top: 30px;
+      border-top: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+
+    footer p {
+      margin: 5px 0;
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s ease;
+    }
+
+    footer a:hover {
+      color: var(--accent-hover);
+      text-decoration: underline;
+    }
+
+    footer img {
+      display: block;
+      margin: 16px auto 0;
+      height: 31px;
+      width: auto;
+      opacity: 0.8;
+    }
+
+    footer img:hover { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>Kilmer</h1>
+    <p style="font-size: 1.2rem; color: var(--text-secondary); margin: 0; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">User Manual</p>
+  </header>
+
+  <div class="toc">
+    <h3>Contents</h3>
+    <ol>
+      <li><a href="#interface">Interface Layout</a></li>
+      <li><a href="#building">Building the Tree</a></li>
+      <li><a href="#labels">Editing Labels</a></li>
+      <li><a href="#formatting">Text Formatting</a></li>
+      <li><a href="#tools">Annotation Tools</a></li>
+      <li><a href="#saving">Saving and Exporting</a></li>
+      <li><a href="#shortcuts">Keyboard Shortcuts</a></li>
+    </ol>
+  </div>
+
+  <!-- ═══ 1. INTERFACE ═══ -->
+  <section id="interface">
+    <h2>1. Interface Layout</h2>
+    <p>Kilmer's interface is divided into two areas: a <strong>left panel</strong> with all controls, and a <strong>canvas</strong> to the right where trees are built and edited.</p>
+
+    <h3>Left panel sections</h3>
+    <ul>
+      <li><strong>General:</strong> start a new tree (<span class="ui-element">✦ New Tree</span>) or open this manual (<span class="ui-element">◫ Manual</span>).</li>
+      <li><strong>Files:</strong> load a previously saved file, save your current work, or export the diagram as an image.</li>
+      <li><strong>Building direction:</strong> switch between Top-down and Bottom-up construction modes (see Section 2).</li>
+      <li><strong>Tools:</strong> activate Move, Phase, Late Insertion, or Highlight mode.</li>
+      <li><strong>History:</strong> undo or redo the last actions.</li>
+    </ul>
+
+    <h3>Canvas</h3>
+    <p>The canvas displays the active tree. Hover over any node to reveal its action buttons. Zoom controls appear in the top-right corner of the canvas when a tree is present; the auto-save indicator appears in the top-left corner.</p>
+
+    <div class="note">
+      <strong>Active tools</strong> — Move, Phase, Late Insertion, and Highlight — are highlighted in green in the panel when enabled. Click the button again or press <span class="keyboard-shortcut">Esc</span> to exit any active mode.
+    </div>
+  </section>
+
+  <!-- ═══ 2. BUILDING ═══ -->
+  <section id="building">
+    <h2>2. Building the Tree</h2>
+
+    <h3>Build modes</h3>
+    <p>Select the build direction from the <strong>Building direction</strong> section of the left panel:</p>
+    <ul>
+      <li><strong>Top-down</strong> (<span class="ui-element">↧</span>): the buttons <code>│</code>, <code>⑃</code>, and <code>△</code> create <strong>daughters</strong> below the selected node. This is the default mode.</li>
+      <li><strong>Bottom-up</strong> (<span class="ui-element">↥</span>): the buttons <code>│</code>, <code>→⑃</code>/<code>⑃←</code>, and <code>△</code> create a <strong>parent</strong> above the selected node. Node action buttons appear above the node instead of below.</li>
+    </ul>
+    <p>In Bottom-up mode, the arrows in <code>→⑃</code> and <code>⑃←</code> indicate where the sibling node will appear (left or right of the current node).</p>
+
+    <h3>Node action buttons</h3>
+    <p>Hover over any node to reveal its action buttons. The available actions depend on the current build mode:</p>
+    <ul>
+      <li><code>│</code> — add a single daughter (Top-down) or a single parent (Bottom-up).</li>
+      <li><code>⑃</code> — add two daughters via binary branching (Top-down), or wrap in a binary parent with a new sibling (Bottom-up).</li>
+      <li><code>△</code> — create a triangle for unanalyzed constituents.</li>
+      <li><code>+₂</code> — add a secondary label below the main node label (up to 4; see Section 3).</li>
+      <li><code>✕</code> (red) — delete the node and all its descendants. On the root node, clears the entire tree while preserving the root label.</li>
+    </ul>
+    <p>Double-clicking any branch line toggles it between a solid and a dotted style.</p>
+
+    <h3>Terminal nodes and bottom labels</h3>
+    <ul>
+      <li>Use <code>+₂</code> to add up to <strong>4</strong> secondary labels beneath a node's main label.</li>
+      <li>Each secondary label is editable (click to edit) and removable via its <code>×</code> button (visible on hover).</li>
+      <li>When a node reaches <strong>2 or more</strong> bottom labels it becomes <strong>terminal (locked)</strong>: existing daughters are removed and no new daughters can be added in Top-down mode. Bottom-up wrapping still works on locked nodes.</li>
+    </ul>
+  </section>
+
+  <!-- ═══ 3. LABELS ═══ -->
+  <section id="labels">
+    <h2>3. Editing Labels</h2>
+    <ul>
+      <li>Click any label to open an editable field directly over it.</li>
+      <li>Confirm with <span class="keyboard-shortcut">Enter</span> or cancel with <span class="keyboard-shortcut">Esc</span> to revert to the previous value.</li>
+      <li>While editing, click the <span class="ui-element">Ω</span> button in the floating node toolbar to open the special character palette. It includes IPA symbols, Greek letters, and mathematical symbols, and appears in the top-right corner of the canvas.</li>
+    </ul>
+  </section>
+
+  <!-- ═══ 4. FORMATTING ═══ -->
+  <section id="formatting">
+    <h2>4. Text Formatting</h2>
+    <p>Node labels support a lightweight markup system. Markers wrap the target text and are interpreted on render:</p>
+
+    <table class="formatting-grid">
+      <tr><td><code>**text**</code></td><td><strong>Bold</strong></td></tr>
+      <tr><td><code>*text*</code></td><td><em>Italics</em></td></tr>
+      <tr><td><code>X_i</code> or <code>X_i_</code></td><td>Subscript — renders as X<sub>i</sub></td></tr>
+      <tr><td><code>X¨n</code> or <code>X¨n¨</code></td><td>Superscript — renders as X<sup>n</sup></td></tr>
+      <tr><td><code>#X#</code></td><td><span style="text-decoration: overline;">Overline</span></td></tr>
+      <tr><td><code>##X##</code></td><td><span style="text-decoration: overline; border-top: 1.5px solid currentColor; padding-top: 2px;">Double overline</span></td></tr>
+      <tr><td><code>=X=</code></td><td><s>Strikethrough</s></td></tr>
+    </table>
+
+    <h3>Combining styles</h3>
+    <p>Markers can be nested to combine styles. For example:</p>
+    <ul>
+      <li><code>**X**_i_</code> → <strong>X</strong><sub>i</sub></li>
+      <li><code>*X*_i_</code> → <em>X</em><sub>i</sub></li>
+      <li><code>X¨*n*¨</code> → X<sup><em>n</em></sup></li>
+      <li><code>#*XP*#</code> → <span style="text-decoration: overline;"><em>XP</em></span></li>
+      <li><code>=*t*_i_=</code> → <s><em>t</em><sub>i</sub></s></li>
+    </ul>
+  </section>
+
+  <!-- ═══ 5. TOOLS ═══ -->
+  <section id="tools">
+    <h2>5. Annotation Tools</h2>
+    <p>All tools are accessible from the <strong>Tools</strong> section of the left panel. Activate a tool by clicking its button; it will highlight in green. Exit at any time with <span class="keyboard-shortcut">Esc</span>.</p>
+
+    <h3>Movement arrows (<span class="ui-element">⤳ Move</span>)</h3>
+    <ol>
+      <li>Click <span class="ui-element">⤳ Move</span> to enter Move mode. A status bar at the top of the canvas confirms you are in Step 1/2.</li>
+      <li>Click the <strong>source node</strong> (e.g., a trace or a copy).</li>
+      <li>Click the <strong>target node</strong>. A curved arrow is drawn beneath the tree connecting the two nodes.</li>
+    </ol>
+    <ul>
+      <li>Double-click an arrow line to toggle between dotted and continuous styles.</li>
+      <li>Click <code>×</code> on any arrow to remove it.</li>
+      <li>Arrows can represent movement, Agree relations, or other long-distance dependencies.</li>
+    </ul>
+
+    <h3>Phase boundaries (<span class="ui-element">◠ Phase</span>)</h3>
+    <ol>
+      <li>Click <span class="ui-element">◠ Phase</span> to enter Phase mode.</li>
+      <li>Click a phase head node (e.g., a <em>v</em>P or CP node). A dashed arc is drawn above that subtree to mark the phase boundary.</li>
+    </ol>
+    <ul>
+      <li>Double-click the arc to toggle between dashed and solid styles.</li>
+      <li>Click <code>×</code> on the arc to remove it.</li>
+    </ul>
+
+    <h3>Late Insertion Model (<span class="ui-element">⇔ Late Insertion</span>)</h3>
+    <ol>
+      <li>Click <span class="ui-element">⇔ Late Insertion</span> to enter LIM mode. The cursor changes to a crosshair.</li>
+      <li><strong>Drag</strong> on the canvas to draw a dashed rectangle around the target region of the tree.</li>
+      <li>A labeled node appears to the right of the rectangle, connected by a double-headed arrow. An input field opens immediately — type the phonological form or label.</li>
+      <li>Use the <span class="ui-element">Ω</span> button next to the input to insert special characters.</li>
+    </ol>
+    <ul>
+      <li><strong>Reposition the node</strong> by dragging it; the connecting arrow follows automatically.</li>
+      <li><strong>Reposition the rectangle</strong> by dragging it independently.</li>
+      <li>Click <code>×</code> on the node, or press <span class="keyboard-shortcut">Delete</span>, to remove the entire annotation (rectangle + node + arrow).</li>
+    </ul>
+
+    <h3>Oval highlights (<span class="ui-element">⬭ Highlight</span>)</h3>
+    <ol>
+      <li>Click <span class="ui-element">⬭ Highlight</span> to enter Highlight mode. The button color changes to the currently selected drawing color.</li>
+      <li>To change color, click the <code>▾</code> chevron next to the Highlight button. Four colors are available: red, green, blue, and yellow.</li>
+      <li><strong>Drag</strong> on the canvas to draw an oval. A label input appears — type a label or leave it empty and press <span class="keyboard-shortcut">Enter</span>.</li>
+    </ol>
+    <ul>
+      <li>Click an oval to select it and edit its label.</li>
+      <li><strong>Drag</strong> a selected oval to move it; <strong>drag a handle</strong> to resize.</li>
+      <li>Click <code>×</code> on an oval to remove it.</li>
+    </ul>
+  </section>
+
+  <!-- ═══ 6. SAVING ═══ -->
+  <section id="saving">
+    <h2>6. Saving and Exporting</h2>
+    <ul>
+      <li><span class="ui-element">→◰ Save</span>: downloads a <code>.json</code> file. This is Kilmer's native, fully editable format. The file can be reloaded at any time via <span class="ui-element">◰→ Load</span>.</li>
+      <li><span class="ui-element">↗ Export as image</span>: generates a high-resolution PNG with clean rendering and appropriate padding, ready for inclusion in documents or presentations.</li>
+      <li><strong>Auto-save:</strong> Kilmer periodically stores your work in the browser (indicated by the <code>☁ Saving…</code> / <code>✓ Auto-saved</code> chip in the top-left corner of the canvas). This is a safety net for accidental tab closes — it does not replace an explicit <span class="ui-element">→◰ Save</span>.</li>
+    </ul>
+
+    <div class="note">
+      <strong>Tip:</strong> always download a <code>.json</code> file when you finish a session. The auto-save data is local to the browser and will be lost if you clear browser storage.
+    </div>
+
+    <h3>Zoom controls</h3>
+    <p>The <code>−</code> and <code>+</code> buttons in the top-right corner of the canvas adjust the zoom level. Click the percentage indicator to reset to 100%. The zoom range is 40%–200% in 20% increments. Controls appear only when a tree is present.</p>
+  </section>
+
+  <!-- ═══ 7. SHORTCUTS ═══ -->
+  <section id="shortcuts">
+    <h2>7. Keyboard Shortcuts</h2>
+
+    <div class="shortcut-grid">
+      <div>
+        <div class="shortcut-col-label">Windows / Linux</div>
+        <div class="shortcut-row"><span class="keyboard-shortcut">Ctrl + Z</span> Undo</div>
+        <div class="shortcut-row"><span class="keyboard-shortcut">Ctrl + Y</span> Redo</div>
+        <div class="shortcut-row"><span class="keyboard-shortcut">Ctrl + S</span> Save</div>
+        <div class="shortcut-row"><span class="keyboard-shortcut">Ctrl + +</span> Zoom in</div>
+        <div class="shortcut-row"><span class="keyboard-shortcut">Ctrl + −</span> Zoom out</div>
+        <div class="shortcut-row"><span class="keyboard-shortcut">Ctrl + 0</span> Reset zoom</div>
+        <div class="shortcut-row"><span class="keyboard-shortcut">Enter</span> Confirm label edit</div>
+        <div class="shortcut-row"><span class="keyboard-shortcut">Esc</span> Cancel / exit mode</div>
+        <div class="shortcut-row"><span class="keyboard-shortcut">Delete</span> Remove LIM annotation</div>
+      </div>
+      <div>
+        <div class="shortcut-col-label">macOS</div>
+        <div class="shortcut-row"><span class="keyboard-shortcut">⌘ + Z</span> Undo</div>
+        <div class="shortcut-row"><span class="keyboard-shortcut">⌘ + Shift + Z</span> Redo</div>
+        <div class="shortcut-row"><span class="keyboard-shortcut">⌘ + S</span> Save</div>
+        <div class="shortcut-row"><span class="keyboard-shortcut">⌘ + +</span> Zoom in</div>
+        <div class="shortcut-row"><span class="keyboard-shortcut">⌘ + −</span> Zoom out</div>
+        <div class="shortcut-row"><span class="keyboard-shortcut">⌘ + 0</span> Reset zoom</div>
+        <div class="shortcut-row"><span class="keyboard-shortcut">Enter</span> Confirm label edit</div>
+        <div class="shortcut-row"><span class="keyboard-shortcut">Esc</span> Cancel / exit mode</div>
+        <div class="shortcut-row"><span class="keyboard-shortcut">Delete</span> Remove LIM annotation</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p><strong>Carlos González Vergara</strong> (<a href="/cdn-cgi/l/email-protection#17747078796d767b6157627439747b"><span class="__cf_email__" data-cfemail="bfdcd8d0d1c5ded3c9ffcadc91dcd3">[email&#160;protected]</span></a>)</p>
+    <p>Departamento de Ciencias del Lenguaje · Pontificia Universidad Católica de Chile</p>
+    <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" rel="noopener noreferrer">
+      <img src="https://mirrors.creat
