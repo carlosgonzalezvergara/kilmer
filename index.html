@@ -1061,7 +1061,7 @@
 
     .ipa-panel-portal{
       position: absolute;
-      top: 48px;
+      top: 56px;
       right: 12px;
       z-index: 201;
       animation: ipaPanelIn 0.15s ease-out;
@@ -1111,17 +1111,41 @@
 
     // IPA picker categories (used in toolbar while editing nodes)
     const IPA_CATEGORIES = [
-      { name: 'Common', chars: ['Ø','√','∅','≠','≈','≤','≥','±','∞','→','←','↔','⇒','⇐','⇔','¬','∧','∨','∀','∃','∈','∉','⊂','⊃','∪','∩','λ'] },
-      { name: 'Greek uppercase', chars: ['Α','Β','Γ','Δ','Ε','Ζ','Η','Θ','Ι','Κ','Λ','Μ','Ν','Ξ','Ο','Π','Ρ','Σ','Τ','Υ','Φ','Χ','Ψ','Ω'] },
-      { name: 'Greek lowercase', chars: ['α','β','γ','δ','ε','ζ','η','θ','ι','κ','λ','μ','ν','ξ','ο','π','ρ','σ','ς','τ','υ','φ','χ','ψ','ω'] },
-      { name: 'Math symbols', chars: ['×','÷','·','°','′','″','∑','∏','∂','∇','∫','√','∝','‰','†','‡','ℓ','ℕ','ℤ','ℚ','ℝ','ℂ'] },
+      // --- Linguistics ---
+      { name: 'Grammaticality & Notation', chars: ['*','?','#','%','°','Ø','∅','→','←','↔','⇒','⇐','⇔','↗','↘','≠','≈','≡','∼'] },
+      { name: 'Semantic & Logic', chars: ['¬','∧','∨','∀','∃','∄','∈','∉','⊂','⊃','⊆','⊇','∪','∩','λ','∴','∵','⊢','⊨','⊥'] },
+      // --- Greek ---
+      { name: 'Greek Uppercase', chars: ['Α','Β','Γ','Δ','Ε','Ζ','Η','Θ','Ι','Κ','Λ','Μ','Ν','Ξ','Ο','Π','Ρ','Σ','Τ','Υ','Φ','Χ','Ψ','Ω'] },
+      { name: 'Greek Lowercase', chars: ['α','β','γ','δ','ε','ζ','η','θ','ι','κ','λ','μ','ν','ξ','ο','π','ρ','σ','ς','τ','υ','φ','χ','ψ','ω'] },
+      // --- Math ---
+      { name: 'Math Operators', chars: ['×','÷','·','±','∓','√','∝','∑','∏','∂','∇','∫','∞'] },
+      { name: 'Math Sets & Typography', chars: ['ℕ','ℤ','ℚ','ℝ','ℂ','ℓ','′','″','‰','†','‡'] },
+      // --- IPA: Vowels ---
       { name: 'Vowels (IPA)', chars: ['i','y','ɨ','ʉ','ɯ','u','ɪ','ʏ','ʊ','e','ø','ɘ','ɵ','ɤ','o','ə','ɛ','œ','ɜ','ɞ','ʌ','ɔ','æ','ɐ','a','ɶ','ɑ','ɒ'] },
-      { name: 'Stops (IPA)', chars: ['p','b','t','d','ʈ','ɖ','c','ɟ','k','g','q','ɢ','ʔ'] },
-      { name: 'Fricatives (IPA)', chars: ['f','v','θ','ð','s','z','ʃ','ʒ','ʂ','ʐ','ç','ʝ','x','ɣ','χ','ʁ','ħ','ʕ','h','ɦ'] },
+      // --- IPA: Consonants ---
+      { name: 'Plosives (IPA)', chars: ['p','b','t','d','ʈ','ɖ','c','ɟ','k','ɡ','q','ɢ','ʔ'] },
       { name: 'Nasals (IPA)', chars: ['m','ɱ','n','ɳ','ɲ','ŋ','ɴ'] },
-      { name: 'Approximants (IPA)', chars: ['ʋ','ɹ','ɻ','j','ɰ','l','ɭ','ʎ','ʟ'] },
-      { name: 'Taps & Trills (IPA)', chars: ['ɾ','ɽ','r','ʀ'] },
-      { name: 'Diacritics (IPA)', chars: ['ˈ','ˌ','ː','ˑ','̆','̃','̥','̬','̩','̯','̪','̺','̻','̼','̹','̜','̟','̠','̈'] },
+      { name: 'Fricatives (IPA)', chars: ['ɸ','β','f','v','θ','ð','s','z','ʃ','ʒ','ʂ','ʐ','ɕ','ʑ','ç','ʝ','x','ɣ','χ','ʁ','ħ','ʕ','ʜ','ʢ','h','ɦ'] },
+      { name: 'Lateral Fricatives (IPA)', chars: ['ɬ','ɮ'] },
+      { name: 'Approximants (IPA)', chars: ['ʋ','ɹ','ɻ','j','ɰ'] },
+      { name: 'Lateral Approximants (IPA)', chars: ['l','ɭ','ʎ','ʟ'] },
+      { name: 'Trills & Taps (IPA)', chars: ['ʙ','r','ʀ','ⱱ','ɾ','ɽ','ɺ'] },
+      { name: 'Affricates (IPA)', chars: ['t͡s','d͡z','t͡ʃ','d͡ʒ','t͡ɕ','d͡ʑ','ʈ͡ʂ','ɖ͡ʐ'] },
+      { name: 'Clicks (IPA)', chars: ['ʘ','ǀ','ǃ','ǂ','ǁ'] },
+      { name: 'Implosives & Ejectives (IPA)', chars: ['ɓ','ɗ','ʄ','ɠ','ʛ','ʼ'] },
+      { name: 'Co-articulated (IPA)', chars: ['ʍ','w','ɥ','ɧ'] },
+      // --- IPA: Suprasegmentals & Diacritics ---
+      { name: 'Suprasegmentals (IPA)', chars: ['ˈ','ˌ','ː','ˑ','˘','‿','|','‖','.','̆'] },
+      { name: 'Diacritics – Voicing & Airstream (IPA)', chars: ['̥','̬','̤','̰','̼','̚'] },
+      { name: 'Diacritics – Place (IPA)', chars: ['̪','̺','̻','̟','̠','̘','̙'] },
+      { name: 'Diacritics – Manner (IPA)', chars: ['̝','̞','̹','̜','̈','̽','̩','̯','˞','̃','̴'] },
+      { name: 'Diacritics – Secondary (IPA)', chars: ['ʰ','ʷ','ʲ','ˠ','ˤ','ⁿ','ˡ','ˀ'] },
+      // --- IPA: Tones ---
+      { name: 'Tones – Level (IPA)', chars: ['˥','˦','˧','˨','˩'] },
+      { name: 'Tones – Diacritics (IPA)', chars: ['̋','́','̄','̀','̏'] },
+      { name: 'Tones – Contour (IPA)', chars: ['̌','̂','᷄','᷅','᷈','↗','↘'] },
+      // --- Brackets ---
+      { name: 'Brackets & Delimiters', chars: ['/','[',']','⟨','⟩','{','}'] },
     ];
 
 
