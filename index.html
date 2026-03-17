@@ -757,41 +757,41 @@
 
     .instruction-card {
       background: white;
-      padding: 24px;
+      padding: 16px 18px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 8px;
     }
 
     .instruction-card h4 {
       font-family: var(--font-display);
-      font-size: 1.1rem; /* Aumentado ligeramente */
+      font-size: 0.95rem;
       font-weight: 600;
       color: var(--color-accent);
       display: flex;
       align-items: center;
-      gap: 12px; /* Más espacio entre ícono y texto */
-      margin-bottom: 8px;
+      gap: 10px;
+      margin-bottom: 4px;
     }
 
     .instruction-card h4 .icon {
-      width: 32px;  /* Antes 24px */
-      height: 32px; /* Antes 24px */
+      width: 26px;
+      height: 26px;
       background: var(--color-accent);
       color: white;
-      border-radius: 8px;
+      border-radius: 6px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 18px; /* Antes 14px */
+      font-size: 14px;
       font-family: var(--font-body);
-      flex-shrink: 0; /* Evita que el ícono se encoja */
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Un toque de relieve */
+      flex-shrink: 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
     .instruction-card p {
-      font-size: 14px;
-      line-height: 1.6;
+      font-size: 12px;
+      line-height: 1.5;
       color: var(--color-text-muted);
     }
 
@@ -799,15 +799,15 @@
       list-style: none;
       padding: 0;
       margin: 0;
-      font-size: 14px;
-      line-height: 1.6;
+      font-size: 12px;
+      line-height: 1.5;
       color: var(--color-text-muted);
     }
 
     .instruction-card li {
       position: relative;
-      padding-left: 16px;
-      margin-bottom: 4px;
+      padding-left: 14px;
+      margin-bottom: 2px;
     }
 
     .instruction-card li::before {
@@ -825,10 +825,10 @@
     .instruction-card code {
       display: inline-block;
       background: #f5f4f0;
-      padding: 1px 6px;
+      padding: 1px 5px;
       border-radius: 4px;
       font-family: 'SF Mono', Consolas, monospace;
-      font-size: 13px;
+      font-size: 11.5px;
       color: var(--color-text);
       border: 1px solid #e8e6e1;
     }
@@ -836,18 +836,18 @@
     .instruction-card .example {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      margin-top: 4px;
+      gap: 5px;
+      margin-top: 2px;
     }
 
     .instruction-card .example .arrow {
       color: var(--color-accent);
-      font-size: 12px;
+      font-size: 11px;
     }
 
     .instruction-card .example .result {
       font-family: var(--font-display);
-      font-size: 15px;
+      font-size: 13px;
     }
 
     .instruction-card .example .result i { font-style: italic; }
@@ -1157,8 +1157,8 @@
         .replace(/=(.*?)=/g, '<s>$1</s>')
         .replace(/##(.*?)##/g, '<span class="double-overline">$1</span>')
         .replace(/#(.*?)#/g, '<span class="overline">$1</span>')
-        .replace(/¨(.*?)¨/g, '<sup>$1</sup>')
-        .replace(/¨(.*?)(\s|$)/g, '<sup>$1</sup>$2')
+        .replace(/__(.*?)__/g, '<sup>$1</sup>')
+        .replace(/__(.*?)(\s|$)/g, '<sup>$1</sup>$2')
         .replace(/_(.*?)_/g, '<sub>$1</sub>')
         .replace(/_(.*?)(\s|$)/g, '<sub>$1</sub>$2');
     };
@@ -1173,8 +1173,8 @@
         .replace(/=(.*?)=/g, '$1')
         .replace(/##(.*?)##/g, '$1')
         .replace(/#(.*?)#/g, '$1')
-        .replace(/¨(.*?)¨/g, '$1')
-        .replace(/¨(.*?)(\s|$)/g, '$1$2')
+        .replace(/__(.*?)__/g, '$1')
+        .replace(/__(.*?)(\s|$)/g, '$1$2')
         .replace(/_(.*?)_/g, '$1')
         .replace(/_(.*?)(\s|$)/g, '$1$2');
       return ctx.measureText(plainText).width;
@@ -3599,7 +3599,7 @@ function insertIPAIntoActiveInput(ch) {
                     <li><code>**text**</code> <span class="example"><span class="arrow">→</span> <span class="result"><b>bold</b></span></span></li>
                     <li><code>*text*</code> <span class="example"><span class="arrow">→</span> <span class="result"><i>italics</i></span></span></li>
                     <li><code>X_i</code> or <code>X_i_</code> <span class="example"><span class="arrow">→</span> <span class="result">X<sub>i</sub></span></span></li>
-                    <li><code>X¨n</code> or <code>X¨n¨</code> <span class="example"><span class="arrow">→</span> <span class="result">X<sup>n</sup></span></span></li>
+                    <li><code>X__n</code> or <code>X__n__</code> <span class="example"><span class="arrow">→</span> <span class="result">X<sup>n</sup></span></span></li>
                     <li><code>#X#</code> <span class="example"><span class="arrow">→</span> <span class="result"><span class="overline">X</span></span></span></li>
                     <li><code>##X##</code> <span class="example"><span class="arrow">→</span> <span class="result"><span class="double-overline">X</span></span></span></li>
                     <li><code>=X=</code> <span class="example"><span class="arrow">→</span> <span class="result"><s>X</s></span></span></li>
@@ -3608,7 +3608,7 @@ function insertIPAIntoActiveInput(ch) {
                     <li className="combining-header">Styles can be combined:</li>
                     <li><code>**X**_i_</code> <span class="example"><span class="arrow">→</span> <span class="result"><b>X</b><sub>i</sub></span></span></li>
                     <li><code>*X*_i_</code> <span class="example"><span class="arrow">→</span> <span class="result"><i>X</i><sub>i</sub></span></span></li>
-                    <li><code>X¨*n*¨</code> <span class="example"><span class="arrow">→</span> <span class="result">X<sup><i>n</i></sup></span></span></li>
+                    <li><code>X__*n*__</code> <span class="example"><span class="arrow">→</span> <span class="result">X<sup><i>n</i></sup></span></span></li>
                     <li><code>#*XP*#</code> <span class="example"><span class="arrow">→</span> <span class="result"><span class="overline"><i>XP</i></span></span></span></li>
                     <li><code>=*t*_i_=</code> <span class="example"><span class="arrow">→</span> <span class="result"><s><i>t</i><sub>i</sub></s></span></span></li>
                   </ul>
@@ -3627,7 +3627,7 @@ function insertIPAIntoActiveInput(ch) {
                   <li><code>Ω</code> — open the special character picker (IPA, Greek, math symbols)</li>
                   <li><code>✕</code> — delete node and all its descendants (on root: clears tree, preserves root label)</li>
                 </ul>
-                <p style={{marginTop: '8px', fontSize: '13px', color: '#888'}}>Double-click any branch line to toggle dotted style.</p>
+                <p style={{marginTop: '6px', fontSize: '11px', color: '#888'}}>Double-click any branch line to toggle dotted style.</p>
               </div>
 
               {/* ── Keyboard Shortcuts ── */}
