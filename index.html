@@ -923,31 +923,56 @@
     padding-left: 0 !important;
     }
 
-    /* =================================
-       FOOTER
-       ================================= */
-    .footer {
-      margin-top: 16px;
-      padding: 24px 0;
-      text-align: center;
-      border-top: 1px solid var(--color-border);
-      color: var(--color-text-muted);
-      font-size: 14px;
-    }
+      /* =================================
+        FOOTER ACTUALIZADO
+        ================================= */
+      .footer {
+        margin-top: 32px;
+        padding: 30px 0 40px;
+        text-align: center;
+        border-top: 1px solid var(--color-border);
+        color: var(--color-text-muted);
+        font-size: 14px;
+      }
 
-    .footer strong { color: var(--color-text); }
-    .footer a { color: var(--color-accent); text-decoration: none; }
-    .footer a:hover { text-decoration: underline; }
-    .footer img {
-      opacity: 0.8;
-      transition: opacity 0.2s;
-      display: block;
-      margin: 12px auto 0;
-      height: 22px;
-      width: auto;
-    }
+      .footer-logos {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 12px;
+      }
 
-    .footer img:hover { opacity: 1; }
+      .footer-logo-brand {
+        height: 22px; /* Proporción elegante validada */
+        width: auto;
+        opacity: 0.8;
+        transition: opacity 0.2s;
+        cursor: pointer;
+      }
+
+      .footer-logo-brand:hover {
+        opacity: 1;
+      }
+
+      .cc-logo {
+        height: 31px; /* Mantiene el tamaño estándar de CC */
+        opacity: 0.8;
+        transition: opacity 0.2s;
+      }
+
+      .cc-logo:hover {
+        opacity: 1;
+      }
+
+      .footer p {
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      .footer strong { color: var(--color-text); }
+      .footer a { color: var(--color-accent); text-decoration: none; }
+      .footer a:hover { text-decoration: underline; }
 
     /* =================================
        OVAL REGION HIGHLIGHTS
@@ -3664,10 +3689,29 @@ function insertIPAIntoActiveInput(ch) {
         </div>
 
           <footer className="footer">
-            <p>Carlos González Vergara (<strong><a href="mailto:cgonzalv@uc.cl">cgonzalv@uc.cl</a></strong>)</p>
-            <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" rel="noopener noreferrer">
-              <img src="https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by-nc-nd.svg" alt="CC BY-NC-ND 4.0" />
-            </a>
+            <div className="footer-logos">
+              {/* Logo de marca como hipervínculo a cgv.tools */}
+              <a href="https://cgv.tools" target="_blank" rel="noopener noreferrer">
+                <img 
+                  src="cgv-tools.png" 
+                  alt="cgv.tools" 
+                  className="footer-logo-brand" 
+                />
+              </a>
+              
+              {/* Logo de Licencia Creative Commons */}
+              <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" rel="noopener noreferrer">
+                <img 
+                  src="https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by-nc-nd.svg" 
+                  alt="CC BY-NC-ND 4.0" 
+                  className="cc-logo"
+                />
+              </a>
+            </div>
+  
+            <p>
+              Carlos González Vergara (<strong><a href="mailto:cgonzalv@uc.cl">cgonzalv@uc.cl</a></strong>)
+            </p>
           </footer>
 
 
