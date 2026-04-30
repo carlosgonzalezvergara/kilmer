@@ -622,6 +622,26 @@
     .oval-group:hover .arrow-delete-btn,
     .li-group:hover .arrow-delete-btn,
     .arrow-delete-btn:hover { opacity: 1; }
+
+    .arrow-curve-handle {
+      cursor: ns-resize;
+      pointer-events: auto;
+      opacity: 0;
+      transition: opacity 0.15s, transform 0.15s;
+    }
+    .arrow-curve-handle circle {
+      fill: white;
+      stroke: var(--color-accent);
+      stroke-width: 1.8;
+    }
+    .arrow-curve-handle:hover circle {
+      fill: #f0fdf4;
+      stroke-width: 2.4;
+    }
+    .arrow-group:hover .arrow-curve-handle,
+    .arrow-curve-handle.dragging {
+      opacity: 1;
+    }
     /* Oval delete buttons fade out slowly */
     .oval-group .arrow-delete-btn { transition: opacity 0.6s 0.4s; }
     .oval-group:hover .arrow-delete-btn { transition: opacity 0.1s; }
@@ -1542,6 +1562,8 @@
       const [regionColor, setRegionColor] = useState('#ef4444');
       const [buildMode, setBuildMode] = useState('topdown');
       const [sourceId, setSourceId] = useState(null);
+      const [curveDrag, setCurveDrag] = useState(null); // {moveId, startClientY, startOffset}
+      const curveDragRef = useRef(null);
       const [svgLines, setSvgLines] = useState(null);
       const [showInstructions, setShowInstructions] = useState(false);
       const [zoomLevel, setZoomLevel] = useState(100);
@@ -1589,6 +1611,41 @@
       const zoomIn = useCallback(() => { setZoomLevel(prev => Math.min(prev + ZOOM_STEP, ZOOM_MAX)); }, []);
       const zoomOut = useCallback(() => { setZoomLevel(prev => Math.max(prev - ZOOM_STEP, ZOOM_MIN)); }, []);
       const zoomReset = useCallback(() => { setZoomLevel(100); }, []);
+
+      const startCurveDrag = useCallback((e, moveId, currentOffset = 0) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const dragData = { moveId, startClientY: e.clientY, startOffset: currentOffset || 0 };
+        curveDragRef.current = dragData;
+        setCurveDrag(dragData);
+      }, []);
+
+      useEffect(() => {
+        if (!curveDrag) return;
+
+        const handleMouseMove = (e) => {
+          const dragData = curveDragRef.current;
+          if (!dragData) return;
+          const zoomScale = Math.max(0.01, zoomLevel / 100);
+          const deltaY = (e.clientY - dragData.startClientY) / zoomScale;
+          const nextOffset = dragData.startOffset + deltaY;
+          setMoves(prev => prev.map(m => (
+            m.id === dragData.moveId ? { ...m, curveOffset: nextOffset } : m
+          )));
+        };
+
+        const handleMouseUp = () => {
+          curveDragRef.current = null;
+          setCurveDrag(null);
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+        return () => {
+          window.removeEventListener('mousemove', handleMouseMove);
+          window.removeEventListener('mouseup', handleMouseUp);
+        };
+      }, [curveDrag, zoomLevel]);
 
       const performAutoSave = useCallback(() => {
         if (!tree || isUndoRedo.current) return;
@@ -2512,7 +2569,8 @@ function insertIPAIntoActiveInput(ch) {
           if (!s || !e) return null;
           const midX = (s.x + e.x) / 2;
           const curve = Math.max(70, Math.abs(e.x - s.x)/2.2);
-          const ctrlY = Math.max(s.bottomR.bottom, e.bottomR.bottom) + curve;
+          const curveOffset = m.curveOffset || 0;
+          const ctrlY = Math.max(s.bottomR.bottom, e.bottomR.bottom) + curve + curveOffset;
           const sy = s.bottomR.bottom; const ey = e.bottomR.bottom;
           const path = `M ${s.x} ${sy} Q ${midX} ${ctrlY} ${e.x} ${ey}`;
           
@@ -2528,11 +2586,15 @@ function insertIPAIntoActiveInput(ch) {
           const ry = pBy + (hW/2) * Math.sin(ang + Math.PI/2);
           const polyPoints = `${e.x},${ey} ${lx},${ly} ${rx},${ry}`;
 
-          const t = 0.5;
-          const bx = (1-t)**2 * s.x + 2*(1-t)*t*midX + t**2 * e.x;
-          const by = (1-t)**2 * sy + 2*(1-t)*t*ctrlY + t**2 * ey;
+          const handleT = 0.5;
+          const hx = (1-handleT)**2 * s.x + 2*(1-handleT)*handleT*midX + handleT**2 * e.x;
+          const hy = (1-handleT)**2 * sy + 2*(1-handleT)*handleT*ctrlY + handleT**2 * ey;
+          const deleteT = 0.65;
+          const bx = (1-deleteT)**2 * s.x + 2*(1-deleteT)*deleteT*midX + deleteT**2 * e.x;
+          const by = (1-deleteT)**2 * sy + 2*(1-deleteT)*deleteT*ctrlY + deleteT**2 * ey;
           const arrowKey = `arrow-${m.id}`;
           const isDotted = dottedLines.has(arrowKey);
+          const isDraggingThisCurve = curveDrag && curveDrag.moveId === m.id;
           
           return (
             <g key={m.id} className="arrow-group">
@@ -2541,6 +2603,15 @@ function insertIPAIntoActiveInput(ch) {
               <path d={path} fill="none" stroke="black" strokeWidth="1.5" opacity="0.8" strokeDasharray={isDotted ? "5,4" : "none"} style={{pointerEvents: 'none'}} />
               {/* Polígono dibujado manualmente */}
               <polygon points={polyPoints} fill="black" opacity="0.8" style={{pointerEvents: 'none'}} />
+
+              <g
+                className={`arrow-curve-handle ${isDraggingThisCurve ? 'dragging' : ''}`}
+                transform={`translate(${hx},${hy})`}
+                onMouseDown={(e) => startCurveDrag(e, m.id, curveOffset)}
+              >
+                <line x1="0" y1="-16" x2="0" y2="16" stroke="transparent" strokeWidth="18" />
+                <circle r="6" />
+              </g>
               
               <g className="arrow-delete-btn" onClick={() => setMoves(prev => prev.filter(x => x.id !== m.id))} transform={`translate(${bx-10},${by-10})`}>
                 <rect width="20" height="20" fill="white" stroke="#e0ddd8" /><text x="10" y="15" textAnchor="middle" fontSize="14" fill="#dc2626">×</text>
@@ -3068,7 +3139,7 @@ function insertIPAIntoActiveInput(ch) {
         setZoomLevel(savedZoom);
 
         // ── 4. Clean up UI-only elements ──
-        clone.querySelectorAll('.node-actions, .arrow-delete-btn').forEach(x => x.remove());
+        clone.querySelectorAll('.node-actions, .arrow-delete-btn, .arrow-curve-handle').forEach(x => x.remove());
         clone.querySelectorAll('[data-oval-handle]').forEach(x => x.remove());
         clone.querySelectorAll('[data-oval-action]').forEach(x => x.remove());
         clone.querySelectorAll('[data-li-action]').forEach(x => { if (x.getAttribute('fill') === 'transparent') x.remove(); });
@@ -3221,7 +3292,7 @@ function insertIPAIntoActiveInput(ch) {
         let svgImg = null;
         if (svgEl) {
           const svgClone = svgEl.cloneNode(true);
-          svgClone.querySelectorAll('ellipse[fill="transparent"][stroke="transparent"]').forEach(e => e.remove());
+          svgClone.querySelectorAll('.arrow-curve-handle, ellipse[fill="transparent"][stroke="transparent"]').forEach(e => e.remove());
 
           svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
           svgClone.setAttribute('viewBox', `${-measuredOffX} ${-measuredOffY} ${finalTotalW} ${finalTotalH}`);
@@ -3590,7 +3661,7 @@ function insertIPAIntoActiveInput(ch) {
                   else if (sourceId === id) setSourceId(null);
                   else {
                     const newMoveId = generateId();
-                    setMoves(p => [...p, {id: newMoveId, from: sourceId, to: id}]);
+                    setMoves(p => [...p, {id: newMoveId, from: sourceId, to: id, curveOffset: 0}]);
                     // Make movement arrows dotted by default
                     setDottedLines(prev => {
                       const s = new Set(prev);
