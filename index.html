@@ -12,7 +12,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:wght@400;600&family=Gentium+Plus:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
 
   <link rel="icon" type="image/png" href="favicon.png".png">
 
@@ -25,7 +25,7 @@
       --color-accent: #1a472a;
       --color-border: #e0ddd8;
       --color-select: #2563eb;
-      --font-display: 'Crimson Pro', Georgia, serif;
+      --font-display: 'Crimson Pro', 'Gentium Plus', Georgia, serif;
       --font-body: 'Source Sans 3', system-ui, sans-serif;
     }
 
@@ -624,7 +624,7 @@
     .arrow-delete-btn:hover { opacity: 1; }
 
     .arrow-curve-handle {
-      cursor: ns-resize;
+      cursor: move;
       pointer-events: auto;
       opacity: 0;
       transition: opacity 0.15s, transform 0.15s;
@@ -1139,9 +1139,201 @@
     }
     .ipa-char-btn:hover{ border-color: rgba(0,0,0,.35); transform: translateY(-1px); }
 
+    /* =================================
+       FORMAT TOOLBAR (floating, editing only)
+       =================================
+       Aparece encima del input editado mientras isEditingNode === true.
+       Anclada al viewport (position: fixed) y posicionada por JS según la
+       posición del input activo, así respeta el zoom del árbol y el scroll.
+    */
+    .fmt-toolbar {
+      position: fixed;
+      transform: translate(-50%, -100%);
+      display: inline-flex;
+      gap: 4px;
+      padding: 6px;
+      background: white;
+      border: 1px solid rgba(0,0,0,.15);
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.10);
+      z-index: 200;
+      align-items: center;
+      white-space: nowrap;
+      pointer-events: auto;
+      animation: fmtToolbarIn 0.12s ease-out;
+    }
+
+    @keyframes fmtToolbarIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    .fmt-toolbar .fmt-btn {
+      width: 30px;
+      height: 26px;
+      padding: 0;
+      font-size: 13px;
+      font-family: var(--font-display);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: white;
+      border: 1px solid rgba(0,0,0,.15);
+      border-radius: 4px;
+      cursor: pointer;
+      color: #222;
+      line-height: 1;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .fmt-toolbar .fmt-btn:hover {
+      background: rgba(0,0,0,.04);
+      border-color: rgba(0,0,0,.35);
+    }
+    .fmt-toolbar .fmt-btn.active {
+      background: #2c3e50;
+      color: white;
+      border-color: #2c3e50;
+    }
+    .fmt-toolbar .fmt-sep {
+      width: 1px;
+      height: 18px;
+      background: rgba(0,0,0,.15);
+      margin: 0 2px;
+    }
+
     .btn.disabled{
       opacity: .45;
       pointer-events: none;
+    }
+
+    /* =================================
+       FILENAME MODAL (Save / Export)
+       =================================
+       Modal coherente con la estética de Kilmer (gradient sutil, header
+       verde acento, tipografía Crimson Pro para título y serif para el
+       input, botones siguiendo el patrón panel-btn / panel-btn.primary).
+       Reemplaza al prompt() nativo en saveTree() y handleExportPNG().
+    */
+    .fnm-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 24, 22, 0.45);
+      backdrop-filter: blur(2px);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: fnmFadeIn 0.15s ease-out;
+    }
+    @keyframes fnmFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .fnm-card {
+      background: linear-gradient(135deg, #fdfcfb 0%, #f7f6f3 100%);
+      border: 1px solid var(--color-border);
+      border-radius: 16px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22);
+      width: min(420px, calc(100vw - 40px));
+      overflow: hidden;
+      animation: fnmCardIn 0.18s cubic-bezier(0.34, 1.3, 0.64, 1);
+    }
+    @keyframes fnmCardIn {
+      from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .fnm-header {
+      background: var(--color-accent);
+      color: white;
+      padding: 14px 22px;
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .fnm-header svg { flex-shrink: 0; opacity: 0.95; }
+    .fnm-body {
+      padding: 22px;
+    }
+    .fnm-label {
+      display: block;
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text-muted, #6b6b6b);
+      margin-bottom: 8px;
+      letter-spacing: 0.02em;
+    }
+    .fnm-input-wrap {
+      display: flex;
+      align-items: stretch;
+      border: 2px solid var(--color-border);
+      border-radius: 8px;
+      background: white;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+    .fnm-input-wrap:focus-within {
+      border-color: var(--color-accent);
+    }
+    .fnm-input {
+      flex: 1;
+      min-width: 0;
+      border: none;
+      outline: none;
+      padding: 10px 12px;
+      font-family: var(--font-display);
+      font-size: 16px;
+      color: var(--color-text);
+      background: transparent;
+    }
+    .fnm-ext {
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      background: rgba(0, 0, 0, 0.04);
+      border-left: 1px solid var(--color-border);
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 14px;
+      color: var(--color-text-muted, #6b6b6b);
+      user-select: none;
+    }
+    .fnm-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 0 22px 18px;
+    }
+    .fnm-btn {
+      padding: 9px 18px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, transform 0.05s;
+    }
+    .fnm-btn:active { transform: translateY(1px); }
+    .fnm-btn-cancel {
+      background: transparent;
+      border-color: var(--color-border);
+      color: var(--color-text);
+    }
+    .fnm-btn-cancel:hover {
+      background: rgba(0, 0, 0, 0.04);
+      border-color: rgba(0, 0, 0, 0.2);
+    }
+    .fnm-btn-confirm {
+      background: var(--color-accent);
+      color: white;
+    }
+    .fnm-btn-confirm:hover:not(:disabled) { background: #15803d; }
+    .fnm-btn-confirm:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
     }
 
 </style>
@@ -1442,19 +1634,6 @@
                   )}
                   <button className="action-btn" onClick={() => toggleTri(node.id, buildMode)} title={buildMode === 'bottomup' ? 'Add triangle parent' : 'Toggle triangle'}>△</button>
                   <button className={`action-btn ${hasSublabels ? 'active' : ''}`} onClick={() => addSublabel(node.id)} disabled={sublabels.length >= 4} title={sublabels.length >= 4 ? 'Maximum: 4 secondary labels' : 'Add a secondary label (max 4)'}>+₂</button>
-                                    {isEditingNode && (editLabel || editTri || editSubIdx !== null || editTriSubIdx !== null) && (
-                    <div className="node-actions-ipa-wrapper">
-                      <button
-                        className={`action-btn ${showIPAToolbar ? 'active' : ''}`}
-                        type="button"
-                        title="Insert special character"
-                        onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleIPAPanel(e.currentTarget); }}
-                      >
-                        Ω
-                      </button>
-</div>
-                  )}
 
                   <button className="action-btn danger" onClick={() => delNode(node.id)} title="Delete node or descendants">✕</button>
                   
@@ -1516,19 +1695,6 @@
                 {!isSpecialMode && (
                   <div className={`node-actions ${suppressActionButtons ? 'suppressed' : ''} `}>
                     <button className={`action-btn ${hasTriangleSublabels ? 'active' : ''}`} onClick={() => addTriangleSublabel(node.id)} disabled={triangleSublabels.length >= 4} title={triangleSublabels.length >= 4 ? 'Maximum: 4 secondary labels' : 'Add a secondary label (max 4)'}>+₂</button>
-                    {isEditingNode && (editLabel || editTri || editSubIdx !== null || editTriSubIdx !== null) && (
-                      <div className="node-actions-ipa-wrapper">
-                        <button
-                          className={`action-btn ${showIPAToolbar ? 'active' : ''}`}
-                          type="button"
-                          title="Insert special character"
-                          onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleIPAPanel(e.currentTarget); }}
-                        >
-                          Ω
-                        </button>
-</div>
-                    )}
                     <button className="action-btn danger" onClick={() => toggleTri(node.id, 'topdown')} title="Remove triangle">✕</button>
                   </div>
                 )}
@@ -1547,6 +1713,80 @@
       );
     };
 
+    // ════════════════════════════════════════════════════════════════
+    // FilenameModal — diálogo personalizado que reemplaza al prompt()
+    // nativo del navegador para guardar y exportar archivos.
+    // Coherente con la estética de Kilmer (gradient, acento verde,
+    // fuente Crimson Pro). Se invoca vía askForFilename(...) que devuelve
+    // una promesa con el nombre confirmado o null si se cancela.
+    // ════════════════════════════════════════════════════════════════
+    const FilenameModal = ({ title, defaultName, extension, icon, onCancel, onConfirm }) => {
+      const [value, setValue] = useState(defaultName || '');
+      const inputRef = useRef(null);
+
+      // Auto-focus + selección completa al abrir, para que el usuario pueda
+      // sobrescribir el nombre por defecto inmediatamente con su tipeo.
+      useEffect(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+          inputRef.current.select();
+        }
+      }, []);
+
+      // Atajos de teclado a nivel global del modal: Enter confirma, Escape cancela.
+      useEffect(() => {
+        const onKey = (e) => {
+          if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
+          else if (e.key === 'Enter') { e.preventDefault(); if (value.trim()) onConfirm(value.trim()); }
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+      }, [value, onCancel, onConfirm]);
+
+      // Iconos SVG inline para el header (sin dependencias). Coinciden con los
+      // iconos ya usados en los botones del side panel (download / image).
+      const iconSvg = icon === 'image'
+        ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+        : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>;
+
+      // Cierre por clic en backdrop. Click sobre la card no propaga (stopPropagation).
+      return (
+        <div className="fnm-backdrop" onMouseDown={onCancel}>
+          <div className="fnm-card" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="fnm-header">
+              {iconSvg}
+              <span>{title}</span>
+            </div>
+            <div className="fnm-body">
+              <label className="fnm-label" htmlFor="fnm-input">File name</label>
+              <div className="fnm-input-wrap">
+                <input
+                  ref={inputRef}
+                  id="fnm-input"
+                  type="text"
+                  className="fnm-input"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  spellCheck={false}
+                  autoComplete="off"
+                />
+                {extension && <div className="fnm-ext">.{extension}</div>}
+              </div>
+            </div>
+            <div className="fnm-actions">
+              <button type="button" className="fnm-btn fnm-btn-cancel" onClick={onCancel}>Cancel</button>
+              <button
+                type="button"
+                className="fnm-btn fnm-btn-confirm"
+                disabled={!value.trim()}
+                onClick={() => onConfirm(value.trim())}
+              >Save</button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
     const KilmerApp = () => {
       const [history, setHistory] = useState([]);
       const [historyIndex, setHistoryIndex] = useState(-1);
@@ -1557,6 +1797,26 @@
       const [phases, setPhases] = useState(new Set());
       const [dottedLines, setDottedLines] = useState(new Set());
       const [isMoveMode, setIsMoveMode] = useState(false);
+
+      // Estado del modal de nombre de archivo (reemplaza al prompt() nativo).
+      // Cuando filenameModal !== null, se muestra el diálogo; al confirmar/cancelar
+      // se resuelve la promesa devuelta por askForFilename y se cierra el modal.
+      const [filenameModal, setFilenameModal] = useState(null);
+      const filenameResolverRef = useRef(null);
+
+      const askForFilename = useCallback(({ title, defaultName, extension, icon }) => {
+        return new Promise((resolve) => {
+          filenameResolverRef.current = resolve;
+          setFilenameModal({ title, defaultName: defaultName || '', extension: extension || '', icon: icon || null });
+        });
+      }, []);
+
+      const closeFilenameModal = useCallback((value) => {
+        const resolve = filenameResolverRef.current;
+        filenameResolverRef.current = null;
+        setFilenameModal(null);
+        if (resolve) resolve(value);
+      }, []);
       const [isPhaseMode, setIsPhaseMode] = useState(false);
       const [isRegionMode, setIsRegionMode] = useState(false);
       const [regionColor, setRegionColor] = useState('#ef4444');
@@ -1573,6 +1833,11 @@
 
       const [isEditingNode, setIsEditingNode] = useState(false);
       const [showIPAToolbar, setShowIPAToolbar] = useState(false);
+
+      // Posición y visibilidad de la barra flotante de formato de texto.
+      // Se ancla al input editado actualmente (activeEditInputRef) y se actualiza al
+      // empezar la edición, al cambiar el zoom o al hacer scroll.
+      const [fmtBarPos, setFmtBarPos] = useState(null); // { top, left, placement } en coordenadas de viewport, o null
 
       const ipaAnchorElRef = useRef(null);
       const ipaPanelRef = useRef(null);
@@ -1612,10 +1877,16 @@
       const zoomOut = useCallback(() => { setZoomLevel(prev => Math.max(prev - ZOOM_STEP, ZOOM_MIN)); }, []);
       const zoomReset = useCallback(() => { setZoomLevel(100); }, []);
 
-      const startCurveDrag = useCallback((e, moveId, currentOffset = 0) => {
+      const startCurveDrag = useCallback((e, moveId, currentOffsetY = 0, currentOffsetX = 0) => {
         e.preventDefault();
         e.stopPropagation();
-        const dragData = { moveId, startClientY: e.clientY, startOffset: currentOffset || 0 };
+        const dragData = {
+          moveId,
+          startClientX: e.clientX,
+          startClientY: e.clientY,
+          startOffsetX: currentOffsetX || 0,
+          startOffsetY: currentOffsetY || 0,
+        };
         curveDragRef.current = dragData;
         setCurveDrag(dragData);
       }, []);
@@ -1627,10 +1898,14 @@
           const dragData = curveDragRef.current;
           if (!dragData) return;
           const zoomScale = Math.max(0.01, zoomLevel / 100);
+          const deltaX = (e.clientX - dragData.startClientX) / zoomScale;
           const deltaY = (e.clientY - dragData.startClientY) / zoomScale;
-          const nextOffset = dragData.startOffset + deltaY;
+          const nextOffsetX = dragData.startOffsetX + deltaX;
+          const nextOffsetY = dragData.startOffsetY + deltaY;
           setMoves(prev => prev.map(m => (
-            m.id === dragData.moveId ? { ...m, curveOffset: nextOffset } : m
+            m.id === dragData.moveId
+              ? { ...m, curveOffset: nextOffsetY, curveOffsetX: nextOffsetX }
+              : m
           )));
         };
 
@@ -1811,9 +2086,16 @@
       const canUndo = historyIndex > 0;
       const canRedo = historyIndex < history.length - 1;
 
-      const saveTree = useCallback(() => {
+      const saveTree = useCallback(async () => {
         if (!tree) return;
-        const filename = (prompt('Enter filename:', 'tree') || 'tree').replace(/\s+/g, '_');
+        const raw = await askForFilename({
+          title: 'Save Project',
+          defaultName: 'tree',
+          extension: 'json',
+          icon: 'save',
+        });
+        if (raw === null) return; // cancelado
+        const filename = (raw || 'tree').replace(/\s+/g, '_');
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([JSON.stringify({tree, moves, phases: Array.from(phases), dottedLines: Array.from(dottedLines), ovals, lateInsertions})], {type:'application/json'}));
         a.download = `${filename}.json`;
@@ -1822,7 +2104,7 @@
         // Limpiar auto-guardado después de guardar manualmente
         localStorage.removeItem('kilmer-autosave');
         setLastSaved(null);
-      }, [tree, moves, phases, dottedLines, ovals, lateInsertions]);
+      }, [tree, moves, phases, dottedLines, ovals, lateInsertions, askForFilename]);
 
       useEffect(() => {
         const handleKeyDown = (e) => {
@@ -2108,6 +2390,47 @@ function insertIPAIntoActiveInput(ch) {
         try { target.setSelectionRange(start + ch.length, start + ch.length); } catch (_) {}
       }
 
+      // Envuelve la selección actual del input editado con marcadores markdown (left…right).
+      // Si no hay selección, inserta los marcadores juntos y deja el cursor entre ellos para
+      // que el usuario empiece a tipear el texto formateado. Comparte el patrón de
+      // insertIPAIntoActiveInput (recuperación del input activo + native setter) para que
+      // el value persista correctamente en React y no se pierda al perder el ref.
+      function wrapSelectionInActiveInput(left, right) {
+        if (right === undefined) right = left;
+        let target = activeEditInputRef.current;
+        if (!target || target.tagName !== 'INPUT') {
+          const el = document.activeElement;
+          if (el && el.tagName === 'INPUT') {
+            activeEditInputRef.current = el;
+            target = el;
+          }
+        }
+        if (!target || target.tagName !== 'INPUT') return;
+
+        const start = (typeof target.selectionStart === 'number') ? target.selectionStart : target.value.length;
+        const end = (typeof target.selectionEnd === 'number') ? target.selectionEnd : target.value.length;
+        const before = target.value.slice(0, start);
+        const sel = target.value.slice(start, end);
+        const after = target.value.slice(end);
+        const next = before + left + sel + right + after;
+
+        const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+        nativeSetter.call(target, next);
+        target.dispatchEvent(new Event('input', { bubbles: true }));
+
+        target.focus();
+        // Si había selección: dejar resaltado el contenido envuelto (entre los marcadores).
+        // Si no había: dejar el cursor justo entre los marcadores para tipear directamente.
+        try {
+          if (sel) {
+            target.setSelectionRange(start + left.length, start + left.length + sel.length);
+          } else {
+            const caret = start + left.length;
+            target.setSelectionRange(caret, caret);
+          }
+        } catch (_) {}
+      }
+
       // ================================
       // IPA portal dropdown (renders in document.body)
       // ================================
@@ -2179,6 +2502,62 @@ function insertIPAIntoActiveInput(ch) {
           window.removeEventListener('resize', onScrollOrResize);
         };
       }, [showIPAToolbar]);
+
+      // ================================
+      // Format toolbar: position tracking
+      // ================================
+      // Mientras isEditingNode es true, mantenemos fmtBarPos sincronizado con la
+      // ubicación en pantalla del input editado. Tracker basado en getBoundingClientRect
+      // (coordenadas de viewport reales), por lo que respeta el zoom del árbol sin
+      // cálculos manuales. Se reposiciona en scroll, resize y cambios de zoom.
+      useEffect(() => {
+        if (!isEditingNode) { setFmtBarPos(null); return; }
+
+        const update = () => {
+          // Recuperar el input activo. Si el ref se ha perdido tras un re-render,
+          // intentar recuperarlo desde document.activeElement (mismo patrón que
+          // insertIPAIntoActiveInput / wrapSelectionInActiveInput).
+          let target = activeEditInputRef.current;
+          if (!target || target.tagName !== 'INPUT') {
+            const el = document.activeElement;
+            if (el && el.tagName === 'INPUT') target = el;
+          }
+          if (!target || target.tagName !== 'INPUT') { setFmtBarPos(null); return; }
+
+          const rect = target.getBoundingClientRect();
+          // En modo bottom-up, la fila de acciones del nodo (│ ⑃ → △ +₂ ✕) aparece
+          // encima del nodo (porque el árbol crece hacia arriba). Para evitar que
+          // las dos barras flotantes se solapen, ponemos la barra de formato DEBAJO
+          // del input en bottomup, y ENCIMA en topdown.
+          const placement = (buildMode === 'bottomup') ? 'bottom' : 'top';
+          const top = (placement === 'bottom') ? rect.bottom + 8 : rect.top - 8;
+          setFmtBarPos({ top, left: rect.left + rect.width / 2, placement });
+        };
+
+        // Pequeño retraso inicial para que el input editable termine de montarse y
+        // recibir focus antes de medirlo (ver captureActiveEditInput).
+        const t = setTimeout(update, 10);
+        const onScrollOrResize = () => update();
+        // Reposicionar también cuando el foco salta entre distintos inputs editables
+        // (p. ej. de la etiqueta principal a una sublabel sin terminar la edición).
+        const onFocusIn = (e) => {
+          if (e.target && e.target.tagName === 'INPUT') {
+            // Actualizar el ref aquí para que update() use el input recién enfocado.
+            activeEditInputRef.current = e.target;
+            // Reposicionar tras un tick para que el layout esté estable.
+            setTimeout(update, 0);
+          }
+        };
+        window.addEventListener('scroll', onScrollOrResize, true);
+        window.addEventListener('resize', onScrollOrResize);
+        window.addEventListener('focusin', onFocusIn);
+        return () => {
+          clearTimeout(t);
+          window.removeEventListener('scroll', onScrollOrResize, true);
+          window.removeEventListener('resize', onScrollOrResize);
+          window.removeEventListener('focusin', onFocusIn);
+        };
+      }, [isEditingNode, zoomLevel, buildMode]);
 
 // --- Oval interaction handlers (create / move / resize / label) ---
       const getUnscaledPos = useCallback((e) => {
@@ -2567,7 +2946,8 @@ function insertIPAIntoActiveInput(ch) {
         const arrows = moves.map(m => {
           const s = getPos(m.from); const e = getPos(m.to);
           if (!s || !e) return null;
-          const midX = (s.x + e.x) / 2;
+          const curveOffsetX = m.curveOffsetX || 0;
+          const midX = (s.x + e.x) / 2 + curveOffsetX;
           const curve = Math.max(70, Math.abs(e.x - s.x)/2.2);
           const curveOffset = m.curveOffset || 0;
           const ctrlY = Math.max(s.bottomR.bottom, e.bottomR.bottom) + curve + curveOffset;
@@ -2607,9 +2987,9 @@ function insertIPAIntoActiveInput(ch) {
               <g
                 className={`arrow-curve-handle ${isDraggingThisCurve ? 'dragging' : ''}`}
                 transform={`translate(${hx},${hy})`}
-                onMouseDown={(e) => startCurveDrag(e, m.id, curveOffset)}
+                onMouseDown={(e) => startCurveDrag(e, m.id, curveOffset, curveOffsetX)}
               >
-                <line x1="0" y1="-16" x2="0" y2="16" stroke="transparent" strokeWidth="18" />
+                <circle r="14" fill="transparent" />
                 <circle r="6" />
               </g>
               
@@ -3024,7 +3404,7 @@ function insertIPAIntoActiveInput(ch) {
               )}
               {/* Node label text */}
               <text x={li.nodeX} y={li.nodeY + 5} textAnchor="middle" fontSize="20"
-                fontFamily="'Crimson Pro', Georgia, serif" fill="#1a1a1a"
+                fontFamily="'Crimson Pro', 'Gentium Plus', Georgia, serif" fill="#1a1a1a"
                 style={{pointerEvents: 'auto', cursor: 'pointer'}}
                 data-li-action="move-node" data-li-id={li.id}
               >{li.label}</text>
@@ -3094,7 +3474,14 @@ function insertIPAIntoActiveInput(ch) {
       };
 
       const handleExportPNG = async () => {
-        const filename = (prompt('Enter filename:', 'syntax_tree') || 'syntax_tree').replace(/\s+/g, '_');
+        const raw = await askForFilename({
+          title: 'Download as Image',
+          defaultName: 'syntax_tree',
+          extension: 'png',
+          icon: 'image',
+        });
+        if (raw === null) return; // cancelado
+        const filename = (raw || 'syntax_tree').replace(/\s+/g, '_');
         if (!filename) return;
 
         // ═══════════════════════════════════════════════════════════════
@@ -3118,6 +3505,27 @@ function insertIPAIntoActiveInput(ch) {
         setZoomLevel(100);
         await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
         await new Promise(r => setTimeout(r, 200));
+
+        // ── 1b. Pre-load all display fonts so the SVG (rasterized in isolation
+        // via blob URL + <img>) doesn't render with the system fallback before
+        // the @import has finished downloading. html2canvas of the HTML layer
+        // uses the live document's already-loaded fonts, so it is unaffected;
+        // but the SVG image element loads in a separate rendering context.
+        if (document.fonts && document.fonts.load) {
+          try {
+            await Promise.all([
+              document.fonts.load('20px "Crimson Pro"'),
+              document.fonts.load('bold 20px "Crimson Pro"'),
+              document.fonts.load('italic 20px "Crimson Pro"'),
+              document.fonts.load('20px "Gentium Plus"'),
+              document.fonts.load('bold 20px "Gentium Plus"'),
+              document.fonts.load('italic 20px "Gentium Plus"'),
+              document.fonts.load('14px "Source Sans 3"'),
+              document.fonts.load('bold 14px "Source Sans 3"'),
+            ]);
+            await document.fonts.ready;
+          } catch (_) { /* non-fatal */ }
+        }
 
         const el = zoomContainerRef.current;
         if (!el) { setZoomLevel(savedZoom); return; }
@@ -3311,7 +3719,7 @@ function insertIPAIntoActiveInput(ch) {
           svgClone.style.overflow = 'visible';
 
           const fontStyle = document.createElementNS('http://www.w3.org/2000/svg', 'style');
-          fontStyle.textContent = `@import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap');`;
+          fontStyle.textContent = `@import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Gentium+Plus:ital,wght@0,400;0,700;1,400&display=swap');`;
           svgClone.insertBefore(fontStyle, svgClone.firstChild);
 
           const svgString = new XMLSerializer().serializeToString(svgClone);
@@ -3649,6 +4057,43 @@ function insertIPAIntoActiveInput(ch) {
               </div>
             )}
 
+            {/* Floating format toolbar: aparece encima del input editado actual.
+                Pura barra de formato de texto + botón Ω que reutiliza el panel
+                de caracteres especiales preexistente (no duplica funcionalidad).
+                Se separa visual y conceptualmente de la fila de acciones del
+                nodo (│ ⑃ △ +₂ ✕), que sigue siendo estructural. */}
+            {isEditingNode && fmtBarPos && (
+              <div
+                className="fmt-toolbar"
+                style={{
+                  top: `${fmtBarPos.top}px`,
+                  left: `${fmtBarPos.left}px`,
+                  // En 'bottom' anclamos la barra por su borde superior (sin -100% en Y).
+                  // En 'top' (default) anclamos por su borde inferior con -100% en Y.
+                  transform: fmtBarPos.placement === 'bottom'
+                    ? 'translate(-50%, 0)'
+                    : 'translate(-50%, -100%)',
+                }}
+                onMouseDown={(e) => e.preventDefault()}
+              >
+                <button type="button" className="fmt-btn" style={{fontWeight: 700}} title="Bold (**…**)" onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); wrapSelectionInActiveInput('**'); }}>B</button>
+                <button type="button" className="fmt-btn" style={{fontStyle: 'italic'}} title="Italic (*…*)" onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); wrapSelectionInActiveInput('*'); }}>I</button>
+                <button type="button" className="fmt-btn" style={{textDecoration: 'line-through'}} title="Strikethrough (=…=)" onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); wrapSelectionInActiveInput('='); }}>S</button>
+                <button type="button" className="fmt-btn" title="Overline (#…#)" onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); wrapSelectionInActiveInput('#'); }}><span style={{borderTop: '1.5px solid currentColor', padding: '1px 2px 0'}}>X</span></button>
+                <button type="button" className="fmt-btn" title="Double overline (##…##)" onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); wrapSelectionInActiveInput('##'); }}><span style={{borderTop: '1px solid currentColor', padding: '2px 2px 0', display: 'inline-block'}}><span style={{borderTop: '1px solid currentColor', padding: '2px 0 0', display: 'inline-block'}}>X</span></span></button>
+                <button type="button" className="fmt-btn" title="Subscript (_…_)" onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); wrapSelectionInActiveInput('_'); }}><span>X<sub style={{fontSize:'0.7em'}}>2</sub></span></button>
+                <button type="button" className="fmt-btn" title="Superscript (__…__)" onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); wrapSelectionInActiveInput('__'); }}><span>X<sup style={{fontSize:'0.7em'}}>2</sup></span></button>
+                <div className="fmt-sep"></div>
+                <button
+                  type="button"
+                  className={`fmt-btn ${showIPAToolbar ? 'active' : ''}`}
+                  title="Insert special character"
+                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleIPAPanel(e.currentTarget); }}
+                >Ω</button>
+              </div>
+            )}
+
             {/* Auto-save indicator - top left corner */}
             <div className={`autosave-indicator ${(isSaving || lastSaved) && tree ? 'visible' : ''}`}>
               {isSaving && (
@@ -3731,10 +4176,12 @@ function insertIPAIntoActiveInput(ch) {
                   <li><code>→⑃</code> / <code>⑃←</code> — binary parent with new sibling on the left or right (Bottom-up only)</li>
                   <li><code>△</code> — triangle for unanalyzed constituents</li>
                   <li><code>+₂</code> — add a secondary label below the node (up to 4; node becomes terminal at 2+)</li>
-                  <li><code>Ω</code> — open the special character picker (IPA, Greek, math symbols)</li>
                   <li><code>✕</code> — delete node and all its descendants (on root: clears tree, preserves root label)</li>
                 </ul>
-                <p style={{marginTop: '6px', fontSize: '11px', color: '#888'}}>Double-click any branch line to toggle dotted style.</p>
+                <ul style={{marginTop: '6px', fontSize: '11px', color: '#888'}}>
+                  <li>While editing a label, a separate floating toolbar appears with text-formatting buttons and the special-character picker (<code>Ω</code>).</li>
+                  <li>Double-click any branch line to toggle dotted style.</li>
+                </ul>
               </div>
 
               {/* ── Keyboard Shortcuts ── */}
@@ -3794,6 +4241,16 @@ function insertIPAIntoActiveInput(ch) {
             </p>
           </footer>
 
+          {filenameModal && (
+            <FilenameModal
+              title={filenameModal.title}
+              defaultName={filenameModal.defaultName}
+              extension={filenameModal.extension}
+              icon={filenameModal.icon}
+              onCancel={() => closeFilenameModal(null)}
+              onConfirm={(name) => closeFilenameModal(name)}
+            />
+          )}
 
         </div>
       );

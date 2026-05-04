@@ -328,14 +328,14 @@
     <ul>
       <li>Click any label to open an editable field directly over it.</li>
       <li>Confirm with <span class="keyboard-shortcut">Enter</span> or cancel with <span class="keyboard-shortcut">Esc</span> to revert to the previous value.</li>
-      <li>While editing, click the <span class="ui-element">Ω</span> button in the floating node toolbar to open the special character palette. It includes IPA symbols, Greek letters, and mathematical symbols, and appears in the top-right corner of the canvas.</li>
+      <li>While editing, a <strong>floating formatting toolbar</strong> appears just above the label with one-click buttons for the formatting options described in <a href="#formatting">§4</a> (bold, italics, strikethrough, overline, double overline, subscript, superscript), plus the <span class="ui-element">Ω</span> button that opens the special character palette (IPA symbols, Greek letters, mathematical symbols, etc.). The same markers can also be typed directly if you prefer.</li>
     </ul>
   </section>
 
   <!-- ═══ 4. FORMATTING ═══ -->
   <section id="formatting">
     <h2>4. Text Formatting</h2>
-    <p>Node labels support a lightweight markup system. Markers wrap the target text and are interpreted on render:</p>
+    <p>Node labels support a lightweight markup system. Markers wrap the target text and are interpreted on render. The same effects can be applied with one click from the floating toolbar that appears while editing (see <a href="#labels">§3</a>); the table below is useful as a reference and for typing directly:</p>
 
     <table class="formatting-grid">
       <tr><td><code>**text**</code></td><td><strong>Bold</strong></td></tr>
@@ -371,7 +371,7 @@
     </ol>
     <ul>
       <li>Double-click an arrow line to toggle between dotted and continuous styles.</li>
-      <li>Hover over an arrow to show its curve handle. Drag the small green circle up or down to adjust the height of the curve.</li>
+      <li>Hover over an arrow to show its curve handle. Drag the small green circle in any direction to reshape the curve — vertically to raise or lower it, and horizontally to shift it left or right. This is useful when several arrows overlap or when the source and target nodes are at very different heights.</li>
       <li>Click <code>×</code> on any arrow to remove it.</li>
       <li>Curve handles are interface controls only: they are not included when the diagram is exported as a PNG image.</li>
       <li>Arrows can represent movement, Agree relations, or other long-distance dependencies.</li>
@@ -416,9 +416,10 @@
   <!-- ═══ 6. SAVING ═══ -->
   <section id="saving">
     <h2>6. Saving and Exporting</h2>
+    <p>Both <span class="ui-element">Save Project</span> and <span class="ui-element">Download as Image</span> open a dialog where you can choose the file name before downloading. The extension (<code>.json</code> or <code>.png</code>) is added automatically.</p>
     <ul>
       <li><span class="ui-element">Save Project</span>: downloads a <code>.json</code> file. The file can be reloaded at any time via <span class="ui-element">Load Project</span>.</li>
-      <li><span class="ui-element">Donwload as Image</span>: generates a high-resolution PNG with clean rendering and appropriate padding, ready for inclusion in documents or presentations.</li>
+      <li><span class="ui-element">Download as Image</span>: generates a high-resolution PNG with clean rendering and appropriate padding, ready for inclusion in documents or presentations.</li>
       <li><strong>Auto-save:</strong> Kilmer periodically stores your work in the browser (indicated by the <code>☁ Saving…</code> / <code>✓ Auto-saved</code> chip in the top-left corner of the canvas). This is a safety net for accidental tab closes — it does not replace an explicit <span class="ui-element">Save Project</span>.</li>
     </ul>
 
