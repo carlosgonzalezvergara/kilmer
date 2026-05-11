@@ -1922,35 +1922,53 @@
         };
       }, [curveDrag, zoomLevel]);
 
-      const performAutoSave = useCallback(() => {
-        if (!tree || isUndoRedo.current) return;
-        
-        setIsSaving(true);
-        const data = {
-          tree: tree,
-          moves: moves,
-          phases: Array.from(phases),
-          dottedLines: Array.from(dottedLines),
-          ovals: ovals,
-          lateInsertions: lateInsertions,
-          timestamp: new Date().toISOString(),
-          version: '1.0'
-        };
-        
-        try {
-          localStorage.setItem('kilmer-autosave', JSON.stringify(data));
-          setLastSaved(new Date());
-          setTimeout(() => setIsSaving(false), 500);
-        } catch (err) {
-          console.error('Error auto-saving:', err);
-          setIsSaving(false);
-        }
-      }, [tree, moves, phases, dottedLines, ovals, lateInsertions]);
+      const AUTOSAVE_KEY = 'kilmer-autosave';
+      const AUTOSAVE_VERSION = '1.1';
 
       const autoSaveDebounced = useRef(null);
       if (!autoSaveDebounced.current) {
         autoSaveDebounced.current = debounce((saveFn) => saveFn(), 3000);
       }
+
+      const buildAutoSaveData = useCallback(() => ({
+        tree: tree,
+        moves: moves,
+        phases: Array.from(phases),
+        dottedLines: Array.from(dottedLines),
+        ovals: ovals,
+        lateInsertions: lateInsertions,
+        timestamp: new Date().toISOString(),
+        version: AUTOSAVE_VERSION
+      }), [tree, moves, phases, dottedLines, ovals, lateInsertions]);
+
+      const writeAutoSave = useCallback(({ silent = false } = {}) => {
+        if (!tree) return false;
+        const data = buildAutoSaveData();
+        try {
+          if (!silent) setIsSaving(true);
+          localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data));
+          setLastSaved(new Date(data.timestamp));
+          if (!silent) setTimeout(() => setIsSaving(false), 500);
+          return true;
+        } catch (err) {
+          console.error('Error auto-saving:', err);
+          setIsSaving(false);
+          return false;
+        }
+      }, [tree, buildAutoSaveData]);
+
+      const clearAutoSave = useCallback(() => {
+        autoSaveDebounced.current?.cancel?.();
+        localStorage.removeItem(AUTOSAVE_KEY);
+        setLastSaved(null);
+        setIsSaving(false);
+      }, []);
+
+      const performAutoSave = useCallback(() => {
+        // Autosave should reflect the user's visible state, even after undo/redo.
+        // That's why we don't block on isUndoRedo.current.
+        writeAutoSave();
+      }, [writeAutoSave]);
 
       // Capture the original canvas size as a minimum (so the canvas can grow and shrink but never below this).
       useLayoutEffect(() => {
@@ -2026,46 +2044,80 @@
 
       // Auto-save effect: save when tree/moves/phases/dottedLines/ovals change
       useEffect(() => {
-        if (tree && !isUndoRedo.current) {
+        if (tree) {
           autoSaveDebounced.current(performAutoSave);
         }
       }, [tree, moves, phases, dottedLines, ovals, performAutoSave]);
 
+      // Emergency save before closing, reloading, or hiding the tab.
+      useEffect(() => {
+        const saveImmediately = () => {
+          if (!tree) return;
+          autoSaveDebounced.current?.cancel?.();
+          writeAutoSave({ silent: true });
+        };
+        const handleVisibilityChange = () => {
+          if (document.visibilityState === 'hidden') saveImmediately();
+        };
+        window.addEventListener('beforeunload', saveImmediately);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => {
+          window.removeEventListener('beforeunload', saveImmediately);
+          document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+      }, [tree, writeAutoSave]);
+
       // Restore from auto-save on mount
       useEffect(() => {
-        const saved = localStorage.getItem('kilmer-autosave');
-        if (saved) {
-          try {
-            const data = JSON.parse(saved);
-            const savedDate = new Date(data.timestamp);
-            const minutesAgo = Math.round((Date.now() - savedDate) / 60000);
-            
-            const message = minutesAgo < 1 
-              ? 'Found recent unsaved work.\n\nContinue where you left off?'
-              : `Found unsaved work from ${minutesAgo} minute${minutesAgo === 1 ? '' : 's'} ago.\n\nContinue where you left off?`;
-            
-            const restore = confirm(message);
-            
-            if (restore) {
-              isUndoRedo.current = true;
-              setTree(normalizeNode(data.tree));
-              setMoves(data.moves || []);
-              setPhases(new Set(data.phases || []));
-              setDottedLines(new Set(data.dottedLines || []));
-              setOvals(data.ovals || []);
-              setLateInsertions(data.lateInsertions || []);
-              setHistory([]);
-              setHistoryIndex(-1);
-              setTimeout(() => { isUndoRedo.current = false; }, 0);
-            } else {
-              localStorage.removeItem('kilmer-autosave');
-            }
-          } catch (err) {
-            console.error('Error restoring auto-save:', err);
-            localStorage.removeItem('kilmer-autosave');
+        const saved = localStorage.getItem(AUTOSAVE_KEY);
+        if (!saved) return;
+        try {
+          const data = JSON.parse(saved);
+          if (!data || !data.tree) {
+            clearAutoSave();
+            return;
           }
+          const savedDate = new Date(data.timestamp);
+          const hasValidDate = !Number.isNaN(savedDate.getTime());
+          const minutesAgo = hasValidDate
+            ? Math.max(0, Math.round((Date.now() - savedDate.getTime()) / 60000))
+            : null;
+
+          const message = minutesAgo === null
+            ? 'Found unsaved work.\n\nContinue where you left off?'
+            : minutesAgo < 1
+              ? 'Found unsaved work.\n\nContinue where you left off?'
+              : `Found unsaved work from ${minutesAgo} minute${minutesAgo === 1 ? '' : 's'} ago.\n\nContinue where you left off?`;
+
+          if (confirm(message)) {
+            isUndoRedo.current = true;
+            setTree(normalizeNode(data.tree));
+            setMoves(data.moves || []);
+            setPhases(new Set(data.phases || []));
+            setDottedLines(new Set(data.dottedLines || []));
+            setOvals(data.ovals || []);
+            setLateInsertions(data.lateInsertions || []);
+            // The restored state becomes the first history point.
+            const snapshot = {
+              tree: data.tree ? JSON.parse(JSON.stringify(normalizeNode(data.tree))) : null,
+              moves: JSON.parse(JSON.stringify(data.moves || [])),
+              phases: Array.from(data.phases || []),
+              dottedLines: Array.from(data.dottedLines || []),
+              ovals: JSON.parse(JSON.stringify(data.ovals || [])),
+              lateInsertions: JSON.parse(JSON.stringify(data.lateInsertions || []))
+            };
+            setHistory([snapshot]);
+            setHistoryIndex(0);
+            if (hasValidDate) setLastSaved(savedDate);
+            setTimeout(() => { isUndoRedo.current = false; }, 0);
+          } else {
+            clearAutoSave();
+          }
+        } catch (err) {
+          console.error('Error restoring auto-save:', err);
+          clearAutoSave();
         }
-      }, []); // Solo al montar
+      }, [clearAutoSave]); // Only on mount
 
       const undo = useCallback(() => {
         if (historyIndex > 0) {
@@ -2094,17 +2146,21 @@
           extension: 'json',
           icon: 'save',
         });
-        if (raw === null) return; // cancelado
+        if (raw === null) return; // cancelled
         const filename = (raw || 'tree').replace(/\s+/g, '_');
+
+        // Flush any pending autosave and write the current state.
+        // The backup is NOT cleared: this avoids losing the restoration
+        // point if the user closes the tab right after saving manually.
+        autoSaveDebounced.current?.flush?.();
+        writeAutoSave({ silent: true });
+
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([JSON.stringify({tree, moves, phases: Array.from(phases), dottedLines: Array.from(dottedLines), ovals, lateInsertions})], {type:'application/json'}));
         a.download = `${filename}.json`;
         a.click();
-        
-        // Limpiar auto-guardado después de guardar manualmente
-        localStorage.removeItem('kilmer-autosave');
-        setLastSaved(null);
-      }, [tree, moves, phases, dottedLines, ovals, lateInsertions, askForFilename]);
+        URL.revokeObjectURL(a.href);
+      }, [tree, moves, phases, dottedLines, ovals, lateInsertions, askForFilename, writeAutoSave]);
 
       useEffect(() => {
         const handleKeyDown = (e) => {
@@ -3464,8 +3520,7 @@ function insertIPAIntoActiveInput(ch) {
             setLateInsertions(data.lateInsertions || []);
             setHistory([]);
             setHistoryIndex(-1);
-            localStorage.removeItem('kilmer-autosave');
-            setLastSaved(null);
+            clearAutoSave();
             setTimeout(() => { isUndoRedo.current = false; }, 0);
           } catch(err) { alert("Invalid project file. Please select a valid Kilmer .json or .kilmer file."); }
         };
@@ -3822,7 +3877,7 @@ function insertIPAIntoActiveInput(ch) {
               {/* General */}
               <div className="panel-section">
                 <div className="panel-section-label">General</div>
-                <button className="panel-btn primary" onClick={() => {setTree({id: generateId(), label: '...', children: null, triangleText: null, sublabels: [], terminalLocked: false}); setMoves([]); setPhases(new Set()); setDottedLines(new Set()); setOvals([]); setLateInsertions([]); setHistory([]); setHistoryIndex(-1); localStorage.removeItem('kilmer-autosave'); setLastSaved(null);}}>
+                <button className="panel-btn primary" onClick={() => {setTree({id: generateId(), label: '...', children: null, triangleText: null, sublabels: [], terminalLocked: false}); setMoves([]); setPhases(new Set()); setDottedLines(new Set()); setOvals([]); setLateInsertions([]); setHistory([]); setHistoryIndex(-1); clearAutoSave();}}>
                   <span className="pb-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path><path d="M5 3v4"></path><path d="M19 17v4"></path><path d="M3 5h4"></path><path d="M17 19h4"></path></svg></span>New Tree
                 </button>
                 <button className="panel-btn" onClick={() => window.open('manual.html', '_blank')}>
