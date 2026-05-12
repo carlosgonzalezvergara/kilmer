@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:wght@400;600&family=Gentium+Plus:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
 
-  <link rel="icon" type="image/png" href="favicon.png".png">
+  <link rel="icon" type="image/png" href="favicon.png">
 
   <style>
     :root {
@@ -1200,6 +1200,68 @@
       margin: 0 2px;
     }
 
+    /* =================================
+       ROOT HINT (onboarding speech bubble)
+       =================================
+       Bocadillo que aparece junto al nodo raíz al crear un árbol nuevo.
+       Anclado por JS al borde derecho del label del nodo raíz, con la cola
+       apuntando hacia el nodo. Se autodescarta a los 4s con fade-out.
+    */
+    .root-hint {
+      position: fixed;
+      z-index: 90;
+      transform: translateY(-50%);
+      pointer-events: none;
+      animation: rootHintIn 0.25s ease-out;
+    }
+    @keyframes rootHintIn {
+      from { opacity: 0; transform: translate(-6px, -50%); }
+      to   { opacity: 1; transform: translate(0,    -50%); }
+    }
+    .root-hint.fading { opacity: 0; transition: opacity 0.4s ease-out; }
+    .root-hint-bubble {
+      position: relative;
+      background: var(--color-accent);
+      color: white;
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      padding: 9px 14px 9px 14px;
+      border-radius: 10px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: auto;
+    }
+    /* Cola del bocadillo apuntando a la izquierda (hacia el nodo). */
+    .root-hint-bubble::before {
+      content: '';
+      position: absolute;
+      left: -7px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0;
+      height: 0;
+      border-top: 7px solid transparent;
+      border-bottom: 7px solid transparent;
+      border-right: 8px solid var(--color-accent);
+    }
+    .root-hint-close {
+      background: transparent;
+      border: none;
+      color: rgba(255,255,255,0.85);
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      padding: 0 2px;
+      margin-left: 2px;
+      border-radius: 4px;
+    }
+    .root-hint-close:hover { color: white; background: rgba(255,255,255,0.15); }
+
     .btn.disabled{
       opacity: .45;
       pointer-events: none;
@@ -1388,9 +1450,19 @@
     ];
 
 
+    // Escapa caracteres HTML peligrosos antes de aplicar el marcado.
+    // Esto cierra un vector XSS al cargar archivos .json/.kilmer ajenos:
+    // sin escape, una etiqueta como "<svg onload=alert(1)>" pasaría intacta
+    // por formatLabel y se ejecutaría al renderizarse vía dangerouslySetInnerHTML.
+    // El escape no afecta a los seis casos del manual (todos los marcadores
+    // son caracteres ASCII no conflictivos: * _ # =).
+    const escapeHtml = (s) => s.replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[c]);
+
     const formatLabel = (text) => {
       if (!text) return '';
-      return text
+      return escapeHtml(text)
         .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
         .replace(/\*(.*?)\*/g, '<i>$1</i>')
         .replace(/=(.*?)=/g, '<s>$1</s>')
@@ -1618,7 +1690,7 @@
               )}
 
               {!isSpecialMode && (
-                <div className={`node-actions ${suppressActionButtons ? 'suppressed' : ''} `}>
+                <div className={`node-actions ${suppressActionButtons || isEditingNode ? 'suppressed' : ''} `}>
                   {(buildMode === 'bottomup' || (!node.children && !node.triangleText && !node.terminalLocked)) && (
                     <>
                       <button className="action-btn" onClick={() => { if (buildMode === 'bottomup') addParent(node.id, 1); else addNode(node.id, 1); }} title={buildMode === 'bottomup' ? 'Add unary parent' : 'Add single daughter'}>│</button>
@@ -1693,7 +1765,7 @@
                   </div>
                 )}
                 {!isSpecialMode && (
-                  <div className={`node-actions ${suppressActionButtons ? 'suppressed' : ''} `}>
+                  <div className={`node-actions ${suppressActionButtons || isEditingNode ? 'suppressed' : ''} `}>
                     <button className={`action-btn ${hasTriangleSublabels ? 'active' : ''}`} onClick={() => addTriangleSublabel(node.id)} disabled={triangleSublabels.length >= 4} title={triangleSublabels.length >= 4 ? 'Maximum: 4 secondary labels' : 'Add a secondary label (max 4)'}>+₂</button>
                     <button className="action-btn danger" onClick={() => toggleTri(node.id, 'topdown')} title="Remove triangle">✕</button>
                   </div>
@@ -1787,6 +1859,78 @@
       );
     };
 
+    // ════════════════════════════════════════════════════════════════
+    // RestoreModal — diálogo personalizado que reemplaza al confirm()
+    // nativo del navegador al detectar trabajo no guardado en localStorage.
+    // Reutiliza las clases .fnm-* del FilenameModal para mantener la
+    // estética Kilmer sin duplicar CSS. La diferencia clave es que tiene
+    // dos botones de acción (Continue / Discard) en lugar de Cancel/Save,
+    // y el mensaje principal va en el cuerpo en lugar de un input editable.
+    // ════════════════════════════════════════════════════════════════
+    const RestoreModal = ({ minutesAgo, onContinue, onDiscard }) => {
+      const continueRef = useRef(null);
+
+      // Auto-focus en el botón principal para que Enter confirme y Esc descarte.
+      useEffect(() => {
+        if (continueRef.current) continueRef.current.focus();
+      }, []);
+
+      useEffect(() => {
+        const onKey = (e) => {
+          if (e.key === 'Escape') { e.preventDefault(); onDiscard(); }
+          else if (e.key === 'Enter') { e.preventDefault(); onContinue(); }
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+      }, [onContinue, onDiscard]);
+
+      const iconSvg = (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path>
+          <path d="M3 3v5h5"></path>
+        </svg>
+      );
+
+      const timeLabel = (minutesAgo === null || minutesAgo < 1)
+        ? 'Found unsaved work from your last session.'
+        : `Found unsaved work from ${minutesAgo} minute${minutesAgo === 1 ? '' : 's'} ago.`;
+
+      return (
+        // El mismo backdrop semi-opaco del FilenameModal cubre el canvas vacío
+        // que se ve por debajo, evitando el "parpadeo" del árbol inicial antes
+        // de la restauración. No cerramos por clic en backdrop: la decisión
+        // debe ser explícita (Continue o Discard).
+        <div className="fnm-backdrop">
+          <div className="fnm-card" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="fnm-header">
+              {iconSvg}
+              <span>Restore previous session</span>
+            </div>
+            <div className="fnm-body">
+              <p style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: '14px',
+                color: 'var(--color-text)',
+                margin: '0 0 6px 0',
+                lineHeight: 1.5
+              }}>{timeLabel}</p>
+              <p style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: '13px',
+                color: 'var(--color-text-muted, #6b6b6b)',
+                margin: 0,
+                lineHeight: 1.5
+              }}>Continue where you left off, or discard the backup and start fresh?</p>
+            </div>
+            <div className="fnm-actions">
+              <button type="button" className="fnm-btn fnm-btn-cancel" onClick={onDiscard}>Discard</button>
+              <button ref={continueRef} type="button" className="fnm-btn fnm-btn-confirm" onClick={onContinue}>Continue</button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
     const KilmerApp = () => {
       const [history, setHistory] = useState([]);
       const [historyIndex, setHistoryIndex] = useState(-1);
@@ -1817,6 +1961,12 @@
         setFilenameModal(null);
         if (resolve) resolve(value);
       }, []);
+
+      // Estado del modal de restauración. Cuando restorePending !== null, se
+      // muestra el RestoreModal y se difiere la decisión a la respuesta del
+      // usuario. Guardamos los datos parseados aquí mismo para no parsear dos
+      // veces y para que el modal pueda mostrar el minutesAgo correcto.
+      const [restorePending, setRestorePending] = useState(null);
       const [isPhaseMode, setIsPhaseMode] = useState(false);
       const [isRegionMode, setIsRegionMode] = useState(false);
       const [regionColor, setRegionColor] = useState('#ef4444');
@@ -1876,6 +2026,43 @@
       const zoomIn = useCallback(() => { setZoomLevel(prev => Math.min(prev + ZOOM_STEP, ZOOM_MAX)); }, []);
       const zoomOut = useCallback(() => { setZoomLevel(prev => Math.max(prev - ZOOM_STEP, ZOOM_MIN)); }, []);
       const zoomReset = useCallback(() => { setZoomLevel(100); }, []);
+
+      // Onboarding hint: bocadillo "Start your tree here" junto al nodo raíz.
+      // Se muestra al crear un árbol nuevo (no en load, restauración, ni undo)
+      // y se autodescarta a los 4s con fade-out. También se cierra con el botón
+      // × o al hacer clic en el label del nodo (que es la acción que sugiere).
+      const HINT_DURATION_MS = 3000;
+      const HINT_FADE_MS = 400;
+      const [rootHint, setRootHint] = useState(null); // null | 'visible' | 'fading'
+      const rootHintTimersRef = useRef({ fade: null, hide: null });
+
+      const dismissRootHint = useCallback(() => {
+        const t = rootHintTimersRef.current;
+        if (t.fade) { clearTimeout(t.fade); t.fade = null; }
+        if (t.hide) { clearTimeout(t.hide); t.hide = null; }
+        setRootHint(null);
+      }, []);
+
+      const showRootHint = useCallback(() => {
+        // Cancelar timers de un hint anterior si los hubiera.
+        dismissRootHint();
+        setRootHint('visible');
+        rootHintTimersRef.current.fade = setTimeout(() => {
+          setRootHint('fading');
+        }, HINT_DURATION_MS);
+        rootHintTimersRef.current.hide = setTimeout(() => {
+          setRootHint(null);
+          rootHintTimersRef.current.fade = null;
+          rootHintTimersRef.current.hide = null;
+        }, HINT_DURATION_MS + HINT_FADE_MS);
+      }, [dismissRootHint]);
+
+      // Limpieza de timers al desmontar el componente.
+      useEffect(() => () => {
+        const t = rootHintTimersRef.current;
+        if (t.fade) clearTimeout(t.fade);
+        if (t.hide) clearTimeout(t.hide);
+      }, []);
 
       const startCurveDrag = useCallback((e, moveId, currentOffsetY = 0, currentOffsetX = 0) => {
         e.preventDefault();
@@ -2067,7 +2254,47 @@
         };
       }, [tree, writeAutoSave]);
 
-      // Restore from auto-save on mount
+      // Aceptar la restauración pendiente. Toda la lógica de restauración es
+      // idéntica a la versión anterior basada en confirm(); solo se separa
+      // en su propio handler para poder llamarse de forma asíncrona desde el
+      // RestoreModal. El snapshot inicial del historial se construye igual.
+      const acceptRestore = useCallback(() => {
+        if (!restorePending) return;
+        const { data, savedDate, hasValidDate } = restorePending;
+        isUndoRedo.current = true;
+        setTree(normalizeNode(data.tree));
+        setMoves(data.moves || []);
+        setPhases(new Set(data.phases || []));
+        setDottedLines(new Set(data.dottedLines || []));
+        setOvals(data.ovals || []);
+        setLateInsertions(data.lateInsertions || []);
+        const snapshot = {
+          tree: data.tree ? JSON.parse(JSON.stringify(normalizeNode(data.tree))) : null,
+          moves: JSON.parse(JSON.stringify(data.moves || [])),
+          phases: Array.from(data.phases || []),
+          dottedLines: Array.from(data.dottedLines || []),
+          ovals: JSON.parse(JSON.stringify(data.ovals || [])),
+          lateInsertions: JSON.parse(JSON.stringify(data.lateInsertions || []))
+        };
+        setHistory([snapshot]);
+        setHistoryIndex(0);
+        if (hasValidDate) setLastSaved(savedDate);
+        setRestorePending(null);
+        setTimeout(() => { isUndoRedo.current = false; }, 0);
+      }, [restorePending, clearAutoSave]);
+
+      const declineRestore = useCallback(() => {
+        clearAutoSave();
+        setRestorePending(null);
+      }, [clearAutoSave]);
+
+      // Restore from auto-save on mount.
+      // En lugar del confirm() bloqueante anterior, parseamos el localStorage
+      // y, si hay datos válidos, abrimos el RestoreModal. La decisión real
+      // (acceptRestore / declineRestore) ocurre cuando el usuario responde.
+      // Mientras el modal está abierto su backdrop semi-opaco cubre el árbol
+      // vacío inicial, evitando el parpadeo entre el render por defecto y la
+      // restauración.
       useEffect(() => {
         const saved = localStorage.getItem(AUTOSAVE_KEY);
         if (!saved) return;
@@ -2082,37 +2309,7 @@
           const minutesAgo = hasValidDate
             ? Math.max(0, Math.round((Date.now() - savedDate.getTime()) / 60000))
             : null;
-
-          const message = minutesAgo === null
-            ? 'Found unsaved work.\n\nContinue where you left off?'
-            : minutesAgo < 1
-              ? 'Found unsaved work.\n\nContinue where you left off?'
-              : `Found unsaved work from ${minutesAgo} minute${minutesAgo === 1 ? '' : 's'} ago.\n\nContinue where you left off?`;
-
-          if (confirm(message)) {
-            isUndoRedo.current = true;
-            setTree(normalizeNode(data.tree));
-            setMoves(data.moves || []);
-            setPhases(new Set(data.phases || []));
-            setDottedLines(new Set(data.dottedLines || []));
-            setOvals(data.ovals || []);
-            setLateInsertions(data.lateInsertions || []);
-            // The restored state becomes the first history point.
-            const snapshot = {
-              tree: data.tree ? JSON.parse(JSON.stringify(normalizeNode(data.tree))) : null,
-              moves: JSON.parse(JSON.stringify(data.moves || [])),
-              phases: Array.from(data.phases || []),
-              dottedLines: Array.from(data.dottedLines || []),
-              ovals: JSON.parse(JSON.stringify(data.ovals || [])),
-              lateInsertions: JSON.parse(JSON.stringify(data.lateInsertions || []))
-            };
-            setHistory([snapshot]);
-            setHistoryIndex(0);
-            if (hasValidDate) setLastSaved(savedDate);
-            setTimeout(() => { isUndoRedo.current = false; }, 0);
-          } else {
-            clearAutoSave();
-          }
+          setRestorePending({ data, savedDate, hasValidDate, minutesAgo });
         } catch (err) {
           console.error('Error restoring auto-save:', err);
           clearAutoSave();
@@ -2407,7 +2604,9 @@ const onEditStart = useCallback(() => {
   isEditingRef.current = true;
   setIsEditingNode(true);
   captureActiveEditInput();
-}, [captureActiveEditInput]);
+  // Si el usuario empieza a editar, ya entendió el mensaje del bocadillo.
+  dismissRootHint();
+}, [captureActiveEditInput, dismissRootHint]);
 
 const onEditEnd = useCallback(() => {
   isEditingRef.current = false;
@@ -2614,6 +2813,45 @@ function insertIPAIntoActiveInput(ch) {
           window.removeEventListener('focusin', onFocusIn);
         };
       }, [isEditingNode, zoomLevel, buildMode]);
+
+      // ================================
+      // Root hint: position tracking
+      // ================================
+      // Mientras rootHint !== null, mantenemos rootHintPos sincronizado con la
+      // ubicación en pantalla del label del nodo raíz. Mismo patrón que
+      // fmtBarPos: getBoundingClientRect + reposición en scroll/resize/zoom.
+      // El bocadillo se ancla a la derecha del nodo, con la cola apuntando a él.
+      const [rootHintPos, setRootHintPos] = useState(null);
+      useEffect(() => {
+        if (!rootHint) { setRootHintPos(null); return; }
+
+        const update = () => {
+          const container = zoomContainerRef.current;
+          if (!container) { setRootHintPos(null); return; }
+          // El nodo raíz es el primer .tree-node con data-node-id directo dentro
+          // del zoom-container. Buscar el label principal del nodo raíz.
+          const rootLabel = container.querySelector(':scope > .tree-node > .node-wrapper .node-content > .node-label .node-display');
+          if (!rootLabel) { setRootHintPos(null); return; }
+          const r = rootLabel.getBoundingClientRect();
+          // Anclamos al borde derecho del label, con un pequeño gap horizontal,
+          // y centramos verticalmente en la mitad del label.
+          setRootHintPos({
+            left: r.right + 14,
+            top: r.top + r.height / 2,
+          });
+        };
+
+        // Pequeño retraso para que el árbol nuevo se haya renderizado.
+        const t = setTimeout(update, 30);
+        const onScrollOrResize = () => update();
+        window.addEventListener('scroll', onScrollOrResize, true);
+        window.addEventListener('resize', onScrollOrResize);
+        return () => {
+          clearTimeout(t);
+          window.removeEventListener('scroll', onScrollOrResize, true);
+          window.removeEventListener('resize', onScrollOrResize);
+        };
+      }, [rootHint, zoomLevel, tree]);
 
 // --- Oval interaction handlers (create / move / resize / label) ---
       const getUnscaledPos = useCallback((e) => {
@@ -3067,15 +3305,67 @@ function insertIPAIntoActiveInput(ch) {
           const y = (labelRect.top - rect.top) / zoomScale;
           const width = labelRect.width / zoomScale;
 
-          const padding = 14;
-          const arcHeight = 15;
-          const startX = x - padding;
-          const startY = y + 5;
-          const endX = x + width + padding;
-          const endY = y + 5;
-          const controlY = y - arcHeight;
+          // Buscar el nodo padre subiendo por el DOM. El árbol está estructurado
+          // como .tree-node > .node-wrapper, y los hijos viven en .node-children.
+          // Por tanto el padre lógico es el .tree-node ancestro más cercano.
+          // Capturamos también el centro horizontal del label del padre para
+          // poder calcular el punto medio real del segmento padre→hijo
+          // (no solo su altura). Esto es clave cuando padre e hijo no están
+          // alineados verticalmente: el arco debe seguir la diagonal de la
+          // línea, no centrarse sobre el nodo hijo.
+          let parentLabelBottomY = null;
+          let parentLabelCenterX = null;
+          const parentTreeNode = nodeEl.parentElement?.closest('.tree-node');
+          if (parentTreeNode) {
+            const parentLabelEl = parentTreeNode.querySelector(':scope > .node-wrapper .node-content > .node-label .node-display');
+            if (parentLabelEl) {
+              const parentLabelRect = parentLabelEl.getBoundingClientRect();
+              // Borde inferior del label del padre y su centro horizontal,
+              // en coordenadas sin zoom.
+              parentLabelBottomY = (parentLabelRect.bottom - rect.top) / zoomScale;
+              parentLabelCenterX = (parentLabelRect.left + parentLabelRect.width / 2 - rect.left) / zoomScale;
+            }
+          }
 
-          const path = `M ${startX} ${startY} Q ${x + width/2} ${controlY} ${endX} ${endY}`;
+          // Posicionamiento del arco: cuando hay padre, situamos el centro
+          // del arco sobre la línea padre→hijo, no sobre el nodo hijo.
+          // Esto resuelve dos problemas a la vez en árboles asimétricos:
+          //   (a) el arco queda visualmente alineado con la línea diagonal,
+          //   (b) no queda desfasado lateralmente respecto a la línea.
+          // ARC_T controla a qué altura del segmento se coloca: 0.5 = mitad
+          // exacta, 0.75 = tres cuartos hacia el hijo (claramente más bajo
+          // que la versión anterior). Si tras ver el resultado todavía está
+          // demasiado arriba o demasiado abajo, mover este valor.
+          const ARC_T = 0.75;           // fracción del segmento padre→hijo (0=padre, 1=hijo)
+          const ARC_TILT = 18;          // elevación de la punta derecha (en px)
+          const arcHeight = 15;         // altura de la curva sobre el punto base
+          const nodeCenterX = x + width / 2;
+          let baseY, cx;
+          if (parentLabelBottomY !== null && parentLabelCenterX !== null) {
+            // Punto sobre el segmento (centro del padre → centro del hijo)
+            // a la fracción ARC_T.
+            baseY = parentLabelBottomY + (y - parentLabelBottomY) * ARC_T;
+            cx = parentLabelCenterX + (nodeCenterX - parentLabelCenterX) * ARC_T;
+          } else {
+            // Fallback: encima del nodo, como antes (caso nodo raíz).
+            baseY = y + 5;
+            cx = nodeCenterX;
+          }
+
+          // Ancho del arco: 2/3 del valor que tenía cuando era doble del original.
+          // Antes: 2*(width + 28) = doble del original (width + 28 = width + 2*padding).
+          // Ahora: (2/3)*2*(width + 28) = (4/3)*(width + 28).
+          // Repartido simétricamente a izquierda y derecha del centro del arco
+          // (cx, calculado arriba sobre la línea padre→hijo).
+          const arcSpan = (4 / 3) * (width + 28);
+          const startX = cx - arcSpan / 2;
+          const endX = cx + arcSpan / 2;
+          const startY = baseY;
+          const endY = baseY - ARC_TILT;
+          // Punto de control: por encima del punto medio entre startY y endY.
+          const controlY = ((startY + endY) / 2) - arcHeight;
+
+          const path = `M ${startX} ${startY} Q ${cx} ${controlY} ${endX} ${endY}`;
           const phaseKey = `phase-${nodeId}`;
           const isDotted = !dottedLines.has(phaseKey);
 
@@ -3083,7 +3373,7 @@ function insertIPAIntoActiveInput(ch) {
             <g key={phaseKey} className="phase-group">
               <path d={path} fill="none" stroke="transparent" strokeWidth="12" style={{cursor: 'pointer', pointerEvents: 'stroke'}} onDoubleClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleDottedLine(phaseKey); }} />
               <path d={path} fill="none" stroke="black" strokeWidth="1.5" strokeDasharray={isDotted ? "5,3" : "none"} opacity="0.8" style={{pointerEvents: 'none'}} />
-              <g className="arrow-delete-btn" onClick={() => togglePhase(nodeId)} transform={`translate(${x + width/2 - 10},${controlY - 18})`}>
+              <g className="arrow-delete-btn" onClick={() => togglePhase(nodeId)} transform={`translate(${cx - 10},${controlY - 18})`}>
                 <rect width="20" height="20" fill="white" stroke="#e0ddd8" /><text x="10" y="15" textAnchor="middle" fontSize="14" fill="#dc2626">×</text>
               </g>
             </g>
@@ -3877,7 +4167,7 @@ function insertIPAIntoActiveInput(ch) {
               {/* General */}
               <div className="panel-section">
                 <div className="panel-section-label">General</div>
-                <button className="panel-btn primary" onClick={() => {setTree({id: generateId(), label: '...', children: null, triangleText: null, sublabels: [], terminalLocked: false}); setMoves([]); setPhases(new Set()); setDottedLines(new Set()); setOvals([]); setLateInsertions([]); setHistory([]); setHistoryIndex(-1); clearAutoSave();}}>
+                <button className="panel-btn primary" onClick={() => {setTree({id: generateId(), label: '...', children: null, triangleText: null, sublabels: [], terminalLocked: false}); setMoves([]); setPhases(new Set()); setDottedLines(new Set()); setOvals([]); setLateInsertions([]); setHistory([]); setHistoryIndex(-1); clearAutoSave(); showRootHint();}}>
                   <span className="pb-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path><path d="M5 3v4"></path><path d="M19 17v4"></path><path d="M3 5h4"></path><path d="M17 19h4"></path></svg></span>New Tree
                 </button>
                 <button className="panel-btn" onClick={() => window.open('manual.html', '_blank')}>
@@ -4149,6 +4439,26 @@ function insertIPAIntoActiveInput(ch) {
               </div>
             )}
 
+            {/* Root hint: bocadillo "Start your tree here" junto al nodo raíz.
+                Anclado por JS al label del nodo raíz; se autodescarta a los 4s. */}
+            {rootHint && rootHintPos && (
+              <div
+                className={`root-hint ${rootHint === 'fading' ? 'fading' : ''}`}
+                style={{ left: `${rootHintPos.left}px`, top: `${rootHintPos.top}px` }}
+              >
+                <div className="root-hint-bubble">
+                  <span>Start your tree here</span>
+                  <button
+                    type="button"
+                    className="root-hint-close"
+                    aria-label="Dismiss hint"
+                    title="Dismiss"
+                    onClick={dismissRootHint}
+                  >×</button>
+                </div>
+              </div>
+            )}
+
             {/* Auto-save indicator - top left corner */}
             <div className={`autosave-indicator ${(isSaving || lastSaved) && tree ? 'visible' : ''}`}>
               {isSaving && (
@@ -4307,6 +4617,14 @@ function insertIPAIntoActiveInput(ch) {
             />
           )}
 
+          {restorePending && (
+            <RestoreModal
+              minutesAgo={restorePending.minutesAgo}
+              onContinue={acceptRestore}
+              onDiscard={declineRestore}
+            />
+          )}
+
         </div>
       );
     };
@@ -4326,11 +4644,25 @@ function insertIPAIntoActiveInput(ch) {
     setTimeout(syncCanvasHeight, 200);
     window.addEventListener('resize', syncCanvasHeight);
     const _obs = new MutationObserver(syncCanvasHeight);
-    document.addEventListener('DOMContentLoaded', () => {
+    // Conectar el observer en cuanto el panel exista, con un pequeño retry
+    // para cubrir el caso de que React (vía Babel-standalone) tarde en montar.
+    (function connectObserver() {
       const panel = document.querySelector('.left-panel');
       if (panel) _obs.observe(panel, { childList: true, subtree: true, attributes: true });
-    });
-    setInterval(syncCanvasHeight, 500);
+      else setTimeout(connectObserver, 50);
+    })();
+    // Las fuentes web (Crimson Pro, Source Sans 3) pueden llegar después del
+    // primer render y reflowar el panel sin disparar mutaciones DOM. Este
+    // hook captura ese caso concreto sin necesidad de polling.
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(syncCanvasHeight);
+    }
+    // Red de seguridad de baja frecuencia para casos sutiles que ni el
+    // MutationObserver ni los listeners de resize/fonts capturan
+    // (transiciones CSS lentas, cambios de zoom del navegador, etc.).
+    // 2000ms es 4× menos costoso que el 500ms anterior y sigue siendo
+    // imperceptible desde el punto de vista del usuario.
+    setInterval(syncCanvasHeight, 2000);
   </script>
 </body>
 </html>
