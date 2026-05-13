@@ -1398,6 +1398,43 @@
       cursor: not-allowed;
     }
 
+    /* Radio groups para campos extra del FilenameModal (e.g. fondo del PNG).
+       Diseño deliberadamente discreto: borde fino, sin fondo, tipografía
+       pequeña — para que el campo extra no compita visualmente con el
+       input del nombre, que es la decisión principal del modal. */
+    .fnm-radio-group {
+      display: flex;
+      gap: 6px;
+    }
+    .fnm-radio {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 10px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      background: transparent;
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--color-text-muted);
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .fnm-radio:hover {
+      border-color: rgba(0, 0, 0, 0.2);
+      color: var(--color-text);
+    }
+    .fnm-radio.selected {
+      border-color: var(--color-accent);
+      color: var(--color-text);
+    }
+    .fnm-radio input[type="radio"] {
+      accent-color: var(--color-accent);
+      margin: 0;
+      transform: scale(0.9);
+    }
+
 </style>
 </head>
 
@@ -1792,9 +1829,18 @@
     // fuente Crimson Pro). Se invoca vía askForFilename(...) que devuelve
     // una promesa con el nombre confirmado o null si se cancela.
     // ════════════════════════════════════════════════════════════════
-    const FilenameModal = ({ title, defaultName, extension, icon, onCancel, onConfirm }) => {
+    const FilenameModal = ({ title, defaultName, extension, icon, extraFields, onCancel, onConfirm }) => {
       const [value, setValue] = useState(defaultName || '');
       const inputRef = useRef(null);
+
+      // Estado de los campos extra (radio groups u otros). Las claves son
+      // los id de cada campo y el valor inicial es el `default` declarado.
+      // Si no hay extraFields no se crea ningún estado adicional.
+      const [extras, setExtras] = useState(() => {
+        const init = {};
+        (extraFields || []).forEach(f => { init[f.id] = f.default; });
+        return init;
+      });
 
       // Auto-focus + selección completa al abrir, para que el usuario pueda
       // sobrescribir el nombre por defecto inmediatamente con su tipeo.
@@ -1805,15 +1851,24 @@
         }
       }, []);
 
+      // Resultado que devolvemos al confirmar: si hay campos extra
+      // devolvemos { name, extras }, si no, sólo el name (para mantener
+      // compatibilidad con los call sites que no usan extras).
+      const buildResult = useCallback(() => {
+        const name = value.trim();
+        if (extraFields && extraFields.length > 0) return { name, extras };
+        return name;
+      }, [value, extras, extraFields]);
+
       // Atajos de teclado a nivel global del modal: Enter confirma, Escape cancela.
       useEffect(() => {
         const onKey = (e) => {
           if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
-          else if (e.key === 'Enter') { e.preventDefault(); if (value.trim()) onConfirm(value.trim()); }
+          else if (e.key === 'Enter') { e.preventDefault(); if (value.trim()) onConfirm(buildResult()); }
         };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
-      }, [value, onCancel, onConfirm]);
+      }, [value, onCancel, onConfirm, buildResult]);
 
       // Iconos SVG inline para el header (sin dependencias). Coinciden con los
       // iconos ya usados en los botones del side panel (download / image).
@@ -1844,6 +1899,28 @@
                 />
                 {extension && <div className="fnm-ext">.{extension}</div>}
               </div>
+
+              {/* Campos extra opcionales: cada uno es un radio group declarado
+                  por el caller con { id, label, options:[{value,label}], default }. */}
+              {extraFields && extraFields.map(field => (
+                <div key={field.id} className="fnm-extra-field">
+                  <div className="fnm-label" style={{ marginTop: '12px', fontSize: '11px' }}>{field.label}</div>
+                  <div className="fnm-radio-group">
+                    {field.options.map(opt => (
+                      <label key={opt.value} className={`fnm-radio ${extras[field.id] === opt.value ? 'selected' : ''}`}>
+                        <input
+                          type="radio"
+                          name={field.id}
+                          value={opt.value}
+                          checked={extras[field.id] === opt.value}
+                          onChange={() => setExtras(prev => ({ ...prev, [field.id]: opt.value }))}
+                        />
+                        <span>{opt.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
             <div className="fnm-actions">
               <button type="button" className="fnm-btn fnm-btn-cancel" onClick={onCancel}>Cancel</button>
@@ -1851,7 +1928,7 @@
                 type="button"
                 className="fnm-btn fnm-btn-confirm"
                 disabled={!value.trim()}
-                onClick={() => onConfirm(value.trim())}
+                onClick={() => onConfirm(buildResult())}
               >Save</button>
             </div>
           </div>
@@ -1948,10 +2025,10 @@
       const [filenameModal, setFilenameModal] = useState(null);
       const filenameResolverRef = useRef(null);
 
-      const askForFilename = useCallback(({ title, defaultName, extension, icon }) => {
+      const askForFilename = useCallback(({ title, defaultName, extension, icon, extraFields }) => {
         return new Promise((resolve) => {
           filenameResolverRef.current = resolve;
-          setFilenameModal({ title, defaultName: defaultName || '', extension: extension || '', icon: icon || null });
+          setFilenameModal({ title, defaultName: defaultName || '', extension: extension || '', icon: icon || null, extraFields: extraFields || null });
         });
       }, []);
 
@@ -3819,15 +3896,25 @@ function insertIPAIntoActiveInput(ch) {
       };
 
       const handleExportPNG = async () => {
-        const raw = await askForFilename({
+        const result = await askForFilename({
           title: 'Download as Image',
           defaultName: 'syntax_tree',
           extension: 'png',
           icon: 'image',
+          extraFields: [{
+            id: 'background',
+            label: 'Background',
+            default: 'white',
+            options: [
+              { value: 'white', label: 'White' },
+              { value: 'transparent', label: 'Transparent' },
+            ],
+          }],
         });
-        if (raw === null) return; // cancelado
-        const filename = (raw || 'syntax_tree').replace(/\s+/g, '_');
+        if (result === null) return; // cancelado
+        const filename = (result.name || 'syntax_tree').replace(/\s+/g, '_');
         if (!filename) return;
+        const backgroundMode = result.extras.background; // 'white' | 'transparent'
 
         // ═══════════════════════════════════════════════════════════════
         // COMPOSITE EXPORT v4
@@ -4112,6 +4199,15 @@ function insertIPAIntoActiveInput(ch) {
         finalCanvas.width = finalPxW;
         finalCanvas.height = finalPxH;
         const ctx = finalCanvas.getContext('2d');
+
+        // Fondo: si el usuario eligió 'white' en el modal, pintamos un
+        // rectángulo blanco que cubre todo el canvas antes de componer
+        // los layers. Si eligió 'transparent', no pintamos nada y el
+        // canvas conserva su transparencia original.
+        if (backgroundMode === 'white') {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, finalPxW, finalPxH);
+        }
 
         ctx.drawImage(htmlCanvas, 0, 0, finalPxW, finalPxH);
         if (svgImg) ctx.drawImage(svgImg, 0, 0, finalPxW, finalPxH);
@@ -4612,8 +4708,9 @@ function insertIPAIntoActiveInput(ch) {
               defaultName={filenameModal.defaultName}
               extension={filenameModal.extension}
               icon={filenameModal.icon}
+              extraFields={filenameModal.extraFields}
               onCancel={() => closeFilenameModal(null)}
-              onConfirm={(name) => closeFilenameModal(name)}
+              onConfirm={(result) => closeFilenameModal(result)}
             />
           )}
 

@@ -416,10 +416,15 @@
   <!-- ═══ 6. SAVING ═══ -->
   <section id="saving">
     <h2>6. Saving and Exporting</h2>
-    <p>Both <span class="ui-element">Save Project</span> and <span class="ui-element">Download as Image</span> open a dialog where you can choose the file name before downloading. The extension (<code>.json</code> or <code>.png</code>) is added automatically.</p>
+    <p>Both <span class="ui-element">Save Project</span> and <span class="ui-element">Download as Image</span> open a dialog where you can choose the file name before downloading. The extension (<code>.json</code> or <code>.png</code>) is added automatically. Press <span class="keyboard-shortcut">Enter</span> to confirm or <span class="keyboard-shortcut">Esc</span> (or click outside the dialog) to cancel.</p>
     <ul>
       <li><span class="ui-element">Save Project</span>: downloads a <code>.json</code> file. The file can be reloaded at any time via <span class="ui-element">Load Project</span>.</li>
-      <li><span class="ui-element">Download as Image</span>: generates a high-resolution PNG with clean rendering and appropriate padding, ready for inclusion in documents or presentations.</li>
+      <li><span class="ui-element">Download as Image</span>: generates a high-resolution PNG with clean rendering and appropriate padding, ready for inclusion in documents or presentations. The dialog includes a <strong>Background</strong> selector with two options:
+        <ul>
+          <li><strong>White</strong> (default): produces a PNG with a solid white background. This is the safest choice for embedding the image in documents, slides, or printed materials.</li>
+          <li><strong>Transparent</strong>: produces a PNG with no background. Useful when you want to compose the diagram over a colored slide background or layer it with other graphics.</li>
+        </ul>
+      </li>
       <li><strong>Auto-save:</strong> Kilmer periodically stores your work in the browser (indicated by the <code>☁ Saving…</code> / <code>✓ Auto-saved</code> chip in the top-left corner of the canvas). This is a safety net for accidental tab closes — it does not replace an explicit <span class="ui-element">Save Project</span>.</li>
     </ul>
 
